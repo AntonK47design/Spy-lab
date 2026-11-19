@@ -22,6 +22,8 @@ import {
   Uint16BufferAttribute,
   Box3,
   Vector3,
+  SRGBColorSpace,
+  type Texture,
   type Material,
 } from 'three'
 import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
@@ -78,6 +80,29 @@ export function lazyFiles(): string[] {
 // ---------------------------------------------------------------- static props
 const propCache = new Map<string, BufferGeometry | null>()
 const tmpColor = new Color()
+const texel = new Color()
+const pixelCache = new WeakMap<object, { w: number; h: number; d: Uint8ClampedArray } | null>()
+
+/** Read a texture's pixels once (palette atlases are tiny, e.g. 128-1024 px). */
+function texturePixels(tex: Texture): { w: number; h: number; d: Uint8ClampedArray } | null {
+  const img = tex.image as (CanvasImageSource & { width: number; height: number }) | undefined
+  if (!img || !img.width) return null
+  if (pixelCache.has(img)) return pixelCache.get(img) ?? null
+  try {
+    const c = document.createElement('canvas')
+    c.width = img.width
+    c.height = img.height
+    const ctx = c.getContext('2d', { willReadFrequently: true })
+    if (!ctx) return null
+    ctx.drawImage(img, 0, 0)
+    const data = { w: c.width, h: c.height, d: ctx.getImageData(0, 0, c.width, c.height).data }
+    pixelCache.set(img, data)
+    return data
+  } catch {
+    pixelCache.set(img, null)
+    return null
+  }
+}
 
 function toFloat(attr: BufferAttribute, itemSize: number): Float32BufferAttribute {
   const n = attr.count
@@ -113,26 +138,42 @@ export async function propGeometry(id: ModelId): Promise<BufferGeometry | null> 
     const src = mesh.geometry
     const groups = src.groups.length ? src.groups : [{ start: 0, count: src.index ? src.index.count : src.getAttribute('position').count, materialIndex: 0 }]
     for (const g of groups) {
-      const mat = mats[g.materialIndex ?? 0] as Material & { color?: Color; name: string }
+      const mat = mats[g.materialIndex ?? 0] as Material & { color?: Color; name: string; map?: Texture | null }
       let geo = new BufferGeometry()
       geo.setAttribute('position', toFloat(src.getAttribute('position') as BufferAttribute, 3))
       const nrm = src.getAttribute('normal') as BufferAttribute | undefined
       if (nrm) geo.setAttribute('normal', toFloat(nrm, 3))
+      const uvAttr = src.getAttribute('uv') as BufferAttribute | undefined
+      const pixels = mat.map ? texturePixels(mat.map) : null
+      if (pixels && uvAttr) geo.setAttribute('uv', toFloat(uvAttr, 2))
       if (src.index) geo.setIndex(src.index.clone())
-      geo.addGroup(g.start, g.count, 0)
       geo = sliceGroup(geo, g.start, g.count)
       geo.applyMatrix4(mesh.matrixWorld)
       const tint = def.tint?.[mat.name]
-      if (tint !== undefined) tmpColor.setHex(tint)
-      else if (mat.color) tmpColor.copy(mat.color)
-      else tmpColor.setRGB(0.8, 0.8, 0.8)
+      const base = new Color()
+      if (tint !== undefined) base.setHex(tint)
+      else if (mat.color) base.copy(mat.color)
+      else base.setRGB(0.8, 0.8, 0.8)
       const n = geo.getAttribute('position').count
       const col = new Float32Array(n * 3)
+      const uv = geo.getAttribute('uv') as BufferAttribute | undefined
       for (let i = 0; i < n; i++) {
+        tmpColor.copy(base)
+        if (pixels && uv && tint === undefined) {
+          // palette atlas: sample the texel under this vertex (flat color cells)
+          const u = uv.getX(i) - Math.floor(uv.getX(i))
+          const v = uv.getY(i) - Math.floor(uv.getY(i))
+          const px = Math.min(pixels.w - 1, Math.max(0, Math.floor(u * pixels.w)))
+          const py = Math.min(pixels.h - 1, Math.max(0, Math.floor(v * pixels.h)))
+          const o = (py * pixels.w + px) * 4
+          texel.setRGB(pixels.d[o]! / 255, pixels.d[o + 1]! / 255, pixels.d[o + 2]! / 255, SRGBColorSpace)
+          tmpColor.multiply(texel)
+        }
         col[i * 3] = tmpColor.r
         col[i * 3 + 1] = tmpColor.g
         col[i * 3 + 2] = tmpColor.b
       }
+      if (uv) geo.deleteAttribute('uv')
       geo.setAttribute('color', new Float32BufferAttribute(col, 3))
       if (!geo.getAttribute('normal')) geo.computeVertexNormals()
       parts.push(geo)

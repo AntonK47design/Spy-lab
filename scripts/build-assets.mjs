@@ -98,7 +98,16 @@ for (const group of ['music', 'sfx']) {
 const KEEP_ANIMS = ['Idle', 'Idle_Neutral', 'Walk', 'Run', 'Wave', 'Interact']
 /** Content rule: no weapons. Nodes with these names are removed from every model. */
 const WEAPON = /pistol|gun|rifle|sword|knife|blade|bow|grenade/i
-const modelSources = walk(path.join(SRC, 'models')).filter((f) => /\.(glb|gltf|obj)$/i.test(f))
+// Only build models the game references (src/config/models.ts) — packs contain hundreds.
+const { MODELS: MODEL_CFG, CHARACTERS: CHAR_CFG } = await import(path.join(root, 'src/config/models.ts'))
+const WANTED = new Set([...Object.values(MODEL_CFG).map((m) => m.file), ...Object.values(CHAR_CFG).map((c) => c.file)])
+const outName = (file) => {
+  const relDir = path.relative(path.join(SRC, 'models'), path.dirname(file))
+  const group = relDir.split(path.sep).map((s) => s.replace(/[^A-Za-z0-9._-]+/g, '_')).join('_')
+  return `${group}_${path.basename(file).replace(/[^A-Za-z0-9._-]+/g, '_').replace(/\.(gltf|obj)$/i, '.glb')}`.replace(/^_/, '')
+}
+const modelSources = walk(path.join(SRC, 'models')).filter((f) => /\.(glb|gltf|obj)$/i.test(f) && WANTED.has(outName(f)))
+for (const w of WANTED) if (!modelSources.some((f) => outName(f) === w)) report.warnings.push(`model ${w} referenced in config but not found in assets-src`)
 const modelOut = path.join(OUT, 'models')
 fs.rmSync(modelOut, { recursive: true, force: true })
 if (modelSources.length) {

@@ -699,12 +699,14 @@ button {
   border: 2px solid #f2b134; box-shadow: 0 2px 0 rgba(0,0,0,.25);
 }
 .kits.low { border-color: #9aa3b5; }
-.kits.empty { background: var(--coral); color: #fff; border-color: #fff; animation: bob 0.8s ease-in-out infinite; }
+.kits.empty { background: var(--coral); color: #fff; border-color: #fff; animation: bobm 0.8s ease-in-out infinite; }
 .kit-ico { display: inline-block; width: 0.9em; height: 0.65em; border-radius: 2px; background: #f2b134; box-shadow: inset 0 -2px 0 rgba(0,0,0,.25); }
 .kits.empty .kit-ico { background: #fff; }
 .serve-bar { width: 64px; height: 10px; border-radius: 99px; background: #0d1830; border: 2px solid #fff; overflow: hidden; }
 .serve-bar > div { height: 100%; background: #7be07a; }
-.pop-static { font-weight: 900; font-size: 1.25em; color: #7be07a; text-shadow: 0 2px 0 #0a2a0a, 0 0 6px #000a; animation: bob 1s ease-in-out infinite; }
+.pop-static { font-weight: 900; font-size: 1.25em; color: #7be07a; text-shadow: 0 2px 0 #0a2a0a, 0 0 6px #000a; animation: bobm 1s ease-in-out infinite; }
+/* world labels position themselves with transform: animate margins only */
+@keyframes bobm { 0%, 100% { margin-top: 0; } 50% { margin-top: -6px; } }
 .move-hint {
   position: absolute; left: 50%; top: 58%; transform: translateX(-50%);
   display: flex; align-items: center; gap: 0.5em; padding: 0.5em 1em; border-radius: 999px;

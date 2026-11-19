@@ -12,6 +12,7 @@ import {
   Vector3,
 } from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 
 const m4 = new Matrix4()
 const q = new Quaternion()
@@ -52,6 +53,12 @@ export class StaticBatch {
     return this.push(new BoxGeometry(w, h, d), x, y, z, color, rotY)
   }
 
+  /** Bevelled box (architecture, devices) — never "primitive-looking". */
+  rbox(w: number, h: number, d: number, x: number, y: number, z: number, color: number, r = 0.06, rotY = 0): this {
+    const rr = Math.min(r, w / 2 - 0.001, h / 2 - 0.001, d / 2 - 0.001)
+    return this.push(new RoundedBoxGeometry(w, h, d, 2, Math.max(0.005, rr)), x, y, z, color, rotY)
+  }
+
   cyl(rTop: number, rBot: number, h: number, x: number, y: number, z: number, color: number, seg = 10, rotX = 0, rotZ = 0): this {
     return this.push(new CylinderGeometry(rTop, rBot, h, seg), x, y, z, color, 0, rotX, rotZ)
   }
@@ -74,6 +81,7 @@ export class StaticBatch {
     q.setFromEuler(e)
     m4.compose(v.set(x, y, z), q, new Vector3(scale, scale, scale))
     g.applyMatrix4(m4)
+    bakeAO(g, y)
     this.parts.push(g)
     return this
   }
@@ -91,4 +99,17 @@ export class StaticBatch {
     merged.computeBoundingSphere()
     return merged
   }
+}
+
+/** Cheap baked ambient occlusion: vertices close to the ground get darker (depth for free). */
+export function bakeAO(g: BufferGeometry, baseY = 0, strength = 0.32, height = 0.55): void {
+  const pos = g.getAttribute('position')
+  const col = g.getAttribute('color')
+  if (!pos || !col) return
+  for (let i = 0; i < pos.count; i++) {
+    const t = Math.min(1, Math.max(0, (pos.getY(i) - baseY) / height))
+    const f = 1 - strength * (1 - t) * (1 - t)
+    col.setXYZ(i, col.getX(i) * f, col.getY(i) * f, col.getZ(i) * f)
+  }
+  col.needsUpdate = true
 }

@@ -5,12 +5,12 @@
 import { PerspectiveCamera, Raycaster, Vector2, Vector3, Plane, type Object3D } from 'three'
 
 export const FOLLOW = {
-  fov: 34,
-  pitchDeg: 54,
-  safeWPortrait: 8.5,
-  safeHPortrait: 12,
-  safeWLandscape: 20,
-  safeHLandscape: 11,
+  fov: 48,
+  pitchDeg: 52,
+  /** Visible world width at the focus (art bible: ~11 m portrait, ~21 m landscape). */
+  widthPortrait: 11,
+  widthLandscape: 21,
+  lookAhead: 0.6,
   lerp: 6,
   bounds: { minX: -9, maxX: 9, minZ: -20, maxZ: 12 },
 }
@@ -34,11 +34,10 @@ export class FollowCamera {
   resize(w: number, h: number): void {
     const aspect = w / h
     this.camera.aspect = aspect
-    const land = aspect >= 1.25
-    const safeW = land ? FOLLOW.safeWLandscape : FOLLOW.safeWPortrait
-    const safeH = land ? FOLLOW.safeHLandscape : FOLLOW.safeHPortrait
-    const p = (FOLLOW.pitchDeg * Math.PI) / 180
-    const viewH = Math.max(safeH * Math.sin(p), safeW / aspect)
+    // size the view by visible world width; blend between portrait and landscape values
+    const t = Math.min(1, Math.max(0, (aspect - 0.6) / (1.6 - 0.6)))
+    const width = FOLLOW.widthPortrait + (FOLLOW.widthLandscape - FOLLOW.widthPortrait) * t
+    const viewH = width / aspect
     this.dist = viewH / 2 / Math.tan((FOLLOW.fov * Math.PI) / 360)
     this.camera.updateProjectionMatrix()
     this.apply()
@@ -49,7 +48,18 @@ export class FollowCamera {
     this.apply()
   }
 
+  private lx = 0
+  private lz = 0
   follow(x: number, z: number, dt: number): void {
+    // slight look-ahead in the walking direction
+    const vx = x - this.lx
+    const vz = z - this.lz
+    this.lx = x
+    this.lz = z
+    if (dt > 0) {
+      x += Math.max(-1, Math.min(1, vx / dt / 6)) * FOLLOW.lookAhead
+      z += Math.max(-1, Math.min(1, vz / dt / 6)) * FOLLOW.lookAhead
+    }
     const k = 1 - Math.exp(-dt * FOLLOW.lerp)
     this.target.x += (clamp(x, FOLLOW.bounds.minX, FOLLOW.bounds.maxX) - this.target.x) * k
     this.target.z += (clamp(z, FOLLOW.bounds.minZ, FOLLOW.bounds.maxZ) - this.target.z) * k

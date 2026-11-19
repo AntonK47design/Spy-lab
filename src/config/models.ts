@@ -1,7 +1,8 @@
 /**
- * Model catalog (files produced by `npm run assets` from assets-src/models, all CC0 Quaternius).
- * `scale` normalizes each pack to world units (a person ~1.75 tall, a desk ~0.8 tall).
- * `core` models are part of the initial download, the rest stream in after game_ready.
+ * Model catalog (built by `npm run assets` from assets-src/models; only referenced files are built).
+ * Props: KayKit CC0 packs (Restaurant / Furniture / Prototype / City Builder Bits) — one chunky style.
+ * Characters: Quaternius CC0 (temporary until Kenney Mini Characters arrive).
+ * `scale` normalizes each pack to world units (a person ~1.75 tall, a counter ~0.9 tall).
  */
 export interface ModelDef {
   file: string
@@ -11,61 +12,74 @@ export interface ModelDef {
   tint?: Record<string, number>
 }
 
-const home = (n: string, core = true): ModelDef => ({ file: `interior_home_${n}.glb`, scale: 0.5, core })
-const furn = (n: string, core = true): ModelDef => ({ file: `interior_furniture_${n}.glb`, scale: 0.85, core })
-const food = (n: string): ModelDef => ({ file: `food_${n}.glb`, scale: 0.26, core: true })
-const cyber = (n: string, scale = 0.9, core = true): ModelDef => ({ file: `props_cyber_${n}.glb`, scale, core })
-const street = (n: string, scale = 1): ModelDef => ({ file: `city_streets_${n}.glb`, scale, core: true })
+const R = 0.85
+const kk = (pack: 'restaurant' | 'furniture' | 'prototype' | 'city', n: string, scale = R, core = true): ModelDef => ({
+  file: `kaykit_${pack}_${n}.glb`,
+  scale,
+  core,
+})
 
 export const MODELS = {
-  // bakery
-  oven: home('Kitchen_Oven_Large'),
-  kitchenDrawers: home('Kitchen_2Drawers'),
-  kitchenCabinet: home('Kitchen_Cabinet1'),
-  fridge: home('Kitchen_Fridge'),
-  tableRound: home('Table_RoundSmall'),
-  stool: home('Stool'),
-  plant1: { file: 'interior_home_Houseplant_1.glb', scale: 1.1, core: true },
-  plant4: { file: 'interior_home_Houseplant_4.glb', scale: 1.3, core: true },
-  plant7: { file: 'interior_home_Houseplant_7.glb', scale: 1.0, core: true },
-  carpetRound: home('Carpet_Round'),
-  carpet: home('Carpet_1'),
-  window: home('Window_Large1'),
-  floorLamp: home('Light_Floor1'),
-  deskLamp: home('Light_Desk'),
-  shelfSmall: home('Shelf_Small1'),
-  bookshelf: home('Bookshelf'),
-  drawer: home('Drawer_2'),
-  couch: home('Couch_Medium1'),
-  chair: home('Chair_1'),
-  trash: home('Trashcan_Green'),
-  door: home('Door_1'),
-  croissant: food('Croissant'),
-  cupcake: food('Cupcake'),
-  donut1: food('Donut1'),
-  donut2: food('Donut2'),
-  donut3: food('Donut3'),
-  bread: food('Bread'),
-  pancakes: food('Pancakes_Stack'),
-  waffle: food('Waffle'),
-  // offices / labs
-  desk: furn('Desk'),
-  officeChair: furn('OfficeChair'),
-  bookcase: furn('Bookcase_Books'),
-  table: furn('Table'),
-  computer: cyber('Computer', 0.8),
-  computerLarge: cyber('Computer_Large', 0.75),
-  tv1: cyber('TV_1', 0.8),
-  tv2: cyber('TV_2', 0.8),
-  fence: cyber('Fence', 1.1),
-  lightSquare: cyber('Light_Square', 1),
-  hazard: cyber('Sign_Corner_Hazard', 0.9),
-  ac: cyber('AC', 0.8),
-  lootbox: cyber('Lootbox', 1.2),
-  // street
-  streetStraight: street('Street_Straight', 2),
-  streetlight: street('Streetlight_Single', 2.6),
-  signNoParking: street('Sign_NoParking', 2.6),
+  // bakery (Restaurant Bits)
+  counter: kk('restaurant', 'kitchencounter_straight_A'),
+  counterDeco: kk('restaurant', 'kitchencounter_straight_A_decorated'),
+  oven: kk('restaurant', 'oven'),
+  fridge: kk('restaurant', 'fridge_A_decorated'),
+  stove: kk('restaurant', 'stove_multi_decorated'),
+  crateBuns: kk('restaurant', 'crate_buns'),
+  crate: kk('restaurant', 'crate'),
+  crateLid: kk('restaurant', 'crate_lid'),
+  tableRound: kk('restaurant', 'table_round_A_decorated'),
+  tableRoundSmall: kk('restaurant', 'table_round_A_small_decorated'),
+  chairA: kk('restaurant', 'chair_A'),
+  stool: kk('restaurant', 'chair_stool'),
+  menu: kk('restaurant', 'menu'),
+  shelfPaper: kk('restaurant', 'shelf_papertowel_decorated'),
+  jarA: kk('restaurant', 'jar_A_large'),
+  jarB: kk('restaurant', 'jar_B_medium'),
+  bun: kk('restaurant', 'food_ingredient_bun'),
+  pillar: kk('restaurant', 'pillar_A'),
+  // offices / labs (Furniture Bits)
+  deskLong: kk('furniture', 'table_medium_long'),
+  deskSmall: kk('furniture', 'table_small'),
+  officeChair: kk('furniture', 'chair_B'),
+  shelfBig: kk('furniture', 'shelf_B_large_decorated'),
+  cabinet: kk('furniture', 'cabinet_medium_decorated'),
+  lamp: kk('furniture', 'lamp_standing'),
+  lampTable: kk('furniture', 'lamp_table'),
+  frameLarge: kk('furniture', 'pictureframe_large_A'),
+  frameLargeB: kk('furniture', 'pictureframe_large_B'),
+  rugStripes: kk('furniture', 'rug_rectangle_stripes_A'),
+  rugOval: kk('furniture', 'rug_oval_A'),
+  cactus: kk('furniture', 'cactus_medium_A'),
+  cactusSmall: kk('furniture', 'cactus_small_A'),
+  couch: kk('furniture', 'couch_pillows'),
+  armchair: kk('furniture', 'armchair'),
+  books: kk('furniture', 'book_set'),
+  // training / construction (Prototype Bits)
+  targetStand: kk('prototype', 'target_stand_A_Decorated'),
+  dummy: kk('prototype', 'Dummy_Base'),
+  targetWall: kk('prototype', 'target_wall_large_A'),
+  boxA: kk('prototype', 'Box_A'),
+  boxB: kk('prototype', 'Box_B'),
+  boxC: kk('prototype', 'Box_C'),
+  barrel: kk('prototype', 'Barrel_A'),
+  pallet: kk('prototype', 'Pallet_Small_Decorated_A'),
+  palletB: kk('prototype', 'Pallet_Small_Decorated_B'),
+  // street (City Builder Bits, miniature scale)
+  road: kk('city', 'road_straight', 4),
+  streetlight: kk('city', 'streetlight', 3.8),
+  bench: kk('city', 'bench', 4),
+  bush: kk('city', 'bush', 4),
+  hydrant: kk('city', 'firehydrant', 4),
+  taxi: kk('city', 'car_taxi', 3.6),
+  sedan: kk('city', 'car_sedan', 3.6),
+  trash: kk('city', 'trash_A', 4),
+  dumpster: kk('city', 'dumpster', 3.6),
+  buildingA: kk('city', 'building_A', 3.4),
+  buildingB: kk('city', 'building_B', 3.4),
+  buildingC: kk('city', 'building_C', 3.4),
+  buildingD: kk('city', 'building_D', 3.4),
 } as const satisfies Record<string, ModelDef>
 
 export type ModelId = keyof typeof MODELS

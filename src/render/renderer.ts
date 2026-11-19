@@ -1,4 +1,4 @@
-import { WebGLRenderer, SRGBColorSpace, NoToneMapping } from 'three'
+import { WebGLRenderer, SRGBColorSpace, ACESFilmicToneMapping } from 'three'
 import { AUTO_QUALITY, QUALITY, type QualityTier } from '../config/quality'
 import { contextLost } from '../core/lifecycle'
 
@@ -36,7 +36,8 @@ export function createRenderer(host: HTMLElement, onResize: ResizeFn): RenderTar
     stencil: false,
   })
   renderer.outputColorSpace = SRGBColorSpace
-  renderer.toneMapping = NoToneMapping
+  renderer.toneMapping = ACESFilmicToneMapping
+  renderer.toneMappingExposure = 1.05
   renderer.shadowMap.enabled = false // blob shadows only
 
   const target = {
