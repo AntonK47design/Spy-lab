@@ -15,6 +15,8 @@ export const AUDIO = {
   sfx: {
     ui_click: { core: true, volume: 0.7 },
     coin: { core: true, volume: 0.6 },
+    /** Short chip clink while cash pours into a build pad (plays many times per second). */
+    pour: { core: true, volume: 0.45 },
     upgrade: { core: true, volume: 0.7 },
     unlock: { core: false, volume: 0.8 },
     stamp: { core: false, volume: 0.8 },

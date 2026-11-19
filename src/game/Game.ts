@@ -369,7 +369,7 @@ export class Game {
       if (paid > 0) {
         this.padSound -= dt
         if (this.padSound <= 0) {
-          AudioManager.play('coin', 1.2)
+          AudioManager.play('pour', 0.95 + Math.random() * 0.12)
           this.padSound = 0.12
         }
       }
