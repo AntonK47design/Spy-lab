@@ -308,8 +308,12 @@ export class World {
       this.colliders.push({ minX: half - 0.2, maxX: half + 1, minZ: gz1, maxZ: A.zFront, id: tag })
       this.buildGarage(b)
       this.buildOffice(b)
-      // north edge: open water beyond the lounge row (the lighthouse is reached by ferry)
-      this.colliders.push({ minX: -half - 1, maxX: half + 1, minZ: A.zBack - 1, maxZ: A.zBack + 0.15, id: tag })
+      // north edge: open water, with the ferry jetty to the lighthouse straight north of the hub
+      const jx0 = FERRY.x - 1.2
+      const jx1 = FERRY.x + 1.2
+      this.colliders.push({ minX: -half - 1, maxX: jx0, minZ: A.zBack - 1, maxZ: A.zBack + 0.15, id: tag })
+      this.colliders.push({ minX: jx1, maxX: half + 1, minZ: A.zBack - 1, maxZ: A.zBack + 0.15, id: tag })
+      this.jetty(b, FERRY.x, FERRY.docksJetty, FERRY.docksEnd, true, tag)
     } else this.colliders.push({ minX: half - 0.2, maxX: half + 1, minZ: A.zBack, maxZ: A.zFront, id: tag })
     const i = AREA_ORDER.indexOf(a)
     if (i > 0) {
@@ -729,12 +733,7 @@ export class World {
       b.rbox(1.3, 0.9, 1.5, bx, 0.5, bz + 0.6, 0xf3e2c4, 0.1)
     }
     // edges: water on three sides, the HQ plot on the west
-    // north edge opens onto the ferry jetty
-    const jx0 = FERRY.x - 1.2
-    const jx1 = FERRY.x + 1.2
-    this.colliders.push({ minX: D0.x0, maxX: jx0, minZ: D0.z0 - 1, maxZ: D0.z0 + 0.15, id: tag })
-    this.colliders.push({ minX: jx1, maxX: D0.x1 + 1, minZ: D0.z0 - 1, maxZ: D0.z0 + 0.15, id: tag })
-    this.jetty(b, FERRY.x, FERRY.docksJetty, FERRY.docksEnd, open, tag)
+    this.colliders.push({ minX: D0.x0, maxX: D0.x1 + 1, minZ: D0.z0 - 1, maxZ: D0.z0 + 0.15, id: tag })
     this.colliders.push({ minX: D0.x0, maxX: D0.x1 + 1, minZ: D0.z1 - 0.15, maxZ: D0.z1 + 1, id: tag })
     this.colliders.push({ minX: D0.x1 - 0.15, maxX: D0.x1 + 1, minZ: D0.z0 - 1, maxZ: D0.z1 + 1, id: tag })
     return b.build()

@@ -94,3 +94,13 @@ Plan: https://claude.ai/artifact/3VK5u4uetgNAqxG6wv9qhA (Fähre, Dead Drops, Sei
 - Leuchtturm vorübergehend direkt nördlich des Hofs (Brücke), Schritt 3 verlegt ihn auf die Insel mit Fähre.
 - Bewusst weggelassen: die im Plan genannte Höhenstufe (1 m tiefer). Alle Figuren, Felder, Geldstapel und Labels sind auf Bodenhöhe 0 gebaut; das hätte jedes System berührt. Trennung stattdessen über Rolltor, Material (Beton/Holzkante) und Wasser.
 - Sim: unverändert (Hafen 8:12). Tests: 31/31 (Gehtest jetzt durch die Vault-Tür und mittig durch die Gasse hinter dem Tresen).
+
+## Map 2.0 · Schritt 3: Leuchtturm-Insel + Fähre — 2026-11-19
+- Insel genau nördlich des Innenhofs (Achse Mission Control): Weg zum gestreiften Leuchtturm, Driving und Hack Lab links/rechts, Felsen, Büsche; drehender Lichtkegel (48 m) streicht über die Karte.
+- Fähre (auf Antons Wunsch vom Hof aus, nicht vom Hafen): Steg an der Nordkante des Hofs hinter Mission Control; aufs Steg-Ende stellen → Boot legt nach 0,5 s ab, ~3 s Überfahrt, Held steht an Deck; zurück genauso. Vor dem Tor (250.000, Lv 4) liegt das Boot als Teaser vertäut. Kadetten fahren „an Bord“ mit (unsichtbar über dem Wasser).
+
+## Agentur-Büro statt Absolventen-Popup — 2026-11-19
+- Absolventen laufen ins Büro (linke Lounge des Hofs) und warten auf der Bank; kein Popup mehr (nur kurzer Hinweis bei selten+).
+- Laptop auf dem Schreibtisch öffnet das Büro-Menü: pro Absolvent Verkaufen (+Gebühr) / Einstellen, bei vollem Team „Gegen Schwächsten tauschen“; „Alle verkaufen“.
+- Auto-Schalter: bei vollem Team werden Absolventen, die nicht stärker als dein schwächster Agent sind, sofort verkauft (Stärke = Summe aller Skills).
+- Tutorial-Schritt „hire“ am Laptop. Sim: Beat Sheet OK; „Nichts bezahlbar“ jetzt 66 s (Ziel 60) und Erste Automatisierung 4:45 (Ziel 3:20) → Phase-3-Balancing.
