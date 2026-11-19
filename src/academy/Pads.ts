@@ -4,9 +4,9 @@
  * Visual plate + DOM label. Also the kit indicators above every built station.
  */
 import { BoxGeometry, Group, Mesh, MeshLambertMaterial, RingGeometry, MeshBasicMaterial } from 'three'
-import { LAYOUT, ROOMS, ROOM_ORDER, crateOf, padOf, slotOf, staffPadOf, upgradeSpotOf, type RoomId } from '../config/rooms'
+import { AREAS, AREA_ORDER, LAYOUT, ROOMS, ROOM_AREA, ROOM_ORDER, crateOf, gateOf, padOf, slotOf, staffPadOf, upgradeSpotOf, type RoomId } from '../config/rooms'
 import type { GameState } from '../sim/state'
-import { levelCost, nextStaff, nextUnlock, padPrice, trainingRooms, type PadTarget } from '../sim/academy'
+import { levelCost, nextArea, nextStaff, nextUnlock, padPrice, trainingRooms, type PadTarget } from '../sim/academy'
 import { formatNumber } from '../core/format'
 import { t, lang } from '../i18n/i18n'
 import type { WorldLabels, WorldLabel } from './WorldLabels'
@@ -28,6 +28,7 @@ export interface Pad {
   key: string
 }
 
+const ROOM_AREA_OF = (id: RoomId) => ROOM_AREA[id]
 const plateGeo = new BoxGeometry(1.9, 0.06, 1.9)
 const fillGeo = new BoxGeometry(1, 0.07, 1)
 const ringGeo = new RingGeometry(1.05, 1.22, 32).rotateX(-Math.PI / 2)
@@ -49,6 +50,7 @@ function targetPos(tg: PadTarget, s: GameState): { x: number; z: number } {
     case 'station': return slotOf(tg.room, s.rooms[tg.room].stations)
     case 'crate': return crateOf(tg.room)
     case 'staff': return staffPadOf(tg.room)
+    case 'gate': return gateOf(tg.area)
   }
 }
 
@@ -88,8 +90,12 @@ export class Pads {
     }
     push({ kind: 'counter' })
     push({ kind: 'clerk' })
+    // the gate of the next closed area (dim until its requirements are met)
+    for (const a of AREA_ORDER) if (!s.areas[a] && (nextArea(s) === a || AREA_ORDER.indexOf(a) === AREA_ORDER.findIndex((x) => !s.areas[x]))) {
+      out.push({ kind: 'gate', room: null, target: { kind: 'gate', area: a }, ...gateOf(a) })
+    }
     // every locked room shows its pad (dim unless it is next)
-    for (const id of ROOM_ORDER) if (!s.rooms[id].unlocked) out.push({ kind: 'unlock', room: id, target: { kind: 'unlock', room: id }, ...padOf(id) })
+    for (const id of ROOM_ORDER) if (!s.rooms[id].unlocked && s.areas[ROOM_AREA_OF(id)]) out.push({ kind: 'unlock', room: id, target: { kind: 'unlock', room: id }, ...padOf(id) })
     for (const id of trainingRooms(s)) {
       push({ kind: 'station', room: id })
       push({ kind: 'crate', room: id })
@@ -144,6 +150,19 @@ export class Pads {
         html = can
           ? `${this.priceHtml(left, false)}<div class="pad-title"><b>${t('pad.unlock')}</b> ${room}</div>`
           : `<div class="pad-title dim">${room}</div>${levelOk ? this.priceHtml(ROOMS[p.room].unlockCost - s.rooms[p.room].paid, true, 'ico-lock') : `<div class="pad-price dim"><span class="ico-lock"></span>${t('pad.level', { n: ROOMS[p.room].unlockLevel })}</div>`}`
+    } else if (p.kind === 'gate' && p.target?.kind === 'gate') {
+      const area = p.target.area
+      const can = !!price
+      p.active = can
+      const name = t(`area.${area}`)
+      const needLv = s.level < AREAS[area].gateLevel
+      key = `gate${can}${left}${needLv}`
+      if (key !== p.key || force)
+        html = can
+          ? `${this.priceHtml(left, false)}<div class="pad-title big"><b>${t('pad.gate')}</b> ${name}</div>`
+          : `<div class="pad-title dim"><span class="ico-lock"></span> ${name}</div><div class="pad-price dim">${needLv ? t('pad.level', { n: AREAS[area].gateLevel }) : t('pad.gateRooms')}</div>`
+      ;(p.group.children[0] as Mesh).material = can ? plateMat : plateMatDim
+      p.ring.material = can ? ringMats.buy : ringMats.dim
     } else if (p.kind === 'missions') {
       key = 'm'
       if (key !== p.key || force) html = `<div class="pad-title big"><b>${t('pad.missions')}</b></div>`

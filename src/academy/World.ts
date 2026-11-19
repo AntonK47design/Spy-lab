@@ -13,7 +13,8 @@ import { propGeometry } from '../render/assets'
 import { PAL, ROOM_FLOOR } from '../render/palette'
 import { MODELS, type ModelId } from '../config/models'
 import {
-  CORRIDOR, LAYOUT, ROOMS, ROOM_ORDER, TEASER_ROW_Z, slotOf, upgradeSpotOf, cashSpotOf, crateOf, type RoomId,
+  AREAS, AREA_ORDER, LAYOUT, PLAZAS, ROOMS, ROOM_ORDER, TEASER_ROW_Z, slotOf, upgradeSpotOf, cashSpotOf, crateOf, gateOf,
+  type AreaId, type RoomId,
 } from '../config/rooms'
 import type { GameState } from '../sim/state'
 
@@ -92,17 +93,16 @@ export class World {
     const x0 = bk.x - bk.w / 2
     const plotMinX = -(LAYOUT.corridorWidth / 2 + LAYOUT.roomW) - 0.8
     const plotMaxX = -plotMinX
-    const plotMinZ = CORRIDOR.zBack - 0.8
+    const plotMinZ = 0
     const plotMaxZ = front + 3.4
 
-    // raised plot with a light curb, floating in the void
+    // bakery plot (raised, light curb) — the area islands are built in syncAreas()
     const pw = plotMaxX - plotMinX
-    const pd = plotMaxZ - plotMinZ
     const pcx = (plotMinX + plotMaxX) / 2
-    const pcz = (plotMinZ + plotMaxZ) / 2
-    b.rbox(pw + 0.2, 1.4, pd + 0.2, pcx, -0.82, pcz, PAL.curbShadow, 0.2)
-    b.rbox(pw + 0.4, 0.3, pd + 0.4, pcx, -0.16, pcz, PAL.curbSide, 0.1)
-    b.rbox(pw + 0.5, 0.1, pd + 0.5, pcx, -0.03, pcz, PAL.curbTop, 0.05)
+    const bz0 = back - 0.4
+    const bd = plotMaxZ - bz0
+    this.plot(b, pcx, bz0 + bd / 2, pw, bd, true)
+    void plotMinZ
     // sidewalk paving in front of the bakery
     this.tiles(b, plotMinX, front, pw, plotMaxZ - front - 0.1, PAL.pavingA, PAL.pavingB, PAL.curbSide)
 
@@ -146,19 +146,6 @@ export class World {
     b.prop(P.pillar, -2.25, back + 0.15, 0, 0.6)
     b.prop(P.pillar, 2.25, back + 0.15, 0, 0.6)
 
-    // ---- corridor
-    const cw = LAYOUT.corridorWidth
-    this.tiles(b, -cw / 2, CORRIDOR.zBack, cw, back - CORRIDOR.zBack, PAL.corridorA, PAL.corridorB)
-
-    // ---- end of the corridor: next expansion behind a construction fence
-    const tz = TEASER_ROW_Z
-    b.rbox(cw + 2 * LAYOUT.roomW, 0.08, LAYOUT.roomD, 0, 0.0, tz, 0x2b3c66, 0.03)
-    for (let i = -9; i <= 9; i += 1.2) b.rbox(1.0, 0.6, 0.08, i, 0.34, tz + LAYOUT.roomD / 2 - 0.3, Math.round(i / 1.2) % 2 ? PAL.brandYellow : PAL.dark, 0.03)
-    b.prop(P.pallet, -6, tz - 1)
-    b.prop(P.palletB, 6.5, tz - 0.5, 0.5)
-    b.prop(P.barrel, -3.2, tz + 0.6, 0, 0.6)
-    b.prop(P.boxB, 3.4, tz + 1.2, 0.4)
-    this.colliders.push({ minX: -cw / 2 - LAYOUT.roomW, maxX: cw / 2 + LAYOUT.roomW, minZ: tz - LAYOUT.roomD / 2, maxZ: tz + LAYOUT.roomD / 2 - 0.2, id: 'teaser' })
     return b.build()
   }
 
@@ -177,6 +164,113 @@ export class World {
     b.prop(P.dumpster, 13.5, z - 0.4, 0, 1, -0.05)
     const blds: ModelId[] = ['buildingA', 'buildingB', 'buildingC', 'buildingD']
     for (let i = 0; i < 8; i++) b.prop(P[blds[i % 4]!], -24 + i * 7, z + 11, Math.PI, 1, -0.6)
+    return b.build()
+  }
+
+  /** Raised plot slab with a light curb (open) or a dark blueprint slab (closed). */
+  private plot(b: StaticBatch, cx: number, cz: number, w: number, d: number, open: boolean): void {
+    if (open) {
+      b.rbox(w + 0.2, 1.4, d + 0.2, cx, -0.82, cz, PAL.curbShadow, 0.2)
+      b.rbox(w + 0.4, 0.3, d + 0.4, cx, -0.16, cz, PAL.curbSide, 0.1)
+      b.rbox(w + 0.5, 0.1, d + 0.5, cx, -0.03, cz, PAL.curbTop, 0.05)
+    } else {
+      b.rbox(w + 0.2, 1.4, d + 0.2, cx, -0.82, cz, 0x1b2440, 0.2)
+      b.rbox(w + 0.5, 0.1, d + 0.5, cx, -0.03, cz, PAL.blueprintEdge, 0.05)
+    }
+  }
+
+  // ---------------------------------------------------------------- areas (islands)
+  private areaMeshes = new Map<AreaId, Mesh>()
+
+  /** One island per area: plot, corridor, plazas, outer edge colliders; bridge + gate to it. */
+  syncAreas(s: GameState): void {
+    for (const a of AREA_ORDER) {
+      const open = s.areas[a]
+      const prev = this.areaMeshes.get(a)
+      if (prev && prev.userData.open === open) continue
+      if (prev) {
+        this.scene.remove(prev)
+        prev.geometry.dispose()
+      }
+      for (let i = this.colliders.length - 1; i >= 0; i--) if (this.colliders[i]!.id?.startsWith(`area:${a}`)) this.colliders.splice(i, 1)
+      const n = this.colliders.length
+      const m = new Mesh(this.buildArea(a, open), flatMat)
+      for (let i = n; i < this.colliders.length; i++) this.colliders[i]!.id ??= `area:${a}`
+      m.receiveShadow = true
+      m.castShadow = true
+      m.userData = { open }
+      this.scene.add(m)
+      this.areaMeshes.set(a, m)
+    }
+  }
+
+  private buildArea(a: AreaId, open: boolean): BufferGeometry {
+    const b = new StaticBatch()
+    const P = this.p
+    const A = AREAS[a]
+    const cw = LAYOUT.corridorWidth
+    const half = cw / 2 + LAYOUT.roomW + 0.8
+    const d = A.zFront - A.zBack
+    const cz = (A.zFront + A.zBack) / 2
+    const tag = `area:${a}`
+    this.plot(b, 0, cz, half * 2, d, open)
+    // corridor
+    if (open) this.tiles(b, -cw / 2, A.zBack, cw, d, PAL.corridorA, PAL.corridorB)
+    else this.tiles(b, -cw / 2, A.zBack, cw, d, 0x2b3c66, 0x324674, PAL.blueprint)
+    // outer edges of the island
+    this.colliders.push({ minX: -half - 1, maxX: -half + 0.2, minZ: A.zBack, maxZ: A.zFront, id: tag })
+    this.colliders.push({ minX: half - 0.2, maxX: half + 1, minZ: A.zBack, maxZ: A.zFront, id: tag })
+    const i = AREA_ORDER.indexOf(a)
+    if (i > 0) {
+      // bridge from the previous island (walkway width = corridor), void on both sides
+      const pz = AREAS[AREA_ORDER[i - 1]!].zBack
+      const bl = pz - A.zFront
+      b.rbox(cw - 0.4, 0.3, bl + 0.6, 0, -0.12, (pz + A.zFront) / 2, open ? PAL.curbSide : 0x2b3c66, 0.08)
+      b.rbox(cw - 0.6, 0.08, bl + 0.6, 0, 0.0, (pz + A.zFront) / 2, open ? PAL.wood : 0x324674, 0.03)
+      for (const sx of [-1, 1]) {
+        b.rbox(0.14, 0.7, bl + 0.6, sx * (cw / 2 - 0.3), 0.35, (pz + A.zFront) / 2, open ? PAL.brand : PAL.blueprintEdge, 0.04)
+        this.colliders.push({ minX: sx > 0 ? cw / 2 - 0.4 : -half - 1, maxX: sx > 0 ? half + 1 : -cw / 2 + 0.4, minZ: A.zFront, maxZ: pz, id: tag })
+      }
+      if (!open) {
+        // construction fence + padlock sign at the gate, blocks the bridge
+        const g = gateOf(a)
+        const fz = g.z - 1.4
+        for (let x = -cw / 2 + 0.4; x <= cw / 2 - 0.4; x += 0.9) b.rbox(0.8, 0.9, 0.1, x, 0.45, fz, Math.round(x / 0.9) % 2 ? PAL.brandYellow : PAL.dark, 0.03)
+        b.rbox(0.5, 0.6, 0.12, 0, 1.25, fz, PAL.steelDark, 0.12)
+        b.rbox(0.36, 0.3, 0.14, 0, 1.0, fz, PAL.brandYellow, 0.05)
+        this.colliders.push({ minX: -cw / 2, maxX: cw / 2, minZ: fz - 0.3, maxZ: fz + 0.3, id: `${tag}:gate` })
+      }
+    }
+    // plazas on free row slots: a small lounge so the island never looks empty
+    for (const pl of PLAZAS) {
+      if (pl.area !== a) continue
+      const w = LAYOUT.roomW
+      const dd = LAYOUT.roomD
+      if (open) {
+        this.tiles(b, pl.x - w / 2, pl.z - dd / 2, w, dd, PAL.pavingA, PAL.pavingB, PAL.curbSide)
+        b.prop(P.rugOval, pl.x, pl.z, 0, 1.2, 0.02)
+        b.prop(P.couch, pl.x, pl.z - 2.2)
+        b.prop(P.armchair, pl.x - 2.8, pl.z, Math.PI / 2)
+        b.prop(P.armchair, pl.x + 2.8, pl.z, -Math.PI / 2)
+        b.prop(P.deskSmall, pl.x, pl.z, 0, 0.7)
+        b.prop(P.cactus, pl.x - 4, pl.z - 3)
+        b.prop(P.cactus, pl.x + 4, pl.z + 3)
+        b.prop(P.lamp, pl.x + 4, pl.z - 3)
+        this.colliders.push({ minX: pl.x - 1.6, maxX: pl.x + 1.6, minZ: pl.z - 2.9, maxZ: pl.z - 1.5, id: tag })
+        this.colliders.push({ minX: pl.x - 0.5, maxX: pl.x + 0.5, minZ: pl.z - 0.5, maxZ: pl.z + 0.5, id: tag })
+      } else {
+        this.tiles(b, pl.x - w / 2, pl.z - dd / 2, w, dd, 0x2b3c66, 0x324674, PAL.blueprint)
+      }
+    }
+    // the last island ends with the "coming soon" construction row
+    if (a === 'lighthouse') {
+      const tz = TEASER_ROW_Z
+      for (let x = -half + 1; x <= half - 1; x += 1.2) b.rbox(1.0, 0.6, 0.08, x, 0.34, tz + LAYOUT.roomD / 2 - 0.3, Math.round(x / 1.2) % 2 ? PAL.brandYellow : PAL.dark, 0.03)
+      b.prop(P.pallet, -6, tz - 1)
+      b.prop(P.palletB, 6.5, tz - 0.5, 0.5)
+      b.prop(P.barrel, -3.2, tz + 0.6, 0, 0.6)
+      this.colliders.push({ minX: -half, maxX: half, minZ: tz - LAYOUT.roomD / 2, maxZ: tz + LAYOUT.roomD / 2 - 0.2, id: `${tag}:teaser` })
+    }
     return b.build()
   }
 

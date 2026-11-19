@@ -52,13 +52,16 @@ export interface RoomDef {
 }
 
 export const LAYOUT = {
-  corridorWidth: 4,
-  roomW: 8,
-  roomD: 6.4,
-  rowGap: 0.6,
+  corridorWidth: 5,
+  roomW: 10,
+  roomD: 8,
+  /** Walkway between two room rows (small plazas). */
+  rowGap: 1.5,
+  /** Void gap between two area plots, crossed by a bridge. */
+  bridge: 4,
   wallH: 1.6,
   wall: 0.3,
-  bakery: { x: 0, z: 9, w: 20, d: 6 },
+  bakery: { x: 0, z: 9, w: 25, d: 6 },
   street: { z: 14 },
   /** Bakery street door and back door into the secret corridor. */
   streetDoor: { x: 0, z: 12.6 },
@@ -84,56 +87,101 @@ export const LAYOUT = {
 const W = LAYOUT.roomW
 const D = LAYOUT.roomD
 const cx = LAYOUT.corridorWidth / 2 + W / 2
-const row = (i: number) => 2.4 - i * (D + LAYOUT.rowGap)
+
+export type AreaId = 'hq' | 'harbor' | 'lighthouse'
+
+/**
+ * Three areas (islands) behind each other, each opened by one big gate purchase at the end of the
+ * previous area's corridor (close to the hub). Row centres are computed from these bounds.
+ */
+export interface AreaDef {
+  id: AreaId
+  /** Front (toward the street) and back edge of the plot. */
+  zFront: number
+  zBack: number
+  gateCost: number
+  gateLevel: number
+}
+
+const ROW0 = LAYOUT.backDoor.z + 0.4 - LAYOUT.rowGap - D / 2 // first row behind the bakery
+const STEP = D + LAYOUT.rowGap
+const rowZ = (i: number, area: number) => ROW0 - i * STEP - area * (LAYOUT.bridge + 1)
+
+export const AREAS: Record<AreaId, AreaDef> = {
+  hq: { id: 'hq', zFront: LAYOUT.backDoor.z, zBack: rowZ(1, 0) - D / 2 - 1, gateCost: 0, gateLevel: 1 },
+  harbor: { id: 'harbor', zFront: rowZ(2, 1) + D / 2 + 1, zBack: rowZ(3, 1) - D / 2 - 1, gateCost: 3000, gateLevel: 2 },
+  lighthouse: { id: 'lighthouse', zFront: rowZ(4, 2) + D / 2 + 1, zBack: rowZ(5, 2) - D / 2 - 1, gateCost: 250000, gateLevel: 4 },
+}
+export const AREA_ORDER: AreaId[] = ['hq', 'harbor', 'lighthouse']
+
+/** Room -> area. */
+export const ROOM_AREA: Record<RoomId, AreaId> = {
+  mission_control: 'hq', vault: 'hq', laser: 'hq',
+  cipher: 'harbor', disguise: 'harbor', gadget: 'harbor',
+  driving: 'lighthouse', hack: 'lighthouse',
+}
+
+/** Gate pad of an area: at the end of the previous area's corridor. */
+export function gateOf(id: AreaId): { x: number; z: number } {
+  const i = AREA_ORDER.indexOf(id)
+  const prev = AREAS[AREA_ORDER[i - 1] ?? 'hq']
+  return { x: 0, z: prev.zBack + 1.4 }
+}
+
+/** Plazas (decorated open squares) on the free row slots. */
+export const PLAZAS: { x: number; z: number; area: AreaId }[] = [
+  { x: cx, z: rowZ(1, 0), area: 'hq' },
+  { x: -cx, z: rowZ(3, 1), area: 'harbor' },
+]
 
 export const ROOMS: Record<RoomId, RoomDef> = {
   mission_control: {
     id: 'mission_control', kind: 'support', unlockCost: 0, unlockLevel: 1,
     baseIncome: 0, upgradeBaseCost: 0, cycleSeconds: 0, instructorCost: 0, stationBase: 0, runnerCost: 0,
-    rect: { x: -cx, z: row(0), w: W, d: D }, side: -1, floor: 0x2c4a6e, accent: 0x46c2cb,
+    rect: { x: -cx, z: rowZ(0, 0), w: W, d: D }, side: -1, floor: 0x2c4a6e, accent: 0x46c2cb,
   },
   vault: {
     id: 'vault', kind: 'training', skill: 'finesse', minigame: 'safe', unlockCost: 0, unlockLevel: 1,
-    baseIncome: 6, upgradeBaseCost: 12, cycleSeconds: 4, instructorCost: 900, stationBase: 15, runnerCost: 260,
-    rect: { x: cx, z: row(0), w: W, d: D }, side: 1, floor: 0x3d6b8f, accent: 0xf2b134,
+    baseIncome: 6, upgradeBaseCost: 12, cycleSeconds: 4, instructorCost: 900, stationBase: 15, runnerCost: 200,
+    rect: { x: cx, z: rowZ(0, 0), w: W, d: D }, side: 1, floor: 0x3d6b8f, accent: 0xf2b134,
   },
   laser: {
     id: 'laser', kind: 'training', skill: 'stealth', minigame: 'laser', unlockCost: 90, unlockLevel: 1,
     baseIncome: 14, upgradeBaseCost: 70, cycleSeconds: 6, instructorCost: 1600, stationBase: 70, runnerCost: 700,
-    rect: { x: -cx, z: row(1), w: W, d: D }, side: -1, floor: 0x5a3d7a, accent: 0xf2665c,
+    rect: { x: -cx, z: rowZ(1, 0), w: W, d: D }, side: -1, floor: 0x5a3d7a, accent: 0xf2665c,
   },
   cipher: {
-    id: 'cipher', kind: 'training', skill: 'brains', minigame: 'code', unlockCost: 4500, unlockLevel: 2,
+    id: 'cipher', kind: 'training', skill: 'brains', minigame: 'code', unlockCost: 2500, unlockLevel: 2,
     baseIncome: 60, upgradeBaseCost: 500, cycleSeconds: 7, instructorCost: 9000, stationBase: 600, runnerCost: 5000,
-    rect: { x: cx, z: row(1), w: W, d: D }, side: 1, floor: 0x2f6b5a, accent: 0x7cc6d6,
+    rect: { x: cx, z: rowZ(2, 1), w: W, d: D }, side: 1, floor: 0x2f6b5a, accent: 0x7cc6d6,
   },
   disguise: {
-    id: 'disguise', kind: 'training', skill: 'charm', minigame: 'mole', unlockCost: 42000, unlockLevel: 3,
+    id: 'disguise', kind: 'training', skill: 'charm', minigame: 'mole', unlockCost: 25000, unlockLevel: 3,
     baseIncome: 260, upgradeBaseCost: 3800, cycleSeconds: 8, instructorCost: 60000, stationBase: 5000, runnerCost: 40000,
-    rect: { x: -cx, z: row(2), w: W, d: D }, side: -1, floor: 0x8a4a6b, accent: 0xf7c6d0,
+    rect: { x: -cx, z: rowZ(2, 1), w: W, d: D }, side: -1, floor: 0x8a4a6b, accent: 0xf7c6d0,
   },
   gadget: {
-    id: 'gadget', kind: 'support', unlockCost: 120000, unlockLevel: 4,
+    id: 'gadget', kind: 'support', unlockCost: 80000, unlockLevel: 3,
     baseIncome: 0, upgradeBaseCost: 0, cycleSeconds: 0, instructorCost: 0, stationBase: 0, runnerCost: 0,
-    rect: { x: cx, z: row(2), w: W, d: D }, side: 1, floor: 0x6b5a2f, accent: 0xf2b134,
+    rect: { x: cx, z: rowZ(3, 1), w: W, d: D }, side: 1, floor: 0x6b5a2f, accent: 0xf2b134,
   },
   driving: {
     id: 'driving', kind: 'training', skill: 'agility', minigame: 'scooter', unlockCost: 450000, unlockLevel: 5,
     baseIncome: 1100, upgradeBaseCost: 28000, cycleSeconds: 9, instructorCost: 420000, stationBase: 50000, runnerCost: 300000,
-    rect: { x: -cx, z: row(3), w: W, d: D }, side: -1, floor: 0x3a5a3a, accent: 0xbfe8d6,
+    rect: { x: -cx, z: rowZ(4, 2), w: W, d: D }, side: -1, floor: 0x3a5a3a, accent: 0xbfe8d6,
   },
   hack: {
     id: 'hack', kind: 'training', skill: 'tech', minigame: 'circuit', unlockCost: 4000000, unlockLevel: 6,
     baseIncome: 5000, upgradeBaseCost: 210000, cycleSeconds: 10, instructorCost: 3000000, stationBase: 400000, runnerCost: 2500000,
-    rect: { x: cx, z: row(3), w: W, d: D }, side: 1, floor: 0x1f3d5a, accent: 0x46c2cb,
+    rect: { x: cx, z: rowZ(4, 2), w: W, d: D }, side: 1, floor: 0x1f3d5a, accent: 0x46c2cb,
   },
 }
 
 export const ROOM_ORDER: RoomId[] = ['mission_control', 'vault', 'laser', 'cipher', 'disguise', 'gadget', 'driving', 'hack']
 
-/** Row behind the last rooms: "Coming soon" construction teaser. */
-export const TEASER_ROW_Z = row(4)
-export const CORRIDOR = { zFront: LAYOUT.backDoor.z, zBack: row(4) - D / 2 }
+/** Last row of the last area: "Coming soon" construction teaser. */
+export const TEASER_ROW_Z = rowZ(5, 2)
+export const CORRIDOR = { zFront: LAYOUT.backDoor.z, zBack: AREAS.lighthouse.zBack }
 
 /** Door position of a room on the corridor side. */
 export function doorOf(id: RoomId): { x: number; z: number } {
@@ -181,7 +229,7 @@ export function slotOf(id: RoomId, slot: number): { x: number; z: number } {
   const side = ROOMS[id].side
   const col = slot % 3
   const rowI = Math.floor(slot / 3)
-  return { x: r.x + side * (-1.0 + col * 1.6), z: r.z - 1.5 + rowI * 2.0 }
+  return { x: r.x + side * (-1.6 + col * 2.1), z: r.z - 1.9 + rowI * 2.4 }
 }
 
 /** Street door -> waiting spot in front of the counter. */

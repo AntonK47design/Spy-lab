@@ -3,7 +3,7 @@
  * code runs in the browser and in `npm run sim` (node with type stripping).
  */
 import { ECONOMY } from '../config/economy.ts'
-import { ROOMS, ROOM_ORDER, type RoomId, type Skill } from '../config/rooms.ts'
+import { AREA_ORDER, ROOMS, ROOM_AREA, ROOM_ORDER, type AreaId, type RoomId, type Skill } from '../config/rooms.ts'
 import type { Rarity } from '../config/agents.ts'
 
 export interface RoomState {
@@ -75,6 +75,9 @@ export interface GameState {
   xp: number
   level: number
   rooms: Record<RoomId, RoomState>
+  /** Opened areas (islands); 'hq' is open from the start. */
+  areas: Record<AreaId, boolean>
+  areaPaid: Record<AreaId, number>
   cadets: CadetState[]
   arrivalTimer: number
   /** Sign-up desk built (first purchase). */
@@ -130,6 +133,8 @@ export function newGame(): GameState {
     xp: 0,
     level: 1,
     rooms,
+    areas: { hq: true, harbor: false, lighthouse: false },
+    areaPaid: { hq: 0, harbor: 0, lighthouse: 0 },
     // The first customer is already waiting at the counter (lesson: no long first walk).
     cadets: [{ id: 1, phase: 'queue', room: null, slot: -1, t: 0, walk: 0, queueIndex: 0, repping: false, cycles: 0, need: ECONOMY.graduation.firstCycles }],
     arrivalTimer: 2,
@@ -170,6 +175,12 @@ export function hydrate(raw: Partial<GameState> | null | undefined): GameState {
     while (r.supply.length < r.stations) r.supply.push(0)
     s.rooms[id] = r
   }
+  s.areas = { ...base.areas, ...(raw.areas ?? {}) }
+  s.areaPaid = { ...base.areaPaid, ...(raw.areaPaid ?? {}) }
+  // migration: rooms unlocked in an area imply the area is open
+  for (const id of ROOM_ORDER) if (s.rooms[id].unlocked) s.areas[ROOM_AREA[id]] = true
+  s.areas.hq = true
+  void AREA_ORDER
   s.stats = { ...base.stats, ...(raw.stats ?? {}) }
   s.flags = { ...(raw.flags ?? {}) }
   s.missions = { ...(raw.missions ?? {}) }

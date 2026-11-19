@@ -12,7 +12,7 @@ export const FOLLOW = {
   widthLandscape: 21,
   lookAhead: 0.6,
   lerp: 6,
-  bounds: { minX: -9, maxX: 9, minZ: -20, maxZ: 12 },
+  bounds: { minX: -11, maxX: 11, minZ: -60, maxZ: 12 },
 }
 
 export class FollowCamera {

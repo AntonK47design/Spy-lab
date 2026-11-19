@@ -14,3 +14,13 @@
 
 ## 2026-11-19 – Testen
 - Vorerst nur über **GitHub Pages**. Kein Playgama-Upload ohne ausdrückliches OK.
+
+## 2026-11-19 – Kickoff-Loop, Kenney/KayKit-Look, drei Areale
+- Kern-Loop wie Kickoff: Kadetten warten an der Theke, Direktor meldet an, trägt Kits zu Stationen,
+  Absolvent als Karte (behalten oder ausleihen), Personal-Pads automatisieren (Kit-Läufer, Theke, Ausbilder).
+- Look nach `docs/ART_BIBLE.md`: Kenney Mini Characters + KayKit (CC0), Diorama über dunklem Void.
+- **Drei Areale** (Inseln, per Brücke verbunden, Tor-Kauf am Korridor-Ende, geschlossene Areale als Blaupause):
+  1. Bäckerei-HQ: Bäckerei, Einsatzzentrale, Tresorwerkstatt, Laser Gym, Lounge-Platz
+  2. Hafen-Lagerhaus (Tor 3.000, Level 2): Chiffrierraum, Verkleidungsstudio, Gadget-Labor, Platz
+  3. Leuchtturm-Basis (Tor 250.000, Level 4): Fahrsimulator, Hack-Labor, „Coming soon"
+- Räume 10 × 8 m (vorher 8 × 6,4), Korridor 5 m, 1,5 m Wege zwischen den Reihen.

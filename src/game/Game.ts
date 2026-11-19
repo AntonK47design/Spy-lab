@@ -124,6 +124,12 @@ export class Game {
         this.world.syncRooms(state)
         persist(['core', 'meta'], true)
       },
+      area: (a) => {
+        track('area_opened', { area: a })
+        showToast(`areaOpen.${a}`)
+        this.world.syncAreas(state)
+        this.world.syncRooms(state)
+      },
       built: (what, room) => {
         AudioManager.play('unlock')
         // rebuild pads right away so a standing hero never pays into the NEXT pad by accident
@@ -164,6 +170,7 @@ export class Game {
       }
     })
 
+    this.world.syncAreas(state)
     this.world.syncRooms(state)
     this.world.syncCounter(state.counter)
     this.pads.sync(state)

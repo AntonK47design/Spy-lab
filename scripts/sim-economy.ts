@@ -8,11 +8,11 @@
 import { newGame, type GameState } from '../src/sim/state.ts'
 import {
   setRng, tick, collect, collectWelcome, pickKits, dropKits, payPad, padPrice, upgradeLevel, levelCost,
-  trainingRooms, nextUnlock, serveBlocker, resolveGraduate, nextStationCost, nextStaff, type PadTarget, type HeroInput,
+  trainingRooms, nextUnlock, nextArea, serveBlocker, resolveGraduate, nextStationCost, nextStaff, type PadTarget, type HeroInput,
 } from '../src/sim/academy.ts'
 import { missionLock, missionReward, recordWin, recordFail, bestAgent } from '../src/sim/missions.ts'
 import { MISSIONS } from '../src/config/missions.ts'
-import { LAYOUT, ROOMS, ROOM_ORDER, cashSpotOf, crateOf, padOf, slotOf, staffPadOf, upgradeSpotOf, type RoomId } from '../src/config/rooms.ts'
+import { LAYOUT, ROOMS, ROOM_ORDER, cashSpotOf, crateOf, gateOf, padOf, slotOf, staffPadOf, upgradeSpotOf, type RoomId } from '../src/config/rooms.ts'
 import { ECONOMY, padFillSeconds } from '../src/config/economy.ts'
 import { createRng } from '../src/core/rng.ts'
 
@@ -36,6 +36,7 @@ function padPos(t: PadTarget, s: GameState): P {
     case 'station': return slotOf(t.room, s.rooms[t.room].stations)
     case 'staff': return staffPadOf(t.room)
     case 'crate': return crateOf(t.room)
+    case 'gate': return gateOf(t.area)
   }
 }
 
@@ -43,6 +44,8 @@ function allPads(s: GameState): PadTarget[] {
   const out: PadTarget[] = [{ kind: 'counter' }, { kind: 'clerk' }]
   const nu = nextUnlock(s)
   if (nu) out.push({ kind: 'unlock', room: nu })
+  const na = nextArea(s)
+  if (na) out.push({ kind: 'gate', area: na })
   for (const id of trainingRooms(s)) out.push({ kind: 'station', room: id }, { kind: 'crate', room: id }, { kind: 'staff', room: id })
   return out.filter((t) => padPrice(s, t))
 }
@@ -79,6 +82,7 @@ function runBot(seed: number, efficiency: number, seconds: number): Run {
     unlock: (r: RoomId) => mark(`unlock_${r}`),
     cycle: () => mark('first_income'),
     served: () => mark('first_served'),
+    area: (a: string) => mark(`area_${a}`),
     built: (what: string) => {
       if ((what === 'runner' || what === 'clerk' || what === 'instructor') && firstAutomation == null) firstAutomation = t()
     },
@@ -248,7 +252,8 @@ const BEATS: [string, string, number, number][] = [
   ['affordable_laser', 'Laser Gym kaufbar', 100, 200],
   ['unlock_laser', 'Laser Gym gebaut', 100, 210],
   ['first_automation', 'Erste Automatisierung', 200, 240],
-  ['unlock_cipher', 'Cipher Room', 300, 420],
+  ['area_harbor', 'Areal 2 (Hafen) offen', 600, 960],
+  ['unlock_cipher', 'Cipher Room', 660, 1000],
   ['level_3', 'Akademie-Level 3', 390, 520],
 ]
 

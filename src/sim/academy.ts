@@ -9,7 +9,7 @@
 import {
   ECONOMY, milestoneMult, openingFactor, speedCost, stationCost, upgradeCost, xpToNext,
 } from '../config/economy.ts'
-import { LAYOUT, ROOMS, ROOM_ORDER, arrivalPath, cadetPath, pathLength, type RoomId } from '../config/rooms.ts'
+import { AREAS, AREA_ORDER, LAYOUT, ROOMS, ROOM_AREA, ROOM_ORDER, arrivalPath, cadetPath, pathLength, type AreaId, type RoomId } from '../config/rooms.ts'
 import { AGENTS, AGENT_CODE, AGENT_FIRST, SKILLS } from '../config/agents.ts'
 import type { Agent, CadetState, GameState } from './state.ts'
 
@@ -26,6 +26,7 @@ export interface SimEvents {
   levelUp?(level: number): void
   unlock?(room: RoomId): void
   built?(what: string, room: RoomId | null): void
+  area?(area: AreaId): void
 }
 
 /** Inputs the hero provides this tick (set by the view or the bot). */
@@ -364,11 +365,28 @@ export type PadTarget =
   | { kind: 'station'; room: RoomId }
   | { kind: 'staff'; room: RoomId }
   | { kind: 'crate'; room: RoomId }
+  | { kind: 'gate'; area: AreaId }
   | { kind: 'counter' }
   | { kind: 'clerk' }
 
 export function canUnlock(s: GameState, id: RoomId): boolean {
-  return !s.rooms[id].unlocked && s.level >= ROOMS[id].unlockLevel && nextUnlock(s) === id
+  return !s.rooms[id].unlocked && s.areas[ROOM_AREA[id]] && s.level >= ROOMS[id].unlockLevel && nextUnlock(s) === id
+}
+
+/** The next closed area, if every room of the area before it is built. */
+export function nextArea(s: GameState): AreaId | null {
+  for (let i = 1; i < AREA_ORDER.length; i++) {
+    const a = AREA_ORDER[i]!
+    if (s.areas[a]) continue
+    const prev = AREA_ORDER[i - 1]!
+    const done = ROOM_ORDER.filter((r) => ROOM_AREA[r] === prev).every((r) => s.rooms[r].unlocked)
+    return done ? a : null
+  }
+  return null
+}
+
+export function canOpenArea(s: GameState, a: AreaId): boolean {
+  return nextArea(s) === a && s.level >= AREAS[a].gateLevel
 }
 
 /** Price and amount already paid for a pad, or null if the pad is not active. */
@@ -380,6 +398,8 @@ export function padPrice(s: GameState, t: PadTarget): { cost: number; paid: numb
       return !s.counter || s.clerk || s.stats.served < 3 ? null : { cost: ECONOMY.clerkCost, paid: s.clerkPaid }
     case 'unlock':
       return canUnlock(s, t.room) ? { cost: ROOMS[t.room].unlockCost, paid: s.rooms[t.room].paid } : null
+    case 'gate':
+      return canOpenArea(s, t.area) ? { cost: AREAS[t.area].gateCost, paid: s.areaPaid[t.area] } : null
     case 'crate': {
       const r = s.rooms[t.room]
       if (!r.unlocked || r.crate || ROOMS[t.room].kind !== 'training' || r.stations === 0) return null
@@ -419,6 +439,15 @@ export function payPad(s: GameState, t: PadTarget, amount: number, ev: SimEvents
       if (done) {
         s.clerk = true
         ev.built?.('clerk', null)
+      }
+      break
+    case 'gate':
+      s.areaPaid[t.area] += pay
+      if (done) {
+        s.areas[t.area] = true
+        addXp(s, ECONOMY.academyXp.unlockRoom * 2, ev)
+        ev.built?.('gate', null)
+        ev.area?.(t.area)
       }
       break
     case 'unlock': {
