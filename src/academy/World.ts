@@ -598,8 +598,12 @@ export class World {
     const P = this.p
     const b = new StaticBatch()
     const w = LAYOUT.corridorWidth / 2 - 0.1
-    b.rbox(w, 2.35, 0.5, 0, 1.18, 0, 0x7a3e2b, 0.05)
-    b.rbox(w - 0.2, 2.1, 0.06, 0, 1.18, 0.2, 0xfff3e0, 0.02)
+    // open shelf facing the bakery (+z): back panel, side posts, top + plinth
+    b.rbox(w, 2.35, 0.1, 0, 1.18, -0.2, 0x7a3e2b, 0.03)
+    b.rbox(w - 0.24, 2.1, 0.04, 0, 1.18, -0.14, 0xf3e2c4, 0.02)
+    for (const sx of [-1, 1]) b.rbox(0.14, 2.35, 0.5, sx * (w / 2 - 0.07), 1.18, 0, 0x7a3e2b, 0.04)
+    b.rbox(w, 0.12, 0.52, 0, 2.3, 0, 0x7a3e2b, 0.04)
+    b.rbox(w, 0.14, 0.52, 0, 0.07, 0, 0x5e2f20, 0.04)
     for (const y of [0.55, 1.2, 1.85]) {
       b.rbox(w - 0.2, 0.06, 0.4, 0, y, 0.02, 0x9b5a3c, 0.02)
       // chunky loaves, baguettes and jars so the wall reads as a bakery shelf from far away
