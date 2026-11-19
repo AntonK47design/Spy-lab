@@ -87,3 +87,10 @@ Plan: https://claude.ai/artifact/3VK5u4uetgNAqxG6wv9qhA (Fähre, Dead Drops, Sei
 - Werte unverändert. Sim: Beat Sheet erste 3 Min OK; Hafen 8:13 (Ziel 10:00); „Erste Automatisierung" 4:24 (Ziel 3:20, war schon vorher spät → Phase 3).
 - Tests: 31/31 Funktionstests grün (inkl. echtem Laufweg durch die Regaltür). Draw Calls ~29.
 - Nächster Schritt laut Plan: Hafen-Docks (Garagentor, Rampe, Kran).
+
+## Map 2.0 · Schritt 2: Hafen-Docks — 2026-11-19
+- Hafen liegt jetzt östlich des Innenhofs. Zugang: Garagenhalle (ehem. rechte Lounge) mit Rolltor = Hafen-Tor (3.000, Level 2); das Tor rollt beim Freischalten hoch.
+- Docks: Hafenstraße mit Containerstapeln; Cipher im Schiffscontainer (rote Rippenwände), Disguise im Fischmarkt (Markise), Gadget im Bootshaus; Kai mit Pollern, Laternen, schwenkendem Kran, Booten; Wasser rundum.
+- Leuchtturm vorübergehend direkt nördlich des Hofs (Brücke), Schritt 3 verlegt ihn auf die Insel mit Fähre.
+- Bewusst weggelassen: die im Plan genannte Höhenstufe (1 m tiefer). Alle Figuren, Felder, Geldstapel und Labels sind auf Bodenhöhe 0 gebaut; das hätte jedes System berührt. Trennung stattdessen über Rolltor, Material (Beton/Holzkante) und Wasser.
+- Sim: unverändert (Hafen 8:12). Tests: 31/31 (Gehtest jetzt durch die Vault-Tür und mittig durch die Gasse hinter dem Tresen).
