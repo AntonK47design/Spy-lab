@@ -82,13 +82,14 @@ test('keyboard (WASD) moves the director, colliding with walls', async ({ page }
   await page.keyboard.up('KeyW')
   const b = await spy<any>(page, 'player')
   expect(b.z).toBeLessThan(a.z - 0.5)
-  // walk into the left wall for a long time: never leaves the corridor
-  await spy(page, 'teleport', 0, -2)
+  // walk into the Laser Gym's courtyard wall (beside its door) for a long time: the wall holds
+  await spy(page, 'teleport', -4, 2.6)
   await page.keyboard.down('KeyA')
-  await page.waitForTimeout(1200)
+  await page.waitForTimeout(1500)
   await page.keyboard.up('KeyA')
   const c = await spy<any>(page, 'player')
-  expect(c.x).toBeGreaterThan(-2.2)
+  expect(c.x).toBeGreaterThan(-6)
+  expect(c.x).toBeLessThan(-5)
 })
 
 test('touch-style drag joystick moves the director', async ({ page }) => {
