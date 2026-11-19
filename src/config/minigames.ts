@@ -237,3 +237,39 @@ export const SCOOTER = {
   reviveSeconds: 12,
   /** Stars: 0 crashes = 3, 1 crash = 2, else 1. */
 } as const
+
+// ---------------------------------------------------------------- Circuit Hack (Tech)
+export interface CircuitTier {
+  /** Grid size n x n. */
+  size: number
+  /** Terminals that must receive power. */
+  targets: number
+  timeLimit: number
+}
+
+export const CIRCUIT_TIERS: CircuitTier[] = [
+  { size: 4, targets: 1, timeLimit: 45 },
+  { size: 4, targets: 2, timeLimit: 50 },
+  { size: 5, targets: 2, timeLimit: 55 },
+  { size: 5, targets: 3, timeLimit: 60 },
+  { size: 5, targets: 3, timeLimit: 55 },
+  { size: 6, targets: 3, timeLimit: 70 },
+  { size: 6, targets: 4, timeLimit: 72 },
+  { size: 6, targets: 4, timeLimit: 66 },
+  { size: 7, targets: 4, timeLimit: 85 },
+  { size: 7, targets: 5, timeLimit: 85 },
+]
+
+export const CIRCUIT = {
+  /** Tech skill: + seconds per point (max below). */
+  skillSecondsPerPoint: 0.5,
+  maxSkillSeconds: 15,
+  freeHints: 1,
+  /** Hint: tiles snapped into place. */
+  hintTiles: 3,
+  reviveSeconds: 20,
+  threeStarLeftShare: 0.4,
+  twoStarLeftShare: 0.15,
+  /** Seconds for one quarter turn (animation only; input is never blocked). */
+  turnSeconds: 0.12,
+} as const

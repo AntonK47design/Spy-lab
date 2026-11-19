@@ -6,7 +6,7 @@ import { mgHud } from '../minigames/Minigame'
 import { missionUi } from './uiState'
 import { AdButton, Btn, Stars } from './common'
 import { openPause } from './panels'
-import { IconAd, IconArrowLeft, IconArrowRight, IconBag, IconBolt, IconCash, IconCoat, IconEye, IconGlasses, IconHand, IconHat, IconHome, IconIntel, IconPause, IconRetry, IconTimer } from './icons'
+import { IconAd, IconBulb, IconArrowLeft, IconArrowRight, IconBag, IconBolt, IconCash, IconCoat, IconEye, IconGlasses, IconHand, IconHat, IconHome, IconIntel, IconPause, IconRetry, IconTimer } from './icons'
 import type { MoleClue } from '../minigames/Minigame'
 import { missionById } from '../config/missions'
 import { CODE } from '../config/minigames'
@@ -104,7 +104,7 @@ function PlayingHud() {
         </button>
         <div class="mg-bolts" aria-label={`${h.done}/${h.total}`}>
           {Array.from({ length: h.total }, (_, i) => (
-            <span class={`bolt ${i < h.done ? 'open' : ''}`}>{h.icon === 'chip' ? <IconIntel /> : <IconBolt />}</span>
+            <span class={`bolt ${i < h.done ? 'open' : ''}`}>{h.icon === 'chip' ? <IconIntel /> : h.icon === 'bulb' ? <IconBulb /> : <IconBolt />}</span>
           ))}
         </div>
         <div class="mg-alarm" aria-label={`${h.mistakes}/${h.maxMistakes}`}>

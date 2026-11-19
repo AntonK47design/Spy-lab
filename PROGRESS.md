@@ -145,3 +145,9 @@ Plan: https://claude.ai/artifact/3VK5u4uetgNAqxG6wv9qhA (Fähre, Dead Drops, Sei
 - Steuerung: Pfeile/A-D, Wischen, Bildschirmhälfte antippen oder große Pfeil-Knöpfe. Geisterhand beim ersten Mal zeigt die Ausweichrichtung. Agility-Skill: bis +15 % Tempo. Revive: Crashes −1, +12 s.
 - Neue Region **Snowpeak** (10 Missionen: Scooter ×4, Circuit ×2, Safe, Laser, Code, Mole; Belohnungen wachsen weiter), Reiter im Missions-Ordner; freigeschaltet nach Harbor Bay. Circuit Hack folgt.
 - Tests: Snowpeak 1 komplett (Knöpfe, Tasten); alle 10 Stufen vom Planer ohne Fail gewonnen.
+
+## Phase 2 · Minispiel 6: Circuit Hack — 2026-11-19
+- Leitungs-Puzzle 4×4 bis 7×7: Brett als zufälliger Spannbaum über alle Felder erzeugt (immer lösbar), Terminals auf Blättern, alles verdreht. Antippen dreht ein Feld um 90°; Tastatur: Pfeile bewegen einen Cursor, Leertaste/Enter dreht. Strom fließt sichtbar (hellblau), Terminals werden grün, Glühbirnen oben zählen mit.
+- Tipp (1× gratis, dann Werbung): 3 Felder auf dem Weg zu einem dunklen Terminal rasten ein. Revive +20 s. Tech-Skill: bis +15 s. Geisterhand beim ersten Mal zeigt die nächsten Felder.
+- Instanzierte Felder/Leitungen: ~15 Draw Calls auch bei 7×7.
+- Snowpeak 5 und 9 spielbar → **alle 6 Minispiele fertig**. Tests: Mission komplett (Tastatur, Tipp, Klicks); alle 10 Stufen gelöst.

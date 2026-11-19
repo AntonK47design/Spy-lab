@@ -38,7 +38,7 @@ export interface MinigameHud {
   /** Short feedback flash: 'hit' | 'miss' | null */
   flash: 'hit' | 'miss' | null
   /** What the progress icons stand for (safe: bolts, laser: intel chips). */
-  icon?: 'bolt' | 'chip'
+  icon?: 'bolt' | 'chip' | 'bulb'
   /** Code Breaker keypad state (shown as on-screen keypad when present). */
   keypad?: {
     symbols: number

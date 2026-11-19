@@ -127,6 +127,8 @@ export function installDebugHooks(g: { renderer: ReturnType<typeof createRendere
     mgTarget: (wrong = false) => (game.minigame as unknown as { debugTarget?: (w: boolean) => { x: number; y: number } | null } | null)?.debugTarget?.(wrong) ?? null,
     mgAllClues: () => (game.minigame as unknown as { debugAllClues?: () => boolean } | null)?.debugAllClues?.() ?? null,
     mgHud: () => mgHud.peek(),
+    /** Circuit Hack: screen position of a tile to turn next (planner). */
+    mgNextTap: () => (game.minigame as unknown as { debugNextTap?: () => { x: number; y: number } | null } | null)?.debugNextTap?.() ?? null,
     mgInput: (cmd: 'sym' | 'del' | 'ok', arg?: number) => game.minigameInput(cmd, arg),
     /** Laser Hall internals for QA (row/col/mistakes/time and the hazard kind of each row). */
     mgInfo: () => {
