@@ -346,7 +346,7 @@ export class Game {
           if (P.near(sp.x, sp.z - 0.4, E.player.stationRadius) && this.kitT >= E.supply.dropSeconds) {
             if (dropKits(state, id, i, 1)) {
               this.kitT = 0
-              AudioManager.play('upgrade', 1.4)
+              AudioManager.play('kit_drop', 0.92 + Math.random() * 0.16)
               persist(['core'])
             }
           }

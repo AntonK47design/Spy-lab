@@ -17,7 +17,7 @@ no attribution required (credited anyway). Source files are kept unmodified in `
 | `models/characters/kenney` | Mini Characters (incl. animations) | Kenney | CC0 1.0 | kenney.nl/assets/mini-characters |
 | `fonts/Fredoka-*`, `fonts/fredoka-600.woff2` | Fredoka (UI display font, subset) | The Fredoka Project Authors | SIL OFL 1.1 (`fonts/OFL-Fredoka.txt`) | github.com/google/fonts/tree/main/ofl/fredoka |
 | `fonts/Nunito-*`, `fonts/nunito-800.woff2` | Nunito (UI body font, subset) | The Nunito Project Authors | SIL OFL 1.1 (`fonts/OFL-Nunito.txt`) | github.com/google/fonts/tree/main/ofl/nunito |
-| `audio/sfx/*` (alle außer `crowd_ambient`), `audio/music/jingle_*` | Interface Sounds, UI SFX Set, RPG Sounds, Casino Audio, Digital SFX Set, Sci-fi Sounds, Music Jingles (Auswahl, auf −1 dBFS normalisiert) | Kenney | CC0 1.0 | opengameart.org/users/kenney |
+| `audio/sfx/*` (alle außer `crowd_ambient`; `kit_drop` = Casino „card-place-2“, gekürzt), `audio/music/jingle_*` | Interface Sounds, UI SFX Set, RPG Sounds, Casino Audio, Digital SFX Set, Sci-fi Sounds, Music Jingles (Auswahl, auf −1 dBFS normalisiert) | Kenney | CC0 1.0 | opengameart.org/users/kenney |
 | `audio/music/music_academy` | „Jazz n Brass Loop" (auf −16 LUFS normalisiert) | Emmama | CC0 1.0 | opengameart.org/content/jazz-n-brass-loop |
 | `audio/music/music_mission` | „Covert Action" | congusbongus | CC0 1.0 | opengameart.org/content/covert-action |
 | `audio/music/music_boss` | „Espionage" | haeldb | CC0 1.0 (dual mit OGA-BY 3.0, CC0 gewählt) | opengameart.org/content/espionage |

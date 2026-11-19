@@ -17,6 +17,8 @@ export const AUDIO = {
     coin: { core: true, volume: 0.6 },
     /** Short chip clink while cash pours into a build pad (plays many times per second). */
     pour: { core: true, volume: 0.45 },
+    /** Soft set-down when a training kit lands in a station basket (repeats a lot). */
+    kit_drop: { core: true, volume: 0.4 },
     upgrade: { core: true, volume: 0.7 },
     unlock: { core: false, volume: 0.8 },
     stamp: { core: false, volume: 0.8 },
