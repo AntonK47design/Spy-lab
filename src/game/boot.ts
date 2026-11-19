@@ -22,6 +22,7 @@ import { Game } from './Game'
 import { World } from '../academy/World'
 import { preload, coreFiles, lazyFiles, characterProto } from '../render/assets'
 import { setGame } from './actions'
+import { portrait } from '../ui/uiState'
 
 export async function start(progress: (p: number) => void): Promise<void> {
   // 1. Restore state before any gameplay is visible.
@@ -115,6 +116,12 @@ export async function start(progress: (p: number) => void): Promise<void> {
       platform.sendMessage('in_game_loading_started')
       void preload(lazyFiles()).finally(() => platform.sendMessage('in_game_loading_stopped'))
       persist(['core', 'meta'])
+      // real render of the hero for the HUD portrait (once, after the first frames)
+      void import('../render/portrait').then(({ renderPortrait }) =>
+        renderPortrait(renderer.renderer, 'director').then((url) => {
+          if (url) portrait.value = url
+        }),
+      )
     }),
   )
 

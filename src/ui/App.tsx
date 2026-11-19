@@ -7,7 +7,7 @@ import { formatNumber } from '../core/format'
 import { hud, state, rev } from '../game/store'
 import { nextUnlock } from '../sim/academy'
 import { ROOMS } from '../config/rooms'
-import { coachLine, infoCard, inMission, moveHint, panel, toast, missionUi } from './uiState'
+import { coachLine, infoCard, inMission, moveHint, panel, portrait, toast, missionUi } from './uiState'
 import { PanelHost, closePanel, openPause } from './panels'
 import { MissionLayer } from './mission'
 import { click } from './common'
@@ -68,7 +68,9 @@ function TopLeft() {
         <IconGear />
       </button>
       <div class="level-ring" data-testid="hud-level" style={{ '--p': `${share * 360}deg` } as Record<string, string>}>
-        <AvatarDirector class="lr-avatar" />
+        <span class="lr-avatar">
+          {portrait.value ? <img class="lr-photo" src={portrait.value} alt="" draggable={false} /> : <AvatarDirector class="lr-svg" />}
+        </span>
         <span class="lr-badge">{t('hud.lvl', { n: hud.level.value })}</span>
       </div>
     </div>

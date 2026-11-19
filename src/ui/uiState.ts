@@ -40,6 +40,8 @@ export const moveHint = signal<string | null>(null)
 
 /** Tutorial bubble (Agent Marmalade) — i18n key or null. */
 export const coachLine = signal<string | null>(null)
+/** Rendered hero head (data URL) for the HUD portrait; null until rendered. */
+export const portrait = signal<string | null>(null)
 
 export function openPanel(p: Panel): void {
   panel.value = p
