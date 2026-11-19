@@ -1,6 +1,6 @@
 # Spy Lab – harte Regeln (gelten in jeder Session)
 
-Volle Spezifikation: `docs/SPY_LAB_BRIEF.md`. Fortschritt: `PROGRESS.md`.
+Volle Spezifikation: `docs/SPY_LAB_BRIEF.md`, **überschrieben durch `docs/DESIGN_DECISIONS.md`**. Fortschritt: `PROGRESS.md`.
 Live-Doku (Playgama-MCP) schlägt den Brief; Widersprüche melden.
 
 ## Arbeitsweise

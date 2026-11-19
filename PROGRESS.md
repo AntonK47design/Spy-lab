@@ -21,4 +21,4 @@
 **Platzhalter (fehlende Assets)**: alle 22 Audiodateien (stille mp3), Fonts (System-Fonts), Modelle (Box-Szene).
 
 ## Offene Produktentscheidung
-- Anton wünscht den Stil seines Spiels „Kickoff Academy": isometrische Draufsicht, spielbare Figur, Unlock-Felder mit Preis, Geldstapel einsammeln. Das ersetzt den Querschnitt (Brief §5.3). Wird vor Phase 1 geklärt.
+- ✅ Entschieden: siehe `docs/DESIGN_DECISIONS.md` (eine große Fläche, spielbare Figur wie Kickoff + Missionen an Mission Control).
