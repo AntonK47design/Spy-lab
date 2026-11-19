@@ -131,3 +131,10 @@ Plan: https://claude.ai/artifact/3VK5u4uetgNAqxG6wv9qhA (Fähre, Dead Drops, Sei
 - „Explosionen im Hintergrund": Stempel-Sound bei jedem Check-in auch durch die Empfangskraft + Abschluss-Jingle bei jedem Absolventen. Jetzt: Stempel nur, wenn du selbst eincheckst (leiser), Jingle nur bei seltenen+ Absolventen.
 - Stationen zeigen jetzt ihre Aufgabe: Cipher = Chiffrierrad am Schreibtisch, Disguise = Schminkspiegel mit Glühbirnen + Perückenkopf, Gadget = Werkbank mit Drohne, Driving = Fahrsimulator (Bildschirm, Lenkrad, Pedale), Hack = Terminal mit zwei Monitoren + Tastatur.
 - Pad-Labels überlappten (Einstellen/Upgrade): Einstell-Feld mittig zwischen Kiste und Upgrade-Schreibtisch, Upgrade-Label auf gleicher Höhe wie die anderen.
+
+## Phase 2 · Minispiel 4: Spot the Mole — 2026-11-19
+- Bahnhofshalle (Fenster, Abfahrtstafel, Uhr, Bänke) mit 14–36 Reisenden (Kenney-Figuren, Jackenfarbe per Tönung) und kombinierbaren Accessoires: Hut in 5 Farben, Brille, Aktenkoffer – je eine InstancedMesh, an Kopf-/Hand-Knochen geheftet (≤ 76 Draw Calls).
+- Hinweise erscheinen nacheinander als Chips oben (Symbol + Farbe + Text, 7 Sprachen); der nächste füllt sich sichtbar. Antippen des Maulwurfs = Sieg; falscher Tipp −5 s. Tipp (1× gratis, dann Werbung): die Hälfte der Falschen verlässt die Halle. Revive +15 s. Geisterhand beim ersten Mal, sobald alle Hinweise da sind.
+- Stufen: Reisende, Hinweisanzahl 2→4, längere Abstände, Tempo, Ähnlichkeit (Doppelgänger); Charm-Skill verkürzt die Abstände (max −35 %). Erzeugung garantiert: genau eine Person passt auf alle Hinweise.
+- Missionen 7 und 10 spielbar. Tests: Mission 7 komplett (falscher Tipp, Tipp-Knopf, Maulwurf); alle 10 Stufen lösbar.
+- Code-Breaker-Löser im Test verbessert (Minimax statt „erste passende Kombination"): 10/10 Stufen.

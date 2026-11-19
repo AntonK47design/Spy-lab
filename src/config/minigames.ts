@@ -135,3 +135,51 @@ export const CODE = {
   shapes: ['circle', 'triangle', 'square', 'star', 'diamond', 'hexagon', 'cross'] as const,
   colors: [0xf2665c, 0xf2b134, 0x46c2cb, 0x8f6bd8, 0x5fbf5a, 0xff8fb0, 0xfff3e0],
 } as const
+
+// ---------------------------------------------------------------- Spot the Mole (Charm)
+export interface MoleTier {
+  /** Travellers walking around the station hall (incl. the mole). */
+  npcs: number
+  /** Clues revealed one after another (attributes of the mole). */
+  clues: number
+  /** Seconds between two clues (the first one shows at once). */
+  clueInterval: number
+  /** Walking speed (m/s). */
+  speed: number
+  /** Chance that a decoy copies one of the mole's attributes (look-alikes). */
+  similarity: number
+  timeLimit: number
+}
+
+export const MOLE_TIERS: MoleTier[] = [
+  { npcs: 14, clues: 2, clueInterval: 4, speed: 0.55, similarity: 0.2, timeLimit: 40 },
+  { npcs: 16, clues: 2, clueInterval: 4.5, speed: 0.6, similarity: 0.25, timeLimit: 40 },
+  { npcs: 18, clues: 3, clueInterval: 4.5, speed: 0.65, similarity: 0.3, timeLimit: 45 },
+  { npcs: 20, clues: 3, clueInterval: 5, speed: 0.7, similarity: 0.35, timeLimit: 45 },
+  { npcs: 23, clues: 3, clueInterval: 5.5, speed: 0.75, similarity: 0.4, timeLimit: 48 },
+  { npcs: 26, clues: 3, clueInterval: 6, speed: 0.8, similarity: 0.45, timeLimit: 50 },
+  { npcs: 28, clues: 4, clueInterval: 6, speed: 0.85, similarity: 0.45, timeLimit: 55 },
+  { npcs: 30, clues: 4, clueInterval: 6.5, speed: 0.9, similarity: 0.5, timeLimit: 55 },
+  { npcs: 33, clues: 4, clueInterval: 7, speed: 0.95, similarity: 0.55, timeLimit: 58 },
+  { npcs: 36, clues: 4, clueInterval: 7.5, speed: 1.0, similarity: 0.6, timeLimit: 60 },
+]
+
+export const MOLE = {
+  /** Wrong suspect: seconds lost. */
+  wrongPenalty: 5,
+  /** Charm skill shortens the clue interval by this share per point (max below). */
+  skillFasterPerPoint: 0.01,
+  maxSkillFaster: 0.35,
+  freeHints: 1,
+  /** Hint: share of the wrong suspects that leave the hall. */
+  hintRemoveShare: 0.5,
+  reviveSeconds: 15,
+  /** Stars by share of time left: >= 3-star share -> 3, >= 2-star share -> 2. */
+  threeStarLeftShare: 0.45,
+  twoStarLeftShare: 0.2,
+  /** Attribute values (index 0 = none). Colours shared with the HUD swatches. */
+  hats: [null, 0xe0483e, 0x2f6bff, 0x3a9b4a, 0xf2b134, 0x2b2b36] as (number | null)[],
+  hatNames: ['none', 'red', 'blue', 'green', 'yellow', 'black'] as const,
+  shirts: [0xd9503a, 0x2f6fb0, 0x4c9b5a, 0xe8c23a, 0xf2f2f2] as number[],
+  shirtNames: ['red', 'blue', 'green', 'yellow', 'white'] as const,
+} as const

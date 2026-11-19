@@ -183,5 +183,20 @@
   "code.free": "gratis",
   "code.attempts": "noch {n} Versuche",
   "code.delete": "Löschen",
-  "code.ok": "Prüfen"
+  "code.ok": "Prüfen",
+  "mole.hat.none": "Kein Hut",
+  "mole.hat.red": "Roter Hut",
+  "mole.hat.blue": "Blauer Hut",
+  "mole.hat.green": "Grüner Hut",
+  "mole.hat.yellow": "Gelber Hut",
+  "mole.hat.black": "Schwarzer Hut",
+  "mole.glasses.yes": "Brille",
+  "mole.glasses.no": "Keine Brille",
+  "mole.bag.yes": "Aktenkoffer",
+  "mole.bag.no": "Kein Koffer",
+  "mole.shirt.red": "Rote Jacke",
+  "mole.shirt.blue": "Blaue Jacke",
+  "mole.shirt.green": "Grüne Jacke",
+  "mole.shirt.yellow": "Gelbe Jacke",
+  "mole.shirt.white": "Weiße Jacke"
 }

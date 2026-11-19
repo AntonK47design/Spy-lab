@@ -52,6 +52,24 @@ export interface MinigameHud {
     /** Tutorial: key to press next (symbol index, -1 = delete, -2 = confirm). */
     suggest?: number
   }
+  /** Spot the Mole clue chips. */
+  clues?: MoleClue[]
+  /** Generic hint button (free hints left, else via rewarded ad). */
+  hint?: { free: number }
+  /** No big tap button: the player taps the play field. */
+  noTap?: boolean
+}
+
+/** Spot the Mole: one clue chip (hidden until revealed). */
+export interface MoleClue {
+  /** i18n key, e.g. mole.hat.red */
+  key: string
+  /** Colour swatch (hat / coat colour) or null. */
+  color: number | null
+  icon: 'hat' | 'glasses' | 'bag' | 'shirt'
+  shown: boolean
+  /** 0..1 fill of the clue that comes next. */
+  progress: number
 }
 
 export const mgHud = signal<MinigameHud | null>(null)

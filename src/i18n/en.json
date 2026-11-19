@@ -183,5 +183,20 @@
   "code.free": "free",
   "code.attempts": "{n} attempts left",
   "code.delete": "Delete",
-  "code.ok": "Enter"
+  "code.ok": "Enter",
+  "mole.hat.none": "No hat",
+  "mole.hat.red": "Red hat",
+  "mole.hat.blue": "Blue hat",
+  "mole.hat.green": "Green hat",
+  "mole.hat.yellow": "Yellow hat",
+  "mole.hat.black": "Black hat",
+  "mole.glasses.yes": "Glasses",
+  "mole.glasses.no": "No glasses",
+  "mole.bag.yes": "Briefcase",
+  "mole.bag.no": "No briefcase",
+  "mole.shirt.red": "Red coat",
+  "mole.shirt.blue": "Blue coat",
+  "mole.shirt.green": "Green coat",
+  "mole.shirt.yellow": "Yellow coat",
+  "mole.shirt.white": "White coat"
 }

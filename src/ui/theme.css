@@ -1163,3 +1163,28 @@ button {
 .kp-hand { position: absolute; right: -10px; bottom: -22px; pointer-events: none; animation: press 0.7s ease-in-out infinite; }
 @keyframes kp-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
 @media (prefers-reduced-motion: reduce) { .kp-key.suggest, .kp-del.suggest, .kp-ok.suggest, .kp-hand { animation: none; } }
+
+/* ---------- Spot the Mole: clue chips + hint button ---------- */
+.mg-clues {
+  position: absolute; top: calc(var(--sa-top) + var(--gap) * 3 + var(--tap) * 1.45); left: 50%; transform: translateX(-50%);
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 0.4em; width: min(94vw, 640px);
+}
+.clue {
+  position: relative; overflow: hidden; display: flex; align-items: center; gap: 0.35em;
+  min-height: 44px; padding: 0.25em 0.8em 0.25em 0.45em; border-radius: 99px;
+  background: var(--cream); color: var(--line-c); border: var(--line) solid var(--line-c);
+  box-shadow: 0 3px 0 var(--line-c); font-family: var(--font-display); font-weight: 600; font-size: 1.05em;
+  animation: stamp 0.35s cubic-bezier(.2,1.6,.4,1);
+}
+.clue.neg .clue-text { text-decoration: none; }
+.clue-ico { display: grid; place-items: center; width: 1.7em; height: 1.7em; border-radius: 50%; background: #2b3346; color: #fff3e0; }
+.clue.hidden { width: 3.6em; justify-content: center; padding: 0; background: #2b3346; color: #8a94a6; animation: none; }
+.clue.hidden .icon { position: relative; }
+.clue-fill { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(242, 177, 52, 0.45); }
+.mg-hint-btn {
+  position: absolute; right: calc(var(--sa-right) + var(--gap)); bottom: calc(var(--sa-bottom) + var(--gap) * 1.5);
+  min-height: max(48px, calc(var(--tap) * 0.95)); padding: 0 1.1em; display: flex; align-items: center; gap: 0.4em;
+  border-radius: 14px; border: var(--line) solid var(--line-c); background: var(--mustard); color: var(--line-c);
+  box-shadow: 0 4px 0 var(--line-c), inset 0 -4px 0 var(--mustard-d); font-family: var(--font-display); font-weight: 600;
+}
+.mg-hint-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--line-c); }

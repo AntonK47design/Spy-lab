@@ -5,6 +5,7 @@ import type { Game } from '../game/Game'
 import type { createRenderer } from '../render/renderer'
 import { state, persist } from '../game/store'
 import { createAgent } from '../sim/academy'
+import { mgHud } from '../minigames/Minigame'
 import { timeWarp as warp, now } from '../core/time'
 import { bootMarks } from '../platform/bridge'
 import { flush, saveStats } from '../core/save'
@@ -122,6 +123,10 @@ export function installDebugHooks(g: { renderer: ReturnType<typeof createRendere
     mgMove: (d: 'fwd' | 'back' | 'left' | 'right') => game.minigame?.move?.(d),
     /** Code Breaker: next press of a consistent-guess player (symbol, -1 delete, 'ok') and keypad input. */
     mgSuggest: () => (game.minigame as unknown as { debugSuggest?: () => number | 'ok' | null } | null)?.debugSuggest?.() ?? null,
+    /** Spot the Mole: screen position of the mole (or a wrong suspect) and whether all clues are out. */
+    mgTarget: (wrong = false) => (game.minigame as unknown as { debugTarget?: (w: boolean) => { x: number; y: number } | null } | null)?.debugTarget?.(wrong) ?? null,
+    mgAllClues: () => (game.minigame as unknown as { debugAllClues?: () => boolean } | null)?.debugAllClues?.() ?? null,
+    mgHud: () => mgHud.peek(),
     mgInput: (cmd: 'sym' | 'del' | 'ok', arg?: number) => game.minigameInput(cmd, arg),
     /** Laser Hall internals for QA (row/col/mistakes/time and the hazard kind of each row). */
     mgInfo: () => {

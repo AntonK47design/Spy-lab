@@ -6,7 +6,8 @@ import { mgHud } from '../minigames/Minigame'
 import { missionUi } from './uiState'
 import { AdButton, Btn, Stars } from './common'
 import { openPause } from './panels'
-import { IconAd, IconBolt, IconCash, IconHand, IconHome, IconIntel, IconPause, IconRetry, IconTimer } from './icons'
+import { IconAd, IconBag, IconBolt, IconCash, IconCoat, IconEye, IconGlasses, IconHand, IconHat, IconHome, IconIntel, IconPause, IconRetry, IconTimer } from './icons'
+import type { MoleClue } from '../minigames/Minigame'
 import { missionById } from '../config/missions'
 import { CODE } from '../config/minigames'
 
@@ -64,6 +65,33 @@ function Keypad(props: { k: NonNullable<ReturnType<typeof mgHud.peek>>['keypad']
   )
 }
 
+const CLUE_ICON = { hat: IconHat, glasses: IconGlasses, bag: IconBag, shirt: IconCoat } as const
+
+/** Spot the Mole: clue chips appear one after another (the next one fills up). */
+function Clues(props: { clues: MoleClue[] }) {
+  return (
+    <div class="mg-clues" data-testid="mg-clues">
+      {props.clues.map((c, i) => {
+        const Ico = CLUE_ICON[c.icon]
+        const neg = /\.(no|none)$/.test(c.key)
+        return c.shown ? (
+          <div class={`clue ${neg ? 'neg' : ''}`} data-testid={`clue-${i}`}>
+            <span class="clue-ico" style={c.color !== null ? { color: `#${c.color.toString(16).padStart(6, '0')}` } : undefined}>
+              <Ico size="1.3em" />
+            </span>
+            <span class="clue-text">{t(c.key)}</span>
+          </div>
+        ) : (
+          <div class="clue hidden" aria-hidden="true">
+            <span class="clue-fill" style={{ width: `${Math.round(c.progress * 100)}%` }} />
+            <IconEye size="1.2em" />
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 function PlayingHud() {
   const h = mgHud.value
   if (!h) return null
@@ -91,9 +119,15 @@ function PlayingHud() {
           <div class="timer-bar"><div class={`timer-fill ${timeShare < 0.25 ? 'low' : ''}`} style={{ width: `${timeShare * 100}%` }} /></div>
         </div>
       )}
+      {h.clues && <Clues clues={h.clues} />}
+      {h.hint && (
+        <button class="mg-hint-btn" data-testid="btn-mg-hint" onPointerDown={(e) => { e.stopPropagation(); void game().minigameHint() }}>
+          {t('code.hint')} {h.hint.free > 0 ? <b>{t('code.free')}</b> : <IconAd />}
+        </button>
+      )}
       {h.keypad ? (
         <Keypad k={h.keypad} />
-      ) : (
+      ) : h.noTap ? null : (
         <button class="mg-tap" data-testid="btn-mg-tap" aria-label="tap" onPointerDown={(e) => { e.stopPropagation(); game().minigameAction() }}>
           <span class="mg-tap-ring" />
         </button>

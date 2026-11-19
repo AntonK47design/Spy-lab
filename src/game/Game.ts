@@ -37,6 +37,7 @@ import { beginFlow, blockInterstitials, rewardedSupported, showInterstitial, sho
 import { track } from '../analytics/telemetry'
 import { SafeCracker } from '../minigames/safe/SafeCracker'
 import { LaserHall } from '../minigames/laser/LaserHall'
+import { SpotTheMole } from '../minigames/mole/SpotTheMole'
 import { CodeBreaker } from '../minigames/code/CodeBreaker'
 import type { Minigame, MinigameResult } from '../minigames/Minigame'
 import { coachLine, infoCard, missionUi, moveHint, nextPopup, panel, queuePopup, showToast, type Panel } from '../ui/uiState'
@@ -642,7 +643,8 @@ export class Game {
     const m = this.mission
     if (!m) return
     this.mg?.dispose()
-    const mg: Minigame = m.minigame === 'laser' ? new LaserHall() : m.minigame === 'code' ? new CodeBreaker() : new SafeCracker()
+    const mg: Minigame =
+      m.minigame === 'laser' ? new LaserHall() : m.minigame === 'code' ? new CodeBreaker() : m.minigame === 'mole' ? new SpotTheMole() : new SafeCracker()
     const skill = ROOMS[m.room].skill ?? 'finesse'
     const firstKey = `played_${m.minigame}`
     await mg.init(

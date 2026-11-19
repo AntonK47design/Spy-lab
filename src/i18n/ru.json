@@ -183,5 +183,20 @@
   "code.free": "бесплатно",
   "code.attempts": "осталось попыток: {n}",
   "code.delete": "Стереть",
-  "code.ok": "Ввод"
+  "code.ok": "Ввод",
+  "mole.hat.none": "Без шляпы",
+  "mole.hat.red": "Красная шляпа",
+  "mole.hat.blue": "Синяя шляпа",
+  "mole.hat.green": "Зелёная шляпа",
+  "mole.hat.yellow": "Жёлтая шляпа",
+  "mole.hat.black": "Чёрная шляпа",
+  "mole.glasses.yes": "Очки",
+  "mole.glasses.no": "Без очков",
+  "mole.bag.yes": "Портфель",
+  "mole.bag.no": "Без портфеля",
+  "mole.shirt.red": "Красная куртка",
+  "mole.shirt.blue": "Синяя куртка",
+  "mole.shirt.green": "Зелёная куртка",
+  "mole.shirt.yellow": "Жёлтая куртка",
+  "mole.shirt.white": "Белая куртка"
 }

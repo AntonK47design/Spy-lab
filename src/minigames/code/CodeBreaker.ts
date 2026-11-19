@@ -382,7 +382,7 @@ export class CodeBreaker implements Minigame {
   /** Next keypad press of a consistent-guess player: symbol index, or 'ok' when the row is full. */
   debugSuggest(): number | 'ok' | null {
     if (this.finished || this.reveal) return null
-    const target = this.candidates.find((c) => c.every((v, i) => !this.locked[i] || v === this.typed[i])) ?? this.candidates[0]
+    const target = this.planGuess()
     if (!target) return null
     // wrong symbol typed so far: suggest delete via -1
     for (let i = 0; i < this.typed.length; i++) {
@@ -391,6 +391,39 @@ export class CodeBreaker implements Minigame {
       if (this.typed[i] !== target[i]) return -1
     }
     return 'ok'
+  }
+
+  private plan: { row: number; guess: number[] } | null = null
+
+  /** Best consistent guess for this row: smallest worst-case group of remaining codes (minimax on a sample). */
+  private planGuess(): number[] | null {
+    if (this.plan && this.plan.row === this.used && this.plan.guess.every((v, i) => !this.locked[i] || v === this.typed[i])) return this.plan.guess
+    const pool = this.candidates.filter((c) => c.every((v, i) => !this.locked[i] || v === this.typed[i]))
+    if (!pool.length) return null
+    let best = pool[0]!
+    if (pool.length > 2) {
+      const step = Math.max(1, Math.floor(pool.length / 120))
+      const evalSet = pool.length > 600 ? pool.filter((_, i) => i % Math.ceil(pool.length / 600) === 0) : pool
+      let bestWorst = Infinity
+      for (let gi = 0; gi < pool.length; gi += step) {
+        const g = pool[gi]!
+        const groups = new Map<string, number>()
+        let worst = 0
+        for (const c of evalSet) {
+          const k = scoreGuess(c, g).join()
+          const n = (groups.get(k) ?? 0) + 1
+          groups.set(k, n)
+          if (n > worst) worst = n
+          if (worst >= bestWorst) break
+        }
+        if (worst < bestWorst) {
+          bestWorst = worst
+          best = g
+        }
+      }
+    }
+    this.plan = { row: this.used, guess: best }
+    return best
   }
 
   // ---------------------------------------------------------------- view

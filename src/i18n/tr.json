@@ -183,5 +183,20 @@
   "code.free": "ücretsiz",
   "code.attempts": "{n} deneme kaldı",
   "code.delete": "Sil",
-  "code.ok": "Dene"
+  "code.ok": "Dene",
+  "mole.hat.none": "Şapkasız",
+  "mole.hat.red": "Kırmızı şapka",
+  "mole.hat.blue": "Mavi şapka",
+  "mole.hat.green": "Yeşil şapka",
+  "mole.hat.yellow": "Sarı şapka",
+  "mole.hat.black": "Siyah şapka",
+  "mole.glasses.yes": "Gözlük",
+  "mole.glasses.no": "Gözlüksüz",
+  "mole.bag.yes": "Evrak çantası",
+  "mole.bag.no": "Çantasız",
+  "mole.shirt.red": "Kırmızı ceket",
+  "mole.shirt.blue": "Mavi ceket",
+  "mole.shirt.green": "Yeşil ceket",
+  "mole.shirt.yellow": "Sarı ceket",
+  "mole.shirt.white": "Beyaz ceket"
 }

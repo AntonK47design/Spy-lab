@@ -265,3 +265,36 @@ export const AvatarDirector = (p: P) => (
     <path d="M12 46c1-5 5-7 12-7s11 2 12 7z" fill="#22304f" />
   </svg>
 )
+
+export const IconHat = (p: P) => (
+  <Svg {...p}>
+    <path d="M7 15V9.5C7 7.6 9.2 6 12 6s5 1.6 5 3.5V15" />
+    <path d="M3 15.5c2.5 1.6 15.5 1.6 18 0" />
+    <path d="M7 12.5h10" />
+  </Svg>
+)
+export const IconGlasses = (p: P) => (
+  <Svg {...p}>
+    <rect x="2.5" y="9" width="8" height="6" rx="2.5" />
+    <rect x="13.5" y="9" width="8" height="6" rx="2.5" />
+    <path d="M10.5 11h3" />
+  </Svg>
+)
+export const IconBag = (p: P) => (
+  <Svg {...p}>
+    <rect x="3" y="8" width="18" height="12" rx="2" />
+    <path d="M9 8V5.5h6V8M3 13h18" />
+  </Svg>
+)
+export const IconCoat = (p: P) => (
+  <Svg {...p}>
+    <path d="M8 3l4 4 4-4 4 3-2 5h-2v10H8V11H6L4 6z" />
+    <path d="M12 7v14" />
+  </Svg>
+)
+export const IconEye = (p: P) => (
+  <Svg {...p}>
+    <path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z" />
+    <circle cx="12" cy="12" r="3" />
+  </Svg>
+)

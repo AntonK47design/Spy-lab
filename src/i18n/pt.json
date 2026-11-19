@@ -183,5 +183,20 @@
   "code.free": "grátis",
   "code.attempts": "{n} tentativas restantes",
   "code.delete": "Apagar",
-  "code.ok": "Testar"
+  "code.ok": "Testar",
+  "mole.hat.none": "Sem chapéu",
+  "mole.hat.red": "Chapéu vermelho",
+  "mole.hat.blue": "Chapéu azul",
+  "mole.hat.green": "Chapéu verde",
+  "mole.hat.yellow": "Chapéu amarelo",
+  "mole.hat.black": "Chapéu preto",
+  "mole.glasses.yes": "Óculos",
+  "mole.glasses.no": "Sem óculos",
+  "mole.bag.yes": "Maleta",
+  "mole.bag.no": "Sem maleta",
+  "mole.shirt.red": "Casaco vermelho",
+  "mole.shirt.blue": "Casaco azul",
+  "mole.shirt.green": "Casaco verde",
+  "mole.shirt.yellow": "Casaco amarelo",
+  "mole.shirt.white": "Casaco branco"
 }
