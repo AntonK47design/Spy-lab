@@ -21,7 +21,8 @@ export const AUDIO = {
     kit_drop: { core: true, volume: 0.4 },
     upgrade: { core: true, volume: 0.7 },
     unlock: { core: false, volume: 0.8 },
-    stamp: { core: false, volume: 0.8 },
+    /** Hero stamps a check-in (noisy thud: kept quiet). */
+    stamp: { core: false, volume: 0.35 },
     level_up: { core: false, volume: 0.8 },
     laser_hum: { core: false, volume: 0.4 },
     laser_zap: { core: false, volume: 0.7 },

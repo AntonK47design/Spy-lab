@@ -118,3 +118,16 @@ Plan: https://claude.ai/artifact/3VK5u4uetgNAqxG6wv9qhA (Fähre, Dead Drops, Sei
 - 10 Stufen in `config/minigames.ts`; Stealth-Skill verkürzt die An-Phase der Blink-Laser. Abweichung vom Brief: ab Stufe 4 wird der Flur länger (bis 21 Reihen), damit vor jedem Hindernis eine sichere Reihe liegt – sonst wären hohe Stufen nicht fair lösbar. Stufe 10 leicht entschärft (Aus-Phase 0,63 s).
 - Geisterhand beim ersten Mal zeigt den nächsten sicheren Zug (Planer). Test: alle 10 Stufen werden vom Planer ohne Treffer gelöst; Mission 2 komplett inkl. Tastatur.
 - Missionen 2 und 5 (Harbor Bay) sind jetzt spielbar.
+
+## Phase 2 · Minispiel 3: Code Breaker — 2026-11-19
+- 4-stelliger Symbolcode (Form+Farbe, 5–7 Symbole), Wordle-Wertung pro Zeile (grün = richtig an der Stelle, gelb = kommt vor, grau = nicht drin), 3D-Tafel mit Umklapp-Animation.
+- Eingabe: Bildschirm-Tastatur (Touch/Maus), Tasten 1–9, Rücktaste, Enter/Leertaste. Tipp: 1× gratis, danach per Werbung (deckt eine Stelle auf). Revive 1×: +2 Versuche.
+- Stufen 1–4 ohne Zeitlimit, ab 5: 90 → 65 s; ab Stufe 4 doppelte Symbole möglich. Missionen 4 und 8 spielbar.
+- Test: Mission 4 komplett per Touch + Tastatur + Tipp; ein konsequenter Spieler (Solver) knackt ≥ 9/10 Stufen (Stufe 10 mit 6 Versuchen/7 Symbolen/Duplikaten gelegentlich nicht – gewollt hart).
+
+## Fixes nach Antons Screenshots — 2026-11-19
+- Boden-Flimmern (Streifen in Hafenräumen, Gras auf dem Inselweg): zwei Böden lagen exakt auf gleicher Höhe (Kai-Boden unter den Hafenräumen, Gras unter dem Weg). Kai, Gras und Plot-Kanten liegen jetzt tiefer.
+- „Schwebendes Ding": Die Kranlast schwenkte über Straße und Räume; der Kran schwenkt jetzt nur noch über dem Wasser.
+- „Explosionen im Hintergrund": Stempel-Sound bei jedem Check-in auch durch die Empfangskraft + Abschluss-Jingle bei jedem Absolventen. Jetzt: Stempel nur, wenn du selbst eincheckst (leiser), Jingle nur bei seltenen+ Absolventen.
+- Stationen zeigen jetzt ihre Aufgabe: Cipher = Chiffrierrad am Schreibtisch, Disguise = Schminkspiegel mit Glühbirnen + Perückenkopf, Gadget = Werkbank mit Drohne, Driving = Fahrsimulator (Bildschirm, Lenkrad, Pedale), Hack = Terminal mit zwei Monitoren + Tastatur.
+- Pad-Labels überlappten (Einstellen/Upgrade): Einstell-Feld mittig zwischen Kiste und Upgrade-Schreibtisch, Upgrade-Label auf gleicher Höhe wie die anderen.

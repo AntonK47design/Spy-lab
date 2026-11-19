@@ -105,12 +105,14 @@ export class Game {
         if (auto && this.mode === 'academy') this.popText(cashSpotOf(room), `+${formatNumber(amount, lang.value)}`, 'auto')
       },
       served: () => {
-        AudioManager.play('stamp')
+        // only when the hero stamps the check-in himself; the receptionist works silently
+        if (this.heroIn.atCounter) AudioManager.play('stamp')
         persist(['core', 'meta'])
       },
       graduate: (c, agent) => {
         if (c.room) this.cadets.graduated(c.id, agent.id, c.room, c.slot)
-        AudioManager.play('level_up')
+        // background event: only rare+ graduates get a jingle (commons graduate constantly)
+        if (agent.rarity !== 'common') AudioManager.play('level_up')
         track('agent_graduated', { rarity: agent.rarity })
         // no pop-up: graduates walk to the agency office; only rare+ ones get a short notice
         if (agent.rarity !== 'common') showToast(`grad.toast.${agent.rarity}`)

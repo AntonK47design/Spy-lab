@@ -285,7 +285,8 @@ export function crateOf(id: RoomId): { x: number; z: number } {
 /** Pad for the next staff hire (kit runner, then instructor), next to the desk. */
 export function staffPadOf(id: RoomId): { x: number; z: number } {
   const u = upgradeSpotOf(id)
-  return { x: u.x - ROOMS[id].side * 2.6, z: u.z }
+  // midway between the kit crate and the upgrade desk so the three front labels never overlap
+  return { x: u.x - ROOMS[id].side * 3.4, z: u.z }
 }
 
 /** Cash stack position inside the room (near the door so collecting is quick). */

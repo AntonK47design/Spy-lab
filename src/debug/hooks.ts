@@ -19,7 +19,7 @@ import { missingKeys, lang } from '../i18n/i18n'
 import { panel, missionUi, type Panel } from '../ui/uiState'
 import { TUTORIAL } from '../game/tutorial'
 import { blockInterstitials } from '../platform/ads'
-import { LAYOUT, OFFICE, cashSpotOf, crateOf, padOf, slotOf, staffPadOf, upgradeSpotOf, type RoomId } from '../config/rooms'
+import { LAYOUT, OFFICE, ROOMS, cashSpotOf, crateOf, padOf, slotOf, staffPadOf, upgradeSpotOf, type RoomId } from '../config/rooms'
 import type { SafeCracker } from '../minigames/safe/SafeCracker'
 
 export function installDebugHooks(g: { renderer: ReturnType<typeof createRenderer>; game: Game }): void {
@@ -108,6 +108,8 @@ export function installDebugHooks(g: { renderer: ReturnType<typeof createRendere
       r.supply.push(0)
       game.world.playBuild(state, 'station', room)
     },
+    /** QA: centre of a room (for screenshots via teleport). */
+    roomCenter: (room: RoomId) => ({ x: ROOMS[room].rect.x, z: ROOMS[room].rect.z }),
     /** Screen position (CSS px) of a world spot, e.g. to tap it. */
     screenOf: (kind: 'crate' | 'cash' | 'upgrade', room: RoomId) => {
       const p = kind === 'crate' ? crateOf(room) : kind === 'cash' ? cashSpotOf(room) : upgradeSpotOf(room)

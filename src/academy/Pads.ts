@@ -132,7 +132,7 @@ export class Pads {
     const ring = new Mesh(ringGeo, kind === 'missions' || kind === 'laptop' ? ringMats.missions : kind === 'upgrade' ? ringMats.upgrade : ringMats.buy)
     group.add(plate, fill, ring)
     this.parent.add(group)
-    const label = this.labels.add(`pad pad-${kind}`, x, kind === 'missions' || kind === 'upgrade' ? 0.9 : 0.4, z, `pad-${kind}-${room ?? 'bakery'}`)
+    const label = this.labels.add(`pad pad-${kind}`, x, kind === 'missions' ? 0.9 : 0.4, z, `pad-${kind}-${room ?? 'bakery'}`)
     const p: Pad = { kind, room, target, x, z, group, fill, ring, label, active: true, key: '' }
     this.list.push(p)
     return p

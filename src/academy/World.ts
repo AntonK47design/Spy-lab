@@ -49,6 +49,9 @@ interface BuildFx {
   baked: boolean
 }
 
+/** Ground floors that buildings stand on (docks quay) sit this much lower, so room floors never z-fight with them. */
+const UNDER_FLOOR = -0.03
+
 export class World {
   readonly scene = new Scene()
   readonly colliders: AABB[] = []
@@ -250,10 +253,10 @@ export class World {
     if (open) {
       b.rbox(w + 0.2, 1.4, d + 0.2, cx, -0.82, cz, PAL.curbShadow, 0.2)
       b.rbox(w + 0.4, 0.3, d + 0.4, cx, -0.16, cz, PAL.curbSide, 0.1)
-      b.rbox(w + 0.5, 0.1, d + 0.5, cx, -0.03, cz, PAL.curbTop, 0.05)
+      b.rbox(w + 0.5, 0.1, d + 0.5, cx, -0.07, cz, PAL.curbTop, 0.05)
     } else {
       b.rbox(w + 0.2, 1.4, d + 0.2, cx, -0.82, cz, 0x1b2440, 0.2)
-      b.rbox(w + 0.5, 0.1, d + 0.5, cx, -0.03, cz, PAL.blueprintEdge, 0.05)
+      b.rbox(w + 0.5, 0.1, d + 0.5, cx, -0.07, cz, PAL.blueprintEdge, 0.05)
     }
   }
 
@@ -360,15 +363,16 @@ export class World {
     return b.build()
   }
 
-  private tiles(b: StaticBatch, x0: number, z0: number, w: number, d: number, a: number, c: number, grout: number = PAL.grout): void {
-    b.box(w, 0.08, d, x0 + w / 2, -0.01, z0 + d / 2, grout)
+  /** Tiled floor. `lift` shifts it vertically (ground under buildings goes lower, see UNDER_FLOOR). */
+  private tiles(b: StaticBatch, x0: number, z0: number, w: number, d: number, a: number, c: number, grout: number = PAL.grout, lift = 0): void {
+    b.box(w, 0.08, d, x0 + w / 2, -0.01 + lift, z0 + d / 2, grout)
     const nx = Math.max(1, Math.round(w))
     const nz = Math.max(1, Math.round(d))
     const tw = w / nx
     const td = d / nz
     for (let ix = 0; ix < nx; ix++)
       for (let iz = 0; iz < nz; iz++)
-        b.box(tw - 0.06, 0.08, td - 0.06, x0 + (ix + 0.5) * tw, 0.01, z0 + (iz + 0.5) * td, (ix + iz) % 2 ? a : c)
+        b.box(tw - 0.06, 0.08, td - 0.06, x0 + (ix + 0.5) * tw, 0.01 + lift, z0 + (iz + 0.5) * td, (ix + iz) % 2 ? a : c)
   }
 
   /** Wall along x: bevelled body, darker skirting, brand trim on top. */
@@ -684,9 +688,9 @@ export class World {
     }
     // pier slab: concrete quay with timber edge
     b.rbox(w + 0.2, 1.3, d + 0.2, cx, -0.66, cz, open ? 0x5e6878 : 0x1b2440, 0.15)
-    b.rbox(w + 0.5, 0.12, d + 0.5, cx, -0.04, cz, open ? 0x8b5a3c : PAL.blueprintEdge, 0.05)
-    if (open) this.tiles(b, D0.x0, D0.z0, w, d, 0xb9c0c9, 0xadb5bf, 0x8f98a5)
-    else this.tiles(b, D0.x0, D0.z0, w, d, 0x2b3c66, 0x324674, PAL.blueprint)
+    b.rbox(w + 0.5, 0.12, d + 0.5, cx, -0.09, cz, open ? 0x8b5a3c : PAL.blueprintEdge, 0.05)
+    if (open) this.tiles(b, D0.x0, D0.z0, w, d, 0xb9c0c9, 0xadb5bf, 0x8f98a5, UNDER_FLOOR)
+    else this.tiles(b, D0.x0, D0.z0, w, d, 0x2b3c66, 0x324674, PAL.blueprint, UNDER_FLOOR)
     // dock street: darker asphalt band with a dashed centre line
     const sx0 = D0.street.x0
     const sx1 = D0.street.x1
@@ -773,7 +777,7 @@ export class World {
     b.rbox(w + 0.6, 1.5, d + 0.6, cx, -0.72, cz, rock, 0.6)
     for (const [bx, bz, bw, bd] of [[I.x0 + 4, I.z0 + 2, 9, 7], [I.x1 - 5, I.z0 + 3, 10, 8], [I.x0 + 2, cz, 5, 10], [I.x1 - 2, cz + 4, 5, 9]] as const)
       b.rbox(bw, 1.4, bd, bx, -0.75, bz, shade(rock, 0.92), 0.8)
-    b.rbox(w - 0.4, 0.12, d - 0.4, cx, -0.03, cz, grass, 0.3)
+    b.rbox(w - 0.4, 0.12, d - 0.4, cx, -0.08, cz, grass, 0.3) // top below the tile grout (no z-fight)
     // path from the jetty to the tower
     const px0 = I.path.x0
     const px1 = I.path.x1
@@ -1012,7 +1016,8 @@ export class World {
     }
     if (this.crane) {
       this.craneT += dt
-      this.crane.rotation.y = Math.PI / 2 + Math.sin(this.craneT * 0.25) * 0.9
+      // jib (load at local -x) swings over the water east of the quay, never over the rooms/street
+      this.crane.rotation.y = Math.PI + Math.sin(this.craneT * 0.25) * 0.45
     }
   }
 
@@ -1157,10 +1162,87 @@ export class World {
         b.rbox(1.4, 0.04, 0.04, x, 0.4, z + 0.45, PAL.laser, 0.015)
         b.rbox(1.4, 0.04, 0.04, x, 0.75, z + 0.45, PAL.laser, 0.015)
         break
-      case 'cipher':
-        b.prop(P.deskSmall, x, z, 0, 0.75)
-        b.prop(P.lampTable, x - 0.2, z, 0, 0.7, 0.64)
-        b.prop(P.books, x + 0.2, z, 0.3, 0.6, 0.64)
+      case 'cipher': {
+        // code desk: big brass cipher wheel standing on the desk, code sheets, lamp
+        b.prop(P.deskSmall, x, z, 0, 0.95)
+        const ty = 0.8
+        b.cyl(0.36, 0.36, 0.07, x - 0.05, ty + 0.38, z - 0.05, 0xc9963a, 20, Math.PI / 2)
+        b.cyl(0.25, 0.25, 0.08, x - 0.05, ty + 0.38, z - 0.01, 0xf2d27a, 20, Math.PI / 2)
+        b.cyl(0.06, 0.06, 0.1, x - 0.05, ty + 0.38, z + 0.03, PAL.dark, 8, Math.PI / 2)
+        for (let i = 0; i < 8; i++) {
+          const a = (i / 8) * Math.PI * 2
+          b.box(0.05, 0.05, 0.02, x - 0.05 + Math.cos(a) * 0.31, ty + 0.38 + Math.sin(a) * 0.31, z + 0.0, PAL.dark)
+        }
+        b.rbox(0.12, 0.06, 0.2, x - 0.05, ty + 0.03, z - 0.05, PAL.steelDark, 0.02)
+        b.rbox(0.26, 0.012, 0.32, x + 0.32, ty + 0.01, z + 0.1, PAL.white, 0.004, 0.2)
+        b.rbox(0.22, 0.012, 0.28, x + 0.36, ty + 0.025, z + 0.08, 0xf2e6c8, 0.004, -0.1)
+        b.prop(P.lampTable, x - 0.4, z - 0.15, 0, 0.6, ty)
+        break
+      }
+      case 'disguise':
+        // make-up mirror with bulbs + wig head on a stand
+        b.rbox(1.0, 0.7, 0.5, x, 0.35, z, 0xf7c6d0, 0.06)
+        b.rbox(1.06, 0.06, 0.56, x, 0.72, z, PAL.white, 0.03)
+        b.rbox(0.9, 0.85, 0.08, x, 1.2, z - 0.2, PAL.white, 0.06)
+        b.rbox(0.74, 0.68, 0.04, x, 1.2, z - 0.15, 0xbfe3f2, 0.03)
+        for (let i = 0; i < 4; i++) {
+          b.sphere(0.05, x - 0.42, 0.9 + i * 0.2, z - 0.14, 0xfff3c4, 8, 6)
+          b.sphere(0.05, x + 0.42, 0.9 + i * 0.2, z - 0.14, 0xfff3c4, 8, 6)
+        }
+        b.cyl(0.03, 0.03, 0.18, x + 0.28, 0.84, z + 0.08, PAL.steelDark, 6)
+        b.sphere(0.13, x + 0.28, 1.02, z + 0.08, 0xf1d3bd, 10, 8)
+        b.sphere(0.15, x + 0.28, 1.09, z + 0.06, 0xa0522d, 10, 8, 0.75)
+        b.cyl(0.2, 0.2, 0.03, x + 0.28, 1.17, z + 0.07, PAL.dark, 14)
+        b.cyl(0.12, 0.12, 0.12, x + 0.28, 1.24, z + 0.07, PAL.dark, 14)
+        b.rbox(0.18, 0.04, 0.08, x - 0.22, 0.76, z + 0.1, PAL.dark, 0.02) // moustache comb
+        break
+      case 'gadget':
+        // workbench: tool board, vice, a gadget being built (small drone)
+        b.rbox(1.15, 0.08, 0.6, x, 0.72, z, PAL.wood, 0.03)
+        for (const sx of [-0.5, 0.5]) for (const sz of [-0.22, 0.22]) b.box(0.07, 0.7, 0.07, x + sx, 0.35, z + sz, PAL.steelDark)
+        b.rbox(1.05, 0.06, 0.5, x, 0.18, z, PAL.steelDark, 0.02)
+        b.rbox(1.15, 0.7, 0.06, x, 1.12, z - 0.3, 0x8a6a46, 0.03)
+        b.rbox(0.07, 0.3, 0.04, x - 0.35, 1.15, z - 0.26, PAL.steel, 0.02, 0.4)
+        b.rbox(0.25, 0.06, 0.04, x - 0.05, 1.25, z - 0.26, PAL.coral, 0.02)
+        b.cyl(0.08, 0.08, 0.03, x + 0.3, 1.1, z - 0.26, PAL.brandYellow, 12, Math.PI / 2)
+        b.rbox(0.2, 0.16, 0.2, x - 0.38, 0.84, z + 0.05, PAL.steel, 0.03)
+        // drone: body + 4 arms + rotors + antenna
+        b.rbox(0.22, 0.08, 0.22, x + 0.18, 0.8, z + 0.05, 0xd99a3a, 0.03)
+        for (const [ax, az] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const) {
+          b.box(0.18, 0.025, 0.03, x + 0.18 + ax * 0.12, 0.81, z + 0.05 + az * 0.12, PAL.dark, (ax * az * Math.PI) / 4)
+          b.cyl(0.07, 0.07, 0.015, x + 0.18 + ax * 0.2, 0.83, z + 0.05 + az * 0.2, PAL.steelDark, 10)
+        }
+        b.box(0.015, 0.16, 0.015, x + 0.24, 0.92, z + 0.02, PAL.dark)
+        b.sphere(0.025, x + 0.24, 1.0, z + 0.02, PAL.laser, 6, 5)
+        break
+      case 'driving':
+        // driving simulator: screen, steering wheel on a column, bucket seat
+        b.rbox(1.15, 0.7, 0.08, x, 1.0, z - 0.32, PAL.dark, 0.04)
+        b.rbox(1.02, 0.56, 0.03, x, 1.0, z - 0.27, 0x3a7bd5, 0.02)
+        b.rbox(1.02, 0.14, 0.031, x, 0.79, z - 0.265, 0x5a6070, 0.01) // road on screen
+        b.box(0.03, 0.1, 0.032, x, 0.79, z - 0.262, PAL.white)
+        b.box(0.08, 0.66, 0.08, x, 0.33, z - 0.32, PAL.steelDark)
+        b.rbox(0.6, 0.06, 0.4, x, 0.03, z - 0.25, PAL.steelDark, 0.02)
+        b.rboxRot(0.08, 0.5, 0.08, x, 0.48, z - 0.02, PAL.steelDark, 0.03, 0, 0.5, 0)
+        b.cyl(0.2, 0.2, 0.05, x, 0.74, z + 0.1, PAL.dark, 16, 1.1)
+        b.cyl(0.13, 0.13, 0.06, x, 0.74, z + 0.1, 0xd9503a, 16, 1.1)
+        b.cyl(0.06, 0.06, 0.07, x, 0.74, z + 0.1, PAL.dark, 8, 1.1)
+        b.rbox(0.1, 0.08, 0.16, x - 0.12, 0.05, z + 0.12, PAL.steel, 0.02)
+        b.rbox(0.1, 0.08, 0.16, x + 0.12, 0.05, z + 0.12, PAL.steel, 0.02)
+        break
+      case 'hack':
+        // hacker desk: two glowing monitors with code lines, keyboard
+        b.rbox(1.2, 0.07, 0.6, x, 0.72, z, PAL.dark, 0.03)
+        for (const sx of [-0.52, 0.52]) b.rbox(0.08, 0.7, 0.5, x + sx, 0.35, z, 0x2b3346, 0.02)
+        for (const [mx, ry] of [[-0.28, 0.25], [0.28, -0.25]] as const) {
+          b.box(0.06, 0.2, 0.06, x + mx, 0.85, z - 0.14, PAL.dark)
+          b.rbox(0.5, 0.36, 0.05, x + mx, 1.1, z - 0.15, PAL.dark, 0.03, ry)
+          b.rbox(0.44, 0.3, 0.02, x + mx + Math.sin(ry) * 0.03, 1.1, z - 0.12 + Math.abs(Math.sin(ry)) * 0.0, 0x0f2a1c, 0.01, ry)
+          for (let l = 0; l < 4; l++) b.box(0.12 + ((l * 7) % 3) * 0.07, 0.025, 0.022, x + mx - 0.08, 1.18 - l * 0.06, z - 0.105, 0x3ddc84, ry)
+        }
+        b.rbox(0.5, 0.03, 0.16, x, 0.77, z + 0.12, PAL.steel, 0.01)
+        b.rbox(0.44, 0.012, 0.12, x, 0.79, z + 0.12, 0x2b3346, 0.005)
+        b.rbox(0.08, 0.03, 0.12, x + 0.4, 0.77, z + 0.12, PAL.steelDark, 0.03)
         break
       default:
         b.prop(P.dummy, x, z, 0, 0.5)
