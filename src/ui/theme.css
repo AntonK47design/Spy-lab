@@ -1037,3 +1037,60 @@ button {
   .cash-pill { min-width: calc(var(--tap) * 2.4); padding-left: calc(var(--tap) * 0.95); }
   .cash-ico { width: calc(var(--tap) * 1.0); }
 }
+
+/* ---- objective edge pointer: round badge + tip toward the target ---- */
+.guide-edge {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: none;
+  width: calc(var(--tap) * 1.05);
+  height: calc(var(--tap) * 1.05);
+  margin: calc(var(--tap) * -0.525) 0 0 calc(var(--tap) * -0.525);
+  border: 0;
+  filter: none;
+  pointer-events: none;
+  z-index: 4;
+  animation: none;
+}
+.ge-tip { position: absolute; inset: 0; }
+.ge-tip::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: calc(var(--tap) * -0.34);
+  width: calc(var(--tap) * 0.5);
+  height: calc(var(--tap) * 0.5);
+  margin-top: calc(var(--tap) * -0.25);
+  background: var(--mustard);
+  border: var(--line) solid var(--line-c);
+  border-radius: 4px;
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+.ge-tip::before {
+  /* outline behind the clipped tip */
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: calc(var(--tap) * -0.42);
+  width: calc(var(--tap) * 0.6);
+  height: calc(var(--tap) * 0.6);
+  margin-top: calc(var(--tap) * -0.3);
+  background: var(--line-c);
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+.ge-badge {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--mustard);
+  color: var(--line-c);
+  border: var(--line) solid var(--line-c);
+  box-shadow: 0 4px 0 var(--line-c), inset 0 -5px 0 var(--mustard-d), inset 0 2px 0 rgba(255, 255, 255, 0.4);
+  animation: ge-pulse 0.9s ease-in-out infinite;
+}
+@keyframes ge-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+@media (prefers-reduced-motion: reduce) { .ge-badge { animation: none; } }
+.coach.objective, .orders.objective { max-width: min(64vw, 400px); }

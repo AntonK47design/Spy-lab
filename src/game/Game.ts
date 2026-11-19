@@ -2,7 +2,8 @@
  * Game controller: fixed 60 Hz sim, academy view, hero interactions (serve, carry kits,
  * collect, pads), mission flow (briefing -> minigame -> result) and every ad call site.
  */
-import { ConeGeometry, Mesh, MeshBasicMaterial, PCFShadowMap, type WebGLRenderer } from 'three'
+import { PCFShadowMap, type WebGLRenderer } from 'three'
+import { GuideArrow } from '../academy/GuideArrow'
 import { effect } from '@preact/signals-core'
 import { World } from '../academy/World'
 import { Player } from '../academy/Player'
@@ -21,7 +22,7 @@ import { LAYOUT, ROOMS, ROOM_ORDER, cashSpotOf, crateOf, padOf, slotOf, upgradeS
 import { missionById, type MissionDef } from '../config/missions'
 import {
   tick, collect, collectWelcome, payPad, padPrice, pickKits, dropKits, resolveGraduate, buySpeed, upgradeLevel,
-  offlineEarnings, trainingRooms, type SimEvents, type HeroInput,
+  offlineEarnings, trainingRooms, nextUnlock, canUnlock, type SimEvents, type HeroInput,
 } from '../sim/academy'
 import { bestAgent, missionLock, missionReward, recordFail, recordWin } from '../sim/missions'
 import type { Agent } from '../sim/state'
@@ -68,8 +69,7 @@ export class Game {
   private acc = 0
   private revTimer = 0
   private saveDirtyTimer = 0
-  private guide: Mesh
-  private guideEdge: HTMLDivElement
+  private guide: GuideArrow
   private hiddenAt = 0
   private w = 1
   private h = 1
@@ -92,12 +92,7 @@ export class Game {
     this.pads = new Pads(world.dynamic, this.labels)
     this.traffic = new Traffic(world.dynamic, { taxi: world.propGeo('taxi'), sedan: world.propGeo('sedan'), wagon: world.propGeo('wagon') })
     world.dynamic.add(this.player.char.root)
-    this.guide = new Mesh(new ConeGeometry(0.35, 0.8, 4).rotateX(Math.PI), new MeshBasicMaterial({ color: 0xf2b134 }))
-    this.guide.visible = false
-    world.dynamic.add(this.guide)
-    this.guideEdge = document.createElement('div')
-    this.guideEdge.className = 'guide-edge'
-    uiLayer.appendChild(this.guideEdge)
+    this.guide = new GuideArrow(world.dynamic, uiLayer)
     this.serveLabel = this.labels.add('serve', LAYOUT.serveSpot.x, 2.4, LAYOUT.serveSpot.z, 'serve-progress')
 
     this.ev = {
@@ -483,33 +478,20 @@ export class Game {
     coachLine.value = tutorialActive(state) ? (TUTORIAL[state.tutorial]?.line ?? null) : null
   }
 
+  /** Current objective: the tutorial target, else the next room unlock the player can pay for. */
+  private objectiveTarget(): { x: number; z: number } | null {
+    if (tutorialActive(state)) return TUTORIAL[state.tutorial]?.target(state) ?? null
+    const next = nextUnlock(state)
+    if (next && canUnlock(state, next) && state.cash >= ROOMS[next].unlockCost - state.rooms[next].paid) return padOf(next)
+    return null
+  }
+
   private updateGuide(dt: number): void {
-    const step = tutorialActive(state) ? TUTORIAL[state.tutorial] : undefined
-    const target = step?.target(state) ?? null
-    const show = !!target && !panel.value && this.mode === 'academy'
-    this.guide.visible = show
-    if (!show || !target) {
-      this.guideEdge.style.display = 'none'
-      return
-    }
-    this.guide.position.set(target.x, 2.3 + Math.sin(performance.now() / 220) * 0.2, target.z)
-    this.guide.rotation.y += dt * 2
-    const p = this.cam.project(target.x, 2.3, target.z, this.w, this.h)
-    const m = 40
-    // the HUD covers the top band: targets under it get an edge pointer as well
-    const top = Math.min(this.h * 0.18, 140)
-    const off = p.x < m || p.x > this.w - m || p.y < top || p.y > this.h - m * 2
-    if (!off) {
-      this.guideEdge.style.display = 'none'
-      return
-    }
-    const cx = this.w / 2
-    const cy = this.h / 2
-    const ang = Math.atan2(p.y - cy, p.x - cx)
-    const ex = Math.max(m, Math.min(this.w - m, cx + Math.cos(ang) * this.w))
-    const ey = Math.max(top, Math.min(this.h - m * 2, cy + Math.sin(ang) * this.h))
-    this.guideEdge.style.display = 'block'
-    this.guideEdge.style.transform = `translate(${ex}px, ${ey}px) translate(-50%, -50%) rotate(${ang}rad)`
+    const show = !panel.value && this.mode === 'academy'
+    const target = show ? this.objectiveTarget() : null
+    // standing on the target: no pointer needed
+    const here = target && this.player.near(target.x, target.z, 1.2)
+    this.guide.update(dt, here ? null : target, this.cam, this.w, this.h)
   }
 
   // ---------------------------------------------------------------- office actions (UI)
