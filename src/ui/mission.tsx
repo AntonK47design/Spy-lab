@@ -23,7 +23,7 @@ function PlayingHud() {
         </button>
         <div class="mg-bolts" aria-label={`${h.done}/${h.total}`}>
           {Array.from({ length: h.total }, (_, i) => (
-            <span class={`bolt ${i < h.done ? 'open' : ''}`}><IconBolt /></span>
+            <span class={`bolt ${i < h.done ? 'open' : ''}`}>{h.icon === 'chip' ? <IconIntel /> : <IconBolt />}</span>
           ))}
         </div>
         <div class="mg-alarm" aria-label={`${h.mistakes}/${h.maxMistakes}`}>

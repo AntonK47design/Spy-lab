@@ -37,6 +37,8 @@ export interface MinigameHud {
   ghost: { x: number; y: number; pulse: boolean } | null
   /** Short feedback flash: 'hit' | 'miss' | null */
   flash: 'hit' | 'miss' | null
+  /** What the progress icons stand for (safe: bolts, laser: intel chips). */
+  icon?: 'bolt' | 'chip'
 }
 
 export const mgHud = signal<MinigameHud | null>(null)
@@ -56,6 +58,10 @@ export interface Minigame {
   useHint(): void
   /** Primary action (tap / click / Space). */
   action(): void
+  /** Directional input (keys / swipe), for minigames that move a figure. */
+  move?(dir: 'fwd' | 'back' | 'left' | 'right'): void
+  /** Tap / click on the play field at screen coordinates (CSS px). */
+  pointer?(x: number, y: number): void
   resize(w: number, h: number): void
   dispose(): void
   onResult: (r: MinigameResult) => void

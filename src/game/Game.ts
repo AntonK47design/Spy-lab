@@ -36,6 +36,7 @@ import { platform } from '../platform/bridge'
 import { beginFlow, blockInterstitials, rewardedSupported, showInterstitial, showRewarded } from '../platform/ads'
 import { track } from '../analytics/telemetry'
 import { SafeCracker } from '../minigames/safe/SafeCracker'
+import { LaserHall } from '../minigames/laser/LaserHall'
 import type { Minigame, MinigameResult } from '../minigames/Minigame'
 import { coachLine, infoCard, missionUi, moveHint, nextPopup, panel, queuePopup, showToast, type Panel } from '../ui/uiState'
 import { formatNumber } from '../core/format'
@@ -164,16 +165,39 @@ export class Game {
     }
 
     this.input.onTap = (x, y) => this.tapWorld(x, y)
+    const KEY_DIR: Record<string, 'fwd' | 'back' | 'left' | 'right'> = {
+      ArrowUp: 'fwd', KeyW: 'fwd', ArrowDown: 'back', KeyS: 'back', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
+    }
     window.addEventListener('keydown', (e) => {
-      if (this.mode === 'minigame' && (e.code === 'Space' || e.code === 'Enter') && !e.repeat) {
+      if (this.mode !== 'minigame' || e.repeat) return
+      if (e.code === 'Space' || e.code === 'Enter') {
         e.preventDefault()
         this.minigameAction()
+      } else if (KEY_DIR[e.code] && this.mg?.move && this.canPlay()) {
+        e.preventDefault()
+        this.mg.move(KEY_DIR[e.code]!)
       }
     })
+    // minigames with a figure (Laser Hall): tap toward a direction or swipe; others: tap = action
+    let downAt: { x: number; y: number } | null = null
     canvas.addEventListener('pointerdown', (e) => {
-      if (this.mode === 'minigame' && e.isPrimary) this.minigameAction()
+      if (this.mode === 'minigame' && e.isPrimary) {
+        if (this.mg?.pointer) downAt = { x: e.clientX, y: e.clientY }
+        else this.minigameAction()
+      }
       window.focus()
       if (moveHint.value === 'hint.click') moveHint.value = 'hint.keys'
+    })
+    canvas.addEventListener('pointerup', (e) => {
+      if (!downAt || this.mode !== 'minigame' || !e.isPrimary) return
+      const dx = e.clientX - downAt.x
+      const dy = e.clientY - downAt.y
+      downAt = null
+      if (!this.canPlay()) return
+      if (Math.hypot(dx, dy) > 30 && this.mg?.move) {
+        if (Math.abs(dx) > Math.abs(dy)) this.mg.move(dx > 0 ? 'right' : 'left')
+        else this.mg.move(dy < 0 ? 'fwd' : 'back')
+      } else this.mg?.pointer?.(e.clientX, e.clientY)
     })
     onFlushRequest(() => persist(['core', 'agents', 'progress', 'meta'], true))
     effect(() => {
@@ -605,7 +629,7 @@ export class Game {
     const m = this.mission
     if (!m) return
     this.mg?.dispose()
-    const mg: Minigame = new SafeCracker()
+    const mg: Minigame = m.minigame === 'laser' ? new LaserHall() : new SafeCracker()
     const skill = ROOMS[m.room].skill ?? 'finesse'
     const firstKey = `played_${m.minigame}`
     await mg.init(
@@ -623,8 +647,12 @@ export class Game {
     mg.start()
   }
 
+  private canPlay(): boolean {
+    return this.mode === 'minigame' && missionUi.value?.phase === 'playing' && !userPaused.value
+  }
+
   minigameAction(): void {
-    if (this.mode === 'minigame' && missionUi.value?.phase === 'playing' && !userPaused.value) this.mg?.action()
+    if (this.canPlay()) this.mg?.action()
   }
 
   private onResult(r: MinigameResult): void {
@@ -633,6 +661,7 @@ export class Game {
     state.flags[`played_${m.minigame}`] = true
     if (r.success) {
       const reward = missionReward(state, m, r.stars)
+      reward.intel += r.intel // e.g. intel chips picked up in the Laser Hall
       recordWin(state, m, r.stars, reward, this.agent, this.ev)
       this.lastReward = reward
       platform.sendMessage('level_completed', { world: m.region, level: m.id })

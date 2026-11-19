@@ -115,6 +115,14 @@ export function installDebugHooks(g: { renderer: ReturnType<typeof createRendere
     },
     mgAction: () => game.minigameAction(),
     mgZoneOffset: () => (game.minigame as SafeCracker | null)?.debugZoneOffset() ?? null,
+    /** Laser Hall: the planner's suggested next move ('fwd' | 'left' | 'right' | 'back' | 'wait'). */
+    mgNext: () => (game.minigame as unknown as { debugNextMove?: () => string } | null)?.debugNextMove?.() ?? null,
+    mgMove: (d: 'fwd' | 'back' | 'left' | 'right') => game.minigame?.move?.(d),
+    /** Laser Hall internals for QA (row/col/mistakes/time and the hazard kind of each row). */
+    mgInfo: () => {
+      const m = game.minigame as unknown as { row: number; col: number; mistakes: number; time: number; rows: number; hazards: { kind: string; row: number }[] } | null
+      return m ? { row: m.row, col: m.col, mistakes: m.mistakes, time: Math.round(m.time), rows: m.rows, hz: m.hazards?.map((h) => `${h.row}:${h.kind}`).join(' ') } : null
+    },
     stats: () => {
       const info = g.renderer.renderer.info
       const mem = (performance as unknown as { memory?: { usedJSHeapSize: number } }).memory

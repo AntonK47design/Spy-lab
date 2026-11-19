@@ -111,3 +111,10 @@ Plan: https://claude.ai/artifact/3VK5u4uetgNAqxG6wv9qhA (Fähre, Dead Drops, Sei
 - Leert alle 8 s die Geldstapel aller Räume (Pop-up „+Betrag" über jedem Raum).
 - Bug behoben: Beim Umbau zum Laptop war der Text „EINSTELLEN" (pad.hire) für Laufbursche/Angestellte verloren gegangen; jetzt prüft ein Skript-Durchlauf, dass alle statischen Text-Keys in allen 7 Sprachen existieren.
 - Tests: 32/32 (inkl. neuem Angestellten-Test). Sim: Beat Sheet OK; die Kennzahlen „Nichts bezahlbar" (66 s) und „Erste Automatisierung" (4:45) bleiben Phase-3-Themen.
+
+## Phase 2 · Minispiel 2: Laser Hall — 2026-11-19
+- Isometrischer Flur 5 Spalten × 12+ Reihen; Agent hüpft Feld für Feld zum Koffer. Hindernisse: feste Laser mit Lücken, Blink-Laser (Warn-Flackern), schwenkende Laser auf Schiene, Kameras mit wanderndem Lichtkegel (zu lange im Licht = Alarm). Intel-Chips optional (+2 Intel je Chip zur Belohnung).
+- Steuerung: Pfeile/WASD, Tippen in Richtung, Wischen, großer Knopf/Leertaste = vorwärts. Treffer kostet ein Leben und setzt auf die letzte sichere Reihe zurück; Revive 1× (Werbung).
+- 10 Stufen in `config/minigames.ts`; Stealth-Skill verkürzt die An-Phase der Blink-Laser. Abweichung vom Brief: ab Stufe 4 wird der Flur länger (bis 21 Reihen), damit vor jedem Hindernis eine sichere Reihe liegt – sonst wären hohe Stufen nicht fair lösbar. Stufe 10 leicht entschärft (Aus-Phase 0,63 s).
+- Geisterhand beim ersten Mal zeigt den nächsten sicheren Zug (Planer). Test: alle 10 Stufen werden vom Planer ohne Treffer gelöst; Mission 2 komplett inkl. Tastatur.
+- Missionen 2 und 5 (Harbor Bay) sind jetzt spielbar.
