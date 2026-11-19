@@ -151,6 +151,19 @@ class AudioManagerImpl {
     this.music = { id, src, gain: g }
   }
 
+  /** One-shot music cue (victory / fail jingle) through the music bus. */
+  playJingle(id: MusicId): void {
+    const ctx = this.ctx
+    const buf = this.buffers.get(id)
+    if (!ctx || !buf || !isAudible.value) return
+    const src = ctx.createBufferSource()
+    src.buffer = buf
+    const g = ctx.createGain()
+    g.gain.value = AUDIO.music[id].volume
+    src.connect(g).connect(this.musicGain)
+    src.start()
+  }
+
   stopMusic(): void {
     if (!this.music) return
     try {

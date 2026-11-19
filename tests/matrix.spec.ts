@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import { boot, expectClean, watch } from './helpers'
+import { boot, expectClean, goTo, park, solveSafe, spy, startFirstMission, watch } from './helpers'
 
 const SIZES: [string, number, number][] = [
   ['phone-s', 360, 640],
@@ -67,32 +67,60 @@ async function assertLayout(page: Page, w: number, h: number, selector: string) 
   expect(minFont).toBeGreaterThanOrEqual(10)
 }
 
-const HUD = '[data-testid^="hud-"], [data-testid="btn-pause"], [data-testid^="bar-"], [data-testid="orders"]'
+const HUD = '[data-testid^="hud-"], [data-testid^="bar-"], [data-testid="coach"]'
+
+async function shot(page: Page, lang: string, name: string, screen: string, w: number, h: number) {
+  if (lang === 'en') await page.screenshot({ path: `tests/screenshots/${screen}-${name}-${w}x${h}.png` })
+}
 
 for (const lang of ['en', 'de', 'ru']) {
   for (const [name, w, h] of SIZES) {
-    // full screenshot set in EN; layout checks (no screenshots) for the long languages
     test(`${lang} ${name} ${w}x${h}`, async ({ page }) => {
+      test.setTimeout(240_000)
       const wt = watch(page)
       await page.setViewportSize({ width: w, height: h })
       await boot(page)
       if (lang !== 'en') {
-        await page.evaluate(async (l) => {
-          ;(window as any).__spylab.openPanel('settings')
-        }, lang)
+        await page.getByTestId('bar-settings').click()
         await page.getByTestId(`lang-${lang}`).click()
         await page.getByTestId('btn-close').click()
       }
       await page.waitForTimeout(700)
       await assertLayout(page, w, h, HUD)
-      if (lang === 'en') await page.screenshot({ path: `tests/screenshots/academy-${name}-${w}x${h}.png` })
+      await shot(page, lang, name, 'academy', w, h)
 
       await page.getByTestId('bar-settings').click()
-      await page.waitForTimeout(300)
-      const panel = page.getByTestId('panel-settings')
-      await expect(panel.getByTestId('btn-close')).toBeInViewport({ ratio: 1 })
+      await page.waitForTimeout(250)
+      await expect(page.getByTestId('panel-settings').getByTestId('btn-close')).toBeInViewport({ ratio: 1 })
       await assertLayout(page, w, h, '[data-testid="panel-settings"]')
-      if (lang === 'en') await page.screenshot({ path: `tests/screenshots/settings-${name}-${w}x${h}.png` })
+      await shot(page, lang, name, 'settings', w, h)
+      await page.getByTestId('btn-close').click()
+
+      await spy(page, 'addCurrency', 'cash', 50)
+      await goTo(page, 'upgrade', 'vault')
+      await expect(page.getByTestId('panel-upgrade')).toBeVisible()
+      await page.waitForTimeout(250)
+      await expect(page.getByTestId('panel-upgrade').getByTestId('btn-close')).toBeInViewport({ ratio: 1 })
+      await assertLayout(page, w, h, '[data-testid="panel-upgrade"]')
+      await shot(page, lang, name, 'upgrade', w, h)
+      await page.getByTestId('btn-close').click()
+
+      await startFirstMission(page)
+      await page.waitForTimeout(400)
+      await assertLayout(page, w, h, '[data-testid="btn-mg-pause"], [data-testid="btn-mg-tap"]')
+      await shot(page, lang, name, 'safe', w, h)
+      await solveSafe(page)
+      await expect(page.getByTestId('panel-result')).toBeVisible()
+      await page.waitForTimeout(600)
+      await assertLayout(page, w, h, '[data-testid="panel-result"]')
+      await shot(page, lang, name, 'result', w, h)
+      await page.getByTestId('btn-continue').click()
+
+      await park(page)
+      await page.getByTestId('bar-map').click()
+      await page.waitForTimeout(250)
+      await assertLayout(page, w, h, '[data-testid="panel-missions"]')
+      await shot(page, lang, name, 'missions', w, h)
       expectClean(wt)
     })
   }

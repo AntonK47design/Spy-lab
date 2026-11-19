@@ -35,6 +35,9 @@ test('rewarded closed early or failed: no reward, game keeps running', async ({ 
 
 test('interstitial: forwarded at a pause, skipped right after a rewarded in the same flow', async ({ page }) => {
   await boot(page)
+  // during the tutorial no interstitials at all
+  expect(await spy(page, 'showInterstitial', 'mission_end')).toBe(false)
+  await spy(page, 'skipTutorial')
   await spy(page, 'simulateAd', 'closed', 200)
   expect(await spy(page, 'showInterstitial', 'mission_end')).toBe(true)
   await page.waitForTimeout(400)
@@ -47,6 +50,7 @@ test('interstitial: forwarded at a pause, skipped right after a rewarded in the 
 
 test('pause menu resume is an interstitial point', async ({ page }) => {
   await boot(page)
+  await spy(page, 'skipTutorial')
   await spy(page, 'simulateAd', 'closed', 200)
   await page.keyboard.press('KeyP')
   expect((await state(page)).running).toBe(true) // render loop keeps running, gameplay paused

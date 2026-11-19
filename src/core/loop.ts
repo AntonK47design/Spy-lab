@@ -8,7 +8,7 @@ import { isRunning } from './lifecycle'
 export type FrameFn = (dt: number, now: number) => void
 
 const MIN_FRAME_MS = 1000 / 60 - 2
-const MAX_DT = 1 / 15 // clamp long frames so the simulation never jumps
+const MAX_DT = 0.25 // long frames are sub-stepped by the game (sim stays real-time down to 4 fps)
 const fns: FrameFn[] = []
 let raf = 0
 let last = 0

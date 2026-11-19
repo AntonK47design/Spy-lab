@@ -144,3 +144,124 @@ export const IconCheck = (p: P) => (
     <path d="M5 12.5l4.5 4.5L19 7.5" />
   </Svg>
 )
+
+export const IconStar = (p: P & { filled?: boolean }) => (
+  <svg class={`icon ${p.class ?? ''}`} width={p.size ?? '1em'} height={p.size ?? '1em'} viewBox="0 0 24 24" aria-hidden="true">
+    <path
+      d="M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.4l-5.8 3.1 1.1-6.5-4.7-4.6 6.5-.9z"
+      fill={p.filled === false ? 'none' : 'currentColor'}
+      stroke="currentColor"
+      stroke-width="1.6"
+      stroke-linejoin="round"
+    />
+  </svg>
+)
+
+export const IconLock = (p: P) => (
+  <Svg {...p}>
+    <rect x="5" y="10.5" width="14" height="10" rx="2" />
+    <path d="M8 10.5V8a4 4 0 018 0v2.5" />
+  </Svg>
+)
+
+export const IconUp = (p: P) => (
+  <Svg {...p}>
+    <path d="M12 19V6M6 11.5L12 5.5l6 6" />
+  </Svg>
+)
+
+export const IconPeople = (p: P) => (
+  <Svg {...p}>
+    <circle cx="9" cy="8" r="3.2" />
+    <path d="M3.5 19.5c.6-3.3 2.8-5 5.5-5s4.9 1.7 5.5 5" />
+    <circle cx="16.5" cy="9" r="2.4" />
+    <path d="M15.5 14.6c2.6-.3 4.6 1.3 5 4.4" />
+  </Svg>
+)
+
+export const IconSpeed = (p: P) => (
+  <Svg {...p}>
+    <path d="M4.5 16a8 8 0 1115 0" />
+    <path d="M12 16l4-5" />
+  </Svg>
+)
+
+export const IconWhistle = (p: P) => (
+  <Svg {...p}>
+    <circle cx="9" cy="14" r="5" />
+    <path d="M13 11.5L21 8v4l-6.2 1.3" />
+    <path d="M6 6.5l1.5 2M10 5l.5 2.5" />
+  </Svg>
+)
+
+export const IconRetry = (p: P) => (
+  <Svg {...p}>
+    <path d="M4 12a8 8 0 1 0 2.4-5.7" />
+    <path d="M4 4.5v4h4" />
+  </Svg>
+)
+
+export const IconHome = (p: P) => (
+  <Svg {...p}>
+    <path d="M4 11l8-6.5 8 6.5" />
+    <path d="M6.5 9.5V19h11V9.5" />
+  </Svg>
+)
+
+export const IconTimer = (p: P) => (
+  <Svg {...p}>
+    <circle cx="12" cy="13.5" r="7" />
+    <path d="M12 13.5V9.5M9.5 3.5h5" />
+  </Svg>
+)
+
+export const IconBolt = (p: P) => (
+  <Svg {...p}>
+    <rect x="3" y="9" width="18" height="6" rx="1.5" />
+    <path d="M7 9v6M17 9v6" />
+  </Svg>
+)
+
+/** Ghost hand for the play-tutorial (no text). */
+export const IconHand = (p: P) => (
+  <svg class={`icon ${p.class ?? ''}`} width={p.size ?? '1em'} height={p.size ?? '1em'} viewBox="0 0 24 24" aria-hidden="true">
+    <path
+      d="M9 11V4.6a1.6 1.6 0 013.2 0V10l.1-1.4a1.6 1.6 0 013.2.2v1.6a1.6 1.6 0 013.1.4v4.3c0 3.6-2.5 6.4-6 6.4h-1.1c-1.9 0-3.4-.9-4.5-2.4L4 15a1.6 1.6 0 012.4-2.1L9 15"
+      fill="#fff3e0"
+      stroke="#2b2220"
+      stroke-width="1.5"
+      stroke-linejoin="round"
+    />
+  </svg>
+)
+
+/** Agent Marmalade: retired top spy with sunglasses + apron. */
+export const AvatarMarmalade = (p: P) => (
+  <svg class={`icon ${p.class ?? ''}`} width={p.size ?? '1em'} height={p.size ?? '1em'} viewBox="0 0 48 48" aria-hidden="true">
+    <circle cx="24" cy="24" r="23" fill="#f2b134" />
+    <circle cx="24" cy="12" r="7" fill="#c0c6d0" />
+    <ellipse cx="24" cy="25" rx="12" ry="13" fill="#f1c27d" />
+    <path d="M12 21c2-7 22-7 24 0-4-3-20-3-24 0z" fill="#c0c6d0" />
+    <rect x="13" y="22" width="9.5" height="5" rx="2" fill="#14141c" />
+    <rect x="25.5" y="22" width="9.5" height="5" rx="2" fill="#14141c" />
+    <path d="M22.5 24h3" stroke="#14141c" stroke-width="1.5" />
+    <path d="M19 32c3 2.5 7 2.5 10 0" stroke="#8a3b1f" stroke-width="1.8" fill="none" stroke-linecap="round" />
+    <path d="M13 44c1-6 5-8 11-8s10 2 11 8z" fill="#f7c6d0" />
+    <path d="M19 40h10v5H19z" fill="#fff3e0" />
+  </svg>
+)
+
+/** The director (player) avatar for the level ring. */
+export const AvatarDirector = (p: P) => (
+  <svg class={`icon ${p.class ?? ''}`} width={p.size ?? '1em'} height={p.size ?? '1em'} viewBox="0 0 48 48" aria-hidden="true">
+    <circle cx="24" cy="24" r="23" fill="#2a7a87" />
+    <ellipse cx="24" cy="27" rx="11" ry="12" fill="#f1c27d" />
+    <path d="M10 18h28l-3 2H13z" fill="#22283a" />
+    <path d="M15 18l2-9h14l2 9z" fill="#22283a" />
+    <path d="M16 15h16v2.5H16z" fill="#f2665c" />
+    <rect x="14" y="24" width="9" height="4.5" rx="2" fill="#14141c" />
+    <rect x="25" y="24" width="9" height="4.5" rx="2" fill="#14141c" />
+    <path d="M20 34c2.5 1.8 5.5 1.8 8 0" stroke="#8a3b1f" stroke-width="1.8" fill="none" stroke-linecap="round" />
+    <path d="M12 46c1-5 5-7 12-7s11 2 12 7z" fill="#22304f" />
+  </svg>
+)

@@ -30,6 +30,11 @@ export async function boot(page: Page, query = ''): Promise<number> {
   return Date.now() - t0
 }
 
+export async function reload(page: Page): Promise<void> {
+  await page.reload()
+  await page.waitForFunction(() => (window as any).__spylab?.boot?.game_ready, null, { timeout: 15_000 })
+}
+
 export function expectClean(w: Watch): void {
   expect(w.errors, w.errors.join('\n')).toEqual([])
   expect(w.external, w.external.join('\n')).toEqual([])
@@ -45,3 +50,49 @@ export const spy = <T = any>(page: Page, fn: string, ...args: unknown[]) =>
   ) as Promise<T>
 
 export const state = (page: Page) => page.evaluate(() => (window as any).__spylab.state())
+
+/** Walk-free: put the player on a spot (cash / pad / upgrade desk). */
+export async function goTo(page: Page, kind: 'cash' | 'pad' | 'upgrade', room: string): Promise<void> {
+  const p = await spy<{ x: number; z: number }>(page, 'spot', kind, room)
+  await spy(page, 'teleport', p.x, p.z)
+}
+
+/** Neutral spot in the corridor (no pad, no cash). */
+export const park = (page: Page) => spy(page, 'teleport', 0, 4.6)
+
+/** Start mission 1 with a granted agent (tutorial skipped unless keepTutorial). */
+export async function startFirstMission(page: Page, keepTutorial = false): Promise<void> {
+  if (!keepTutorial) await spy(page, 'skipTutorial')
+  await spy(page, 'grantAgent')
+  await park(page)
+  await page.getByTestId('bar-map').click()
+  await page.getByTestId('mission-harbor_01').click()
+  await page.getByTestId('btn-start-mission').click()
+  await expect(page.getByTestId('mg-hud')).toBeVisible()
+}
+
+/** Play the Safe Cracker perfectly (tap when the needle is in the sweet spot). */
+export async function solveSafe(page: Page): Promise<void> {
+  for (let i = 0; i < 2000; i++) {
+    const phase = await page.evaluate(() => (window as any).__spylab.state().mission?.phase)
+    if (phase !== 'playing') return
+    const off = await spy<number | null>(page, 'mgZoneOffset')
+    if (off !== null && off < 0.1) {
+      await spy(page, 'mgAction')
+      await page.waitForTimeout(60)
+    } else await page.waitForTimeout(10)
+  }
+}
+
+/** Fail the Safe Cracker on purpose (tap outside the zone). */
+export async function failSafe(page: Page): Promise<void> {
+  for (let i = 0; i < 400; i++) {
+    const phase = await page.evaluate(() => (window as any).__spylab.state().mission?.phase)
+    if (phase !== 'playing') return
+    const off = await spy<number | null>(page, 'mgZoneOffset')
+    if (off !== null && off > 0.9) {
+      await spy(page, 'mgAction')
+      await page.waitForTimeout(40)
+    } else await page.waitForTimeout(10)
+  }
+}

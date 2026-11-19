@@ -11,10 +11,11 @@
     "package": "node scripts/package.mjs",
     "check-build": "node scripts/check-build.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "playwright test --trace off",
-    "test:matrix": "playwright test tests/matrix.spec.ts --trace off",
+    "test": "playwright test tests/smoke.spec.ts tests/save.spec.ts tests/ads.spec.ts tests/mission.spec.ts tests/tutorial.spec.ts --trace off",
+    "test:matrix": "playwright test tests/matrix.spec.ts --trace off --workers=3",
     "build:fast": "vite build && node scripts/post-build.mjs",
-    "release": "npm run build && npm run check-build && npm run package"
+    "release": "npm run build && npm run check-build && npm run package",
+    "sim": "node scripts/sim-economy.ts"
   },
   "devDependencies": {
     "@gltf-transform/core": "^4.5.1",
