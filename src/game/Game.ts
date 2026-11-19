@@ -14,6 +14,7 @@ import { Pads, type Pad } from '../academy/Pads'
 import { WorldLabels, type WorldLabel } from '../academy/WorldLabels'
 import { FollowCamera } from '../academy/FollowCamera'
 import { Traffic } from '../academy/Traffic'
+import { Ferry } from '../academy/Ferry'
 import { Input } from '../input/Input'
 import { flatMat } from '../render/materials'
 import { charMaterial } from '../render/assets'
@@ -55,6 +56,7 @@ export class Game {
   readonly piles: CashPiles
   readonly pads: Pads
   readonly traffic: Traffic
+  private ferry: Ferry
   mode: 'academy' | 'minigame' = 'academy'
   /** Debug: force a difficulty tier for the next missions. */
   tierOverride: number | null = null
@@ -90,6 +92,7 @@ export class Game {
     this.cadets = new CadetViews(world.dynamic)
     this.piles = new CashPiles(world.dynamic)
     this.pads = new Pads(world.dynamic, this.labels)
+    this.ferry = new Ferry(world.dynamic, this.labels)
     this.traffic = new Traffic(world.dynamic, { taxi: world.propGeo('taxi'), sedan: world.propGeo('sedan'), wagon: world.propGeo('wagon') })
     world.dynamic.add(this.player.char.root)
     this.guide = new GuideArrow(world.dynamic, uiLayer)
@@ -277,8 +280,16 @@ export class Game {
     this.input.enabled = !modal
     this.input.update()
     if (this.input.active && moveHint.value) moveHint.value = null
-    const steps = Math.max(1, Math.ceil(dt / (1 / 30)))
-    for (let i = 0; i < steps; i++) this.player.update(dt / steps, this.input.move.x, this.input.move.y, this.world.colliders)
+    const ride = this.ferry.update(dt, state.areas.lighthouse, this.player)
+    if (ride) {
+      // on the ferry deck (or stepping off): no steering, position follows the boat
+      this.player.x = ride.x
+      this.player.z = ride.z
+      this.player.update(dt, 0, 0, [])
+    } else {
+      const steps = Math.max(1, Math.ceil(dt / (1 / 30)))
+      for (let i = 0; i < steps; i++) this.player.update(dt / steps, this.input.move.x, this.input.move.y, this.world.colliders)
+    }
     this.cam.follow(this.player.x, this.player.z, dt || 0.016)
     this.world.followShadow(this.cam.target.x, this.cam.target.z)
     this.cadets.camX = this.cam.target.x

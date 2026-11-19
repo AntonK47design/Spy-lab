@@ -114,9 +114,27 @@ const STEP = D + LAYOUT.rowGap
 const rowZ = (i: number, area: number) => ROW0 - i * STEP - area * (LAYOUT.bridge + 1)
 
 const HQ_BACK = rowZ(1, 0) - D / 2 - 1
-/** Lighthouse rows (interim: straight north of the courtyard, across a bridge; Map 2.0 step 3 moves it to an island). */
-const L_ROW0 = HQ_BACK - LAYOUT.bridge - 1 - D / 2
-const L_ROW1 = L_ROW0 - STEP
+/**
+ * Lighthouse island out in the water north of the docks, reached by ferry from a jetty at the
+ * north end of the dock street. A path leads to the tower; Driving and Hack flank it.
+ */
+export const ISLAND = {
+  x0: 6, x1: 38, z0: -69, z1: -42,
+  path: { x0: 18, x1: 26 },
+  tower: { x: 22, z: -63 },
+} as const
+/** Ferry between the docks jetty and the island jetty (boat stops, boarding spots, ride time). */
+export const FERRY = {
+  x: 22,
+  docksJetty: -25 as number, docksEnd: -27.6,
+  islandJetty: -42 as number, islandEnd: -40,
+  boatDocks: -29.2, boatIsland: -38.4,
+  boardDocks: { x: 22, z: -26.9 },
+  boardIsland: { x: 22, z: -40.7 },
+  rideSeconds: 3,
+  boardSeconds: 0.5,
+} as const
+const L_ROW0 = -53
 
 /**
  * Harbor docks east of the courtyard: reached through the garage hall (old right lounge slot).
@@ -135,7 +153,7 @@ export const GARAGE = { x0: cx - W / 2, x1: cx + W / 2, z: rowZ(1, 0), d: D, doo
 export const AREAS: Record<AreaId, AreaDef> = {
   hq: { id: 'hq', zFront: LAYOUT.backDoor.z, zBack: HQ_BACK, gateCost: 0, gateLevel: 1, from: 'hq' },
   harbor: { id: 'harbor', zFront: DOCKS.z1, zBack: DOCKS.z0, gateCost: 3000, gateLevel: 2, from: 'hq' },
-  lighthouse: { id: 'lighthouse', zFront: L_ROW0 + D / 2 + 1, zBack: L_ROW1 - D / 2 - 1, gateCost: 250000, gateLevel: 4, from: 'hq' },
+  lighthouse: { id: 'lighthouse', zFront: ISLAND.z1, zBack: ISLAND.z0, gateCost: 250000, gateLevel: 4, from: 'harbor' },
 }
 export const AREA_ORDER: AreaId[] = ['hq', 'harbor', 'lighthouse']
 
@@ -150,6 +168,8 @@ export const ROOM_AREA: Record<RoomId, AreaId> = {
 export function gateOf(id: AreaId): { x: number; z: number } {
   // harbor: in the courtyard, in front of the garage's roll-up door
   if (id === 'harbor') return { x: GARAGE.x0 - 1.7, z: GARAGE.z }
+  // lighthouse: at the root of the docks jetty, where the ferry leaves
+  if (id === 'lighthouse') return { x: FERRY.x, z: FERRY.docksJetty + 1.6 }
   return { x: 0, z: AREAS[AREAS[id].from].zBack + 1.4 }
 }
 
@@ -193,19 +213,17 @@ export const ROOMS: Record<RoomId, RoomDef> = {
   driving: {
     id: 'driving', kind: 'training', skill: 'agility', minigame: 'scooter', unlockCost: 450000, unlockLevel: 5,
     baseIncome: 1100, upgradeBaseCost: 28000, cycleSeconds: 9, instructorCost: 420000, stationBase: 50000, runnerCost: 300000,
-    rect: { x: -cx, z: L_ROW0, w: W, d: D }, side: -1, floor: 0x3a5a3a, accent: 0xbfe8d6,
+    rect: { x: ISLAND.path.x0 - W / 2, z: L_ROW0, w: W, d: D }, side: -1, floor: 0x3a5a3a, accent: 0xbfe8d6,
   },
   hack: {
     id: 'hack', kind: 'training', skill: 'tech', minigame: 'circuit', unlockCost: 4000000, unlockLevel: 6,
     baseIncome: 5000, upgradeBaseCost: 210000, cycleSeconds: 10, instructorCost: 3000000, stationBase: 400000, runnerCost: 2500000,
-    rect: { x: cx, z: L_ROW0, w: W, d: D }, side: 1, floor: 0x1f3d5a, accent: 0x46c2cb,
+    rect: { x: ISLAND.path.x1 + W / 2, z: L_ROW0, w: W, d: D }, side: 1, floor: 0x1f3d5a, accent: 0x46c2cb,
   },
 }
 
 export const ROOM_ORDER: RoomId[] = ['mission_control', 'vault', 'laser', 'cipher', 'disguise', 'gadget', 'driving', 'hack']
 
-/** Last row of the last area: "Coming soon" construction teaser. */
-export const TEASER_ROW_Z = L_ROW1
 export const CORRIDOR = { zFront: LAYOUT.backDoor.z, zBack: AREAS.lighthouse.zBack }
 
 /** Door position of a room on the corridor side. */
@@ -284,8 +302,13 @@ export function cadetPath(id: RoomId, slot: number): { x: number; z: number }[] 
     return [...start, { x: GARAGE.x0 - 0.6, z: 0.5 }, { x: GARAGE.x0 - 0.6, z: GARAGE.z }, { x: GARAGE.x1 + 1, z: GARAGE.z }, { x: sx, z: GARAGE.z }, { x: sx, z: door.z }, door, slotOf(id, slot)]
   }
   if (area === 'lighthouse') {
-    // around the hub on the west side, across the north bridge
-    return [...start, { x: -(GARAGE.x0 - 0.6), z: 0.5 }, { x: -(GARAGE.x0 - 0.6), z: HQ_BACK + 2 }, { x: 0, z: HQ_BACK }, { x: 0, z: door.z }, door, slotOf(id, slot)]
+    // through the garage, up the dock street, across on the ferry (hidden on board), up the island path
+    const sx = (DOCKS.street.x0 + DOCKS.street.x1) / 2
+    return [
+      ...start, { x: GARAGE.x0 - 0.6, z: 0.5 }, { x: GARAGE.x0 - 0.6, z: GARAGE.z }, { x: GARAGE.x1 + 1, z: GARAGE.z },
+      { x: sx, z: GARAGE.z }, { x: FERRY.x, z: FERRY.boardDocks.z }, { x: FERRY.x, z: FERRY.boardIsland.z },
+      { x: FERRY.x, z: door.z }, door, slotOf(id, slot),
+    ]
   }
   return [...start, { x: 0, z: door.z }, door, slotOf(id, slot)]
 }

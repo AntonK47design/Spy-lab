@@ -5,7 +5,7 @@
  */
 import type { Group } from 'three'
 import { Character, type Look } from './Character'
-import { LAYOUT, ROOMS, arrivalPath, cadetPath, crateOf, slotOf, upgradeSpotOf, type RoomId } from '../config/rooms'
+import { FERRY, LAYOUT, ROOMS, arrivalPath, cadetPath, crateOf, slotOf, upgradeSpotOf, type RoomId } from '../config/rooms'
 import type { CadetState, GameState } from '../sim/state'
 
 /** Tracksuit color per training room (sRGB). */
@@ -118,6 +118,8 @@ export class CadetViews {
       v.px = tx
       v.pz = tz
       v.ch.root.position.set(tx, 0, tz)
+      // crossing to the lighthouse: the cadet is on board the ferry (never walks on water)
+      v.ch.root.visible = !(Math.abs(tx - FERRY.x) < 1.6 && tz < FERRY.docksEnd + 0.2 && tz > FERRY.islandEnd - 0.2)
       this.animate(v.ch, v, dt, tx, tz)
     }
     for (const [id, v] of this.views) {

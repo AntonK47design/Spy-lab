@@ -155,5 +155,6 @@
   "target.harbor_07": "The Fish Market Mole",
   "target.harbor_08": "The Tide Tables",
   "target.harbor_09": "The Harbor Master's Safe",
-  "target.harbor_10": "The Crate Switch"
+  "target.harbor_10": "The Crate Switch",
+  "pad.ferry": "FERRY"
 }

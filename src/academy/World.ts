@@ -5,7 +5,7 @@
  * Static parts are merged per room (one draw call each). Locked rooms are translucent blueprints.
  */
 import {
-  BoxGeometry, Color, DirectionalLight, Fog, Group, HemisphereLight, IcosahedronGeometry, Mesh, MeshBasicMaterial, MeshLambertMaterial, Scene, type BufferGeometry,
+  AdditiveBlending, BoxGeometry, Color, ConeGeometry, DirectionalLight, DoubleSide, Fog, Group, HemisphereLight, IcosahedronGeometry, Mesh, MeshBasicMaterial, MeshLambertMaterial, Scene, type BufferGeometry,
 } from 'three'
 import { StaticBatch } from '../render/geometry'
 import { flatMat } from '../render/materials'
@@ -13,7 +13,7 @@ import { propGeometry } from '../render/assets'
 import { PAL, ROOM_FLOOR } from '../render/palette'
 import { MODELS, type ModelId } from '../config/models'
 import {
-  AREAS, AREA_ORDER, DOCKS, GARAGE, LAYOUT, PLAZAS, ROOMS, ROOM_AREA, ROOM_ORDER, TEASER_ROW_Z, slotOf, upgradeSpotOf, cashSpotOf, crateOf, gateOf,
+  AREAS, AREA_ORDER, DOCKS, FERRY, GARAGE, ISLAND, LAYOUT, PLAZAS, ROOMS, ROOM_AREA, ROOM_ORDER, slotOf, upgradeSpotOf, cashSpotOf, crateOf, gateOf,
   type AreaId, type RoomId,
 } from '../config/rooms'
 import type { GameState } from '../sim/state'
@@ -272,7 +272,7 @@ export class World {
       }
       for (let i = this.colliders.length - 1; i >= 0; i--) if (this.colliders[i]!.id?.startsWith(`area:${a}`)) this.colliders.splice(i, 1)
       const n = this.colliders.length
-      const m = new Mesh(a === 'harbor' ? this.buildDocks(open) : this.buildArea(a, open), flatMat)
+      const m = new Mesh(a === 'harbor' ? this.buildDocks(open) : a === 'lighthouse' ? this.buildIsland(open) : this.buildArea(a, open), flatMat)
       for (let i = n; i < this.colliders.length; i++) this.colliders[i]!.id ??= `area:${a}`
       m.receiveShadow = true
       m.castShadow = true
@@ -282,6 +282,7 @@ export class World {
     }
     this.syncGarage(s.areas.harbor, this.garage !== null)
     this.ensureCrane()
+    this.ensureBeam()
   }
 
   private buildArea(a: AreaId, open: boolean): BufferGeometry {
@@ -306,6 +307,8 @@ export class World {
       this.colliders.push({ minX: half - 0.2, maxX: half + 1, minZ: A.zBack, maxZ: gz0, id: tag })
       this.colliders.push({ minX: half - 0.2, maxX: half + 1, minZ: gz1, maxZ: A.zFront, id: tag })
       this.buildGarage(b)
+      // north edge: open water beyond the lounge row (the lighthouse is reached by ferry)
+      this.colliders.push({ minX: -half - 1, maxX: half + 1, minZ: A.zBack - 1, maxZ: A.zBack + 0.15, id: tag })
     } else this.colliders.push({ minX: half - 0.2, maxX: half + 1, minZ: A.zBack, maxZ: A.zFront, id: tag })
     const i = AREA_ORDER.indexOf(a)
     if (i > 0) {
@@ -348,15 +351,6 @@ export class World {
       } else {
         this.tiles(b, pl.x - w / 2, pl.z - dd / 2, w, dd, 0x2b3c66, 0x324674, PAL.blueprint)
       }
-    }
-    // the last island ends with the "coming soon" construction row
-    if (a === 'lighthouse') {
-      const tz = TEASER_ROW_Z
-      for (let x = -half + 1; x <= half - 1; x += 1.2) b.rbox(1.0, 0.6, 0.08, x, 0.34, tz + LAYOUT.roomD / 2 - 0.3, Math.round(x / 1.2) % 2 ? PAL.brandYellow : PAL.dark, 0.03)
-      b.prop(P.pallet, -6, tz - 1)
-      b.prop(P.palletB, 6.5, tz - 0.5, 0.5)
-      b.prop(P.barrel, -3.2, tz + 0.6, 0, 0.6)
-      this.colliders.push({ minX: -half, maxX: half, minZ: tz - LAYOUT.roomD / 2, maxZ: tz + LAYOUT.roomD / 2 - 0.2, id: `${tag}:teaser` })
     }
     return b.build()
   }
@@ -621,7 +615,8 @@ export class World {
     const w = D0.x1 - D0.x0
     const d = D0.z1 - D0.z0
     // water all around the docks (always visible, also as a teaser while the gate is closed)
-    b.box(90, 0.1, 90, D0.x0 + 40, -0.75, cz - 6, 0x2f8f9e)
+    b.box(100, 0.1, 110, D0.x0 + 40, -0.75, cz - 22, 0x2f8f9e)
+    b.box(60, 0.1, 80, D0.x0 - 30, -0.75, AREAS.hq.zBack - 40 + 0.2, 0x2f8f9e)
     for (let i = 0; i < 26; i++) {
       const wx = D0.x0 + 3 + ((i * 7.3) % 60)
       const wz = D0.z0 - 14 + ((i * 11.7) % 52)
@@ -679,10 +674,101 @@ export class World {
       b.rbox(1.3, 0.9, 1.5, bx, 0.5, bz + 0.6, 0xf3e2c4, 0.1)
     }
     // edges: water on three sides, the HQ plot on the west
-    this.colliders.push({ minX: D0.x0, maxX: D0.x1 + 1, minZ: D0.z0 - 1, maxZ: D0.z0 + 0.15, id: tag })
+    // north edge opens onto the ferry jetty
+    const jx0 = FERRY.x - 1.2
+    const jx1 = FERRY.x + 1.2
+    this.colliders.push({ minX: D0.x0, maxX: jx0, minZ: D0.z0 - 1, maxZ: D0.z0 + 0.15, id: tag })
+    this.colliders.push({ minX: jx1, maxX: D0.x1 + 1, minZ: D0.z0 - 1, maxZ: D0.z0 + 0.15, id: tag })
+    this.jetty(b, FERRY.x, FERRY.docksJetty, FERRY.docksEnd, open, tag)
     this.colliders.push({ minX: D0.x0, maxX: D0.x1 + 1, minZ: D0.z1 - 0.15, maxZ: D0.z1 + 1, id: tag })
     this.colliders.push({ minX: D0.x1 - 0.15, maxX: D0.x1 + 1, minZ: D0.z0 - 1, maxZ: D0.z1 + 1, id: tag })
     return b.build()
+  }
+
+  /** Timber jetty from the shore (z0) out to z1, with rails; colliders keep the hero on it. */
+  private jetty(b: StaticBatch, x: number, z0: number, z1: number, open: boolean, tag: string): void {
+    const len = Math.abs(z1 - z0)
+    const cz = (z0 + z1) / 2
+    const wood = open ? PAL.wood : 0x324674
+    b.rbox(2.4, 0.16, len, x, 0.0, cz, wood, 0.03)
+    for (let i = 0; i < Math.floor(len / 0.5); i++) b.box(2.42, 0.02, 0.05, x, 0.085, Math.min(z0, z1) + 0.25 + i * 0.5, shade(wood, 0.8))
+    for (const sx of [-1, 1]) {
+      for (const pz of [Math.min(z0, z1) + 0.2, cz, Math.max(z0, z1) - 0.2]) b.cyl(0.12, 0.12, 1.6, x + sx * 1.15, -0.25, pz, shade(wood, 0.7), 8)
+      b.rbox(0.1, 0.1, len, x + sx * 1.15, 0.55, cz, shade(wood, 0.85), 0.03)
+      this.colliders.push({ minX: x + sx * 1.15 - 0.15, maxX: x + sx * 1.15 + 0.15, minZ: Math.min(z0, z1), maxZ: Math.max(z0, z1), id: tag })
+    }
+    // the end: the boat berth (blocked; the ferry carries the hero across)
+    const endZ = z1
+    const dir = Math.sign(z1 - z0)
+    this.colliders.push({ minX: x - 1.3, maxX: x + 1.3, minZ: Math.min(endZ, endZ + dir * 0.4), maxZ: Math.max(endZ, endZ + dir * 0.4), id: tag })
+  }
+
+  // ---------------------------------------------------------------- lighthouse island
+  private buildIsland(open: boolean): BufferGeometry {
+    const P = this.p
+    const b = new StaticBatch()
+    const I = ISLAND
+    const tag = 'area:lighthouse'
+    const w = I.x1 - I.x0
+    const d = I.z1 - I.z0
+    const cx = (I.x0 + I.x1) / 2
+    const cz = (I.z0 + I.z1) / 2
+    const rock = open ? 0x8d8f97 : 0x1b2440
+    const grass = open ? 0x7cc46a : 0x2b3c66
+    // rocky slab with a few bulges so the outline is not a plain rectangle
+    b.rbox(w + 0.6, 1.5, d + 0.6, cx, -0.72, cz, rock, 0.6)
+    for (const [bx, bz, bw, bd] of [[I.x0 + 4, I.z0 + 2, 9, 7], [I.x1 - 5, I.z0 + 3, 10, 8], [I.x0 + 2, cz, 5, 10], [I.x1 - 2, cz + 4, 5, 9]] as const)
+      b.rbox(bw, 1.4, bd, bx, -0.75, bz, shade(rock, 0.92), 0.8)
+    b.rbox(w - 0.4, 0.12, d - 0.4, cx, -0.03, cz, grass, 0.3)
+    // path from the jetty to the tower
+    const px0 = I.path.x0
+    const px1 = I.path.x1
+    if (open) this.tiles(b, px0, I.z0 + 3, px1 - px0, d - 3, PAL.pavingA, PAL.pavingB, PAL.curbSide)
+    // rocks + bushes on the grass
+    for (const [rx, rz, rs] of [[I.x0 + 2.5, I.z0 + 2.5, 1.2], [I.x0 + 4.5, I.z1 - 2.2, 0.8], [I.x1 - 2.4, I.z0 + 4, 1.0], [I.x1 - 3.4, I.z1 - 2.6, 1.3], [cx + 8, I.z0 + 2, 0.9], [cx - 9, I.z0 + 5.5, 0.7]] as const) {
+      b.sphere(rs, rx, rs * 0.3, rz, shade(rock, 1.15), 7, 5, 0.6)
+      this.colliders.push({ minX: rx - rs * 0.8, maxX: rx + rs * 0.8, minZ: rz - rs * 0.8, maxZ: rz + rs * 0.8, id: tag })
+    }
+    if (open) for (const [bx, bz] of [[I.x0 + 7, I.z1 - 2], [I.x1 - 7, I.z1 - 2.2], [cx - 6, I.z0 + 1.6], [cx + 5.5, I.z0 + 1.8]] as const) b.prop(P.bush, bx, bz, bx, 1, 0.05)
+    // lighthouse tower: rock base, striped shaft, gallery, lantern, cap
+    const T = I.tower
+    b.cyl(3.0, 3.4, 0.9, T.x, 0.45, T.z, shade(rock, 1.05), 14)
+    const bands = [PAL.white, PAL.coral]
+    for (let i = 0; i < 6; i++) {
+      const r0 = 1.75 - i * 0.12
+      b.cyl(r0 - 0.12, r0, 1.3, T.x, 1.55 + i * 1.3, T.z, open ? bands[i % 2]! : 0x3a4a72, 14)
+    }
+    b.rbox(0.8, 1.3, 0.12, T.x, 1.6, T.z + 1.72, 0x5e3f26, 0.05)
+    b.cyl(1.6, 1.6, 0.18, T.x, 9.0, T.z, PAL.steelDark, 16)
+    b.cyl(0.95, 0.95, 1.2, T.x, 9.7, T.z, open ? 0xfff0b0 : 0x3a4a72, 12)
+    b.cone(1.15, 0.9, T.x, 10.75, T.z, open ? PAL.coral : 0x3a4a72, 12)
+    b.sphere(0.16, T.x, 11.3, T.z, PAL.steelDark)
+    this.colliders.push({ minX: T.x - 3.1, maxX: T.x + 3.1, minZ: T.z - 3.1, maxZ: T.z + 3.1, id: tag })
+    // island jetty + edges (opening for the jetty on the south side)
+    this.jetty(b, FERRY.x, FERRY.islandJetty, FERRY.islandEnd, open, tag)
+    const jx0 = FERRY.x - 1.2
+    const jx1 = FERRY.x + 1.2
+    this.colliders.push({ minX: I.x0 - 1, maxX: jx0, minZ: I.z1 - 0.15, maxZ: I.z1 + 1, id: tag })
+    this.colliders.push({ minX: jx1, maxX: I.x1 + 1, minZ: I.z1 - 0.15, maxZ: I.z1 + 1, id: tag })
+    this.colliders.push({ minX: I.x0 - 1, maxX: I.x1 + 1, minZ: I.z0 - 1, maxZ: I.z0 + 0.15, id: tag })
+    this.colliders.push({ minX: I.x0 - 1, maxX: I.x0 + 0.15, minZ: I.z0, maxZ: I.z1, id: tag })
+    this.colliders.push({ minX: I.x1 - 0.15, maxX: I.x1 + 1, minZ: I.z0, maxZ: I.z1, id: tag })
+    return b.build()
+  }
+
+  private beam: Mesh | null = null
+  private beamT = 0
+
+  /** Sweeping light beam of the lighthouse: visible across the whole map from minute one. */
+  private ensureBeam(): void {
+    if (this.beam) return
+    const len = 48
+    const g = new ConeGeometry(4.5, len, 20, 1, true).rotateZ(Math.PI / 2).translate(len / 2, 0, 0)
+    const m = new Mesh(g, new MeshBasicMaterial({ color: 0xfff3b0, transparent: true, opacity: 0.16, depthWrite: false, blending: AdditiveBlending, side: DoubleSide }))
+    m.position.set(ISLAND.tower.x, 9.7, ISLAND.tower.z)
+    m.renderOrder = 5
+    this.scene.add(m)
+    this.beam = m
   }
 
   private crane: Group | null = null
@@ -864,6 +950,11 @@ export class World {
         g.t = want2 > g.t ? Math.min(1, g.t + dt / 1.6) : Math.max(0, g.t - dt / 1.6)
         this.placeGarage()
       }
+    }
+    if (this.beam) {
+      this.beamT += dt
+      this.beam.rotation.y = this.beamT * 0.45
+      this.beam.rotation.z = -0.16
     }
     if (this.crane) {
       this.craneT += dt
