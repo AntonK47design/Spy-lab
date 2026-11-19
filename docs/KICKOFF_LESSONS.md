@@ -263,3 +263,10 @@ Run check, test, sim, size and e2e **before every commit**.
   - judge 3–4-day windows, never single days;
   - compare before and after each upload;
   - fix the biggest lever first (usually CTR, then the first minute).
+
+---
+
+## Graphics spec (Anton, 2026-11-19)
+See `docs/ART_BIBLE.md` (Spy Lab adaptation of the §8 graphics rules: toy diorama in a dark void, CC0 chunky packs,
+bevelled procedural architecture, palette module, Lambert + ACES, canvas floor patterns, baked AO, camera FOV 48°/pitch 52°,
+pads with hologram ghosts, rendered icons, Fredoka-style HUD, budgets, showcase scene, screenshot review).
