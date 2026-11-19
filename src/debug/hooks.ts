@@ -87,6 +87,13 @@ export function installDebugHooks(g: { renderer: ReturnType<typeof createRendere
     player: () => ({ x: game.player.x, z: game.player.z }),
     /** QA: add one station to a room and play its build animation. */
     fxSlow: (k: number) => (game.world.fxScale = Math.max(1, k)),
+    /** QA: open an area (harbor / lighthouse) as if its gate had been paid. */
+    openArea: (a: 'harbor' | 'lighthouse') => {
+      state.areas[a] = true
+      game.world.syncAreas(state)
+      game.world.syncRooms(state)
+      game.syncPads()
+    },
     buildStation: (room: RoomId) => {
       const r = state.rooms[room]
       r.stations++

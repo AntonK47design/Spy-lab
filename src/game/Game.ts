@@ -501,6 +501,11 @@ export class Game {
     this.guide.update(dt, here ? null : target, this.cam, this.w, this.h)
   }
 
+  /** Rebuild pads from the state (debug / QA). */
+  syncPads(): void {
+    this.pads.sync(state)
+  }
+
   // ---------------------------------------------------------------- office actions (UI)
   upgrade(room: RoomId, what: 'level' | 'speed'): boolean {
     const ok = what === 'level' ? upgradeLevel(state, room, this.ev) : buySpeed(state, room, this.ev)

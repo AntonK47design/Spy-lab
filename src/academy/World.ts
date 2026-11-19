@@ -13,7 +13,7 @@ import { propGeometry } from '../render/assets'
 import { PAL, ROOM_FLOOR } from '../render/palette'
 import { MODELS, type ModelId } from '../config/models'
 import {
-  AREAS, AREA_ORDER, LAYOUT, PLAZAS, ROOMS, ROOM_ORDER, TEASER_ROW_Z, slotOf, upgradeSpotOf, cashSpotOf, crateOf, gateOf,
+  AREAS, AREA_ORDER, DOCKS, GARAGE, LAYOUT, PLAZAS, ROOMS, ROOM_AREA, ROOM_ORDER, TEASER_ROW_Z, slotOf, upgradeSpotOf, cashSpotOf, crateOf, gateOf,
   type AreaId, type RoomId,
 } from '../config/rooms'
 import type { GameState } from '../sim/state'
@@ -272,7 +272,7 @@ export class World {
       }
       for (let i = this.colliders.length - 1; i >= 0; i--) if (this.colliders[i]!.id?.startsWith(`area:${a}`)) this.colliders.splice(i, 1)
       const n = this.colliders.length
-      const m = new Mesh(this.buildArea(a, open), flatMat)
+      const m = new Mesh(a === 'harbor' ? this.buildDocks(open) : this.buildArea(a, open), flatMat)
       for (let i = n; i < this.colliders.length; i++) this.colliders[i]!.id ??= `area:${a}`
       m.receiveShadow = true
       m.castShadow = true
@@ -280,6 +280,8 @@ export class World {
       this.scene.add(m)
       this.areaMeshes.set(a, m)
     }
+    this.syncGarage(s.areas.harbor, this.garage !== null)
+    this.ensureCrane()
   }
 
   private buildArea(a: AreaId, open: boolean): BufferGeometry {
@@ -297,11 +299,18 @@ export class World {
     else this.tiles(b, -cw / 2, A.zBack, cw, d, 0x2b3c66, 0x324674, PAL.blueprint)
     // outer edges of the island
     this.colliders.push({ minX: -half - 1, maxX: -half + 0.2, minZ: A.zBack, maxZ: A.zFront, id: tag })
-    this.colliders.push({ minX: half - 0.2, maxX: half + 1, minZ: A.zBack, maxZ: A.zFront, id: tag })
+    if (a === 'hq') {
+      // east edge opens where the garage hall leads out to the docks
+      const gz0 = GARAGE.z - GARAGE.doorHalf
+      const gz1 = GARAGE.z + GARAGE.doorHalf
+      this.colliders.push({ minX: half - 0.2, maxX: half + 1, minZ: A.zBack, maxZ: gz0, id: tag })
+      this.colliders.push({ minX: half - 0.2, maxX: half + 1, minZ: gz1, maxZ: A.zFront, id: tag })
+      this.buildGarage(b)
+    } else this.colliders.push({ minX: half - 0.2, maxX: half + 1, minZ: A.zBack, maxZ: A.zFront, id: tag })
     const i = AREA_ORDER.indexOf(a)
     if (i > 0) {
       // bridge from the previous island (walkway width = corridor), void on both sides
-      const pz = AREAS[AREA_ORDER[i - 1]!].zBack
+      const pz = AREAS[A.from].zBack
       const bl = pz - A.zFront
       b.rbox(cw - 0.4, 0.3, bl + 0.6, 0, -0.12, (pz + A.zFront) / 2, open ? PAL.curbSide : 0x2b3c66, 0.08)
       b.rbox(cw - 0.6, 0.08, bl + 0.6, 0, 0.0, (pz + A.zFront) / 2, open ? PAL.wood : 0x324674, 0.03)
@@ -450,8 +459,15 @@ export class World {
     const doorHalf = 1.25
     const [fa, fb] = ROOM_FLOOR[id] ?? [0x888888, 0x777777]
     let ghost: BufferGeometry | null = null
-    const wallCol = unlocked ? PAL.wall : 0x8aa0c8
-    const trim = unlocked ? def.accent : PAL.blueprintEdge
+    // harbour buildings: shipping container, fish market, boathouse
+    const DOCK_LOOK: Partial<Record<RoomId, [number, number]>> = {
+      cipher: [0xc8553d, 0x8a3a2a],
+      disguise: [0xdfe8ee, 0x2f6fb0],
+      gadget: [0x9b6b43, 0x5e3f26],
+    }
+    const look = ROOM_AREA[id] === 'harbor' ? DOCK_LOOK[id] : undefined
+    const wallCol = unlocked ? (look?.[0] ?? PAL.wall) : 0x8aa0c8
+    const trim = unlocked ? (look?.[1] ?? def.accent) : PAL.blueprintEdge
     if (unlocked) this.tiles(b, x - w / 2, top, w, d, fa, fb, shade(fa, 0.72))
     else this.tiles(b, x - w / 2, top, w, d, 0x2b3c66, 0x324674, PAL.blueprint)
     this.wallX(b, x - w / 2, x + w / 2, top, BACK_WALL, wallCol, trim)
@@ -460,6 +476,14 @@ export class World {
     this.wallZ(b, inner, top, z - doorHalf, 1.0, wallCol, trim)
     this.wallZ(b, inner, z + doorHalf, bottom, 1.0, wallCol, trim)
 
+    if (unlocked && id === 'cipher') {
+      // corrugated container ribs on the back and outer wall
+      for (let i = 0; i < 19; i++) b.box(0.08, BACK_WALL - 0.3, 0.12, x - w / 2 + 0.3 + i * 0.52, (BACK_WALL - 0.3) / 2 + 0.1, top - 0.18, 0x9e3f2c)
+    }
+    if (unlocked && id === 'disguise') {
+      // striped market awning over the street door
+      for (let i = 0; i < 6; i++) b.rbox(0.9, 0.1, 0.55, inner - side * 0.45, 1.35 - i * 0, z - 2.5 + i * 1.0, i % 2 ? PAL.white : 0x2f6fb0, 0.03)
+    }
     if (unlocked) {
       this.furnish(b, id, slots, tag, crate)
     } else {
@@ -519,6 +543,166 @@ export class World {
       const p = slotOf(id, i)
       this.station(b, id, p.x, p.z - 0.85, def.accent)
     }
+  }
+
+  // ---------------------------------------------------------------- garage hall (HQ -> docks)
+  private buildGarage(b: StaticBatch): void {
+    const P = this.p
+    const { x0, x1, z, d, doorHalf } = GARAGE
+    const top = z - d / 2
+    const bottom = z + d / 2
+    const wall = 0x8d97a6
+    const trim = PAL.brandYellow
+    // concrete floor with hazard stripes at both doors
+    this.tiles(b, x0, top, x1 - x0, d, 0x9aa3b0, 0x8c95a3, 0x6d7685)
+    for (const gx of [x0 + 0.5, x1 - 0.5])
+      for (let i = 0; i < 5; i++) b.box(0.5, 0.02, 0.5, gx, 0.06, z - doorHalf + 0.3 + i * 0.6, i % 2 ? PAL.dark : PAL.brandYellow)
+    this.wallX(b, x0, x1, top, BACK_WALL, wall, trim)
+    this.wallX(b, x0, x1, bottom, STUB, wall, trim)
+    for (const wx of [x0, x1]) {
+      this.wallZ(b, wx, top, z - doorHalf, BACK_WALL * 0.8, wall, trim)
+      this.wallZ(b, wx, z + doorHalf, bottom, BACK_WALL * 0.8, wall, trim)
+      // door frame posts + lintel
+      for (const dz of [-doorHalf, doorHalf]) b.rbox(0.36, 2.6, 0.36, wx, 1.3, z + dz, PAL.steelDark, 0.05)
+      b.rbox(0.4, 0.3, doorHalf * 2 + 0.4, wx, 2.6, z, PAL.steelDark, 0.05)
+    }
+    // delivery van + workbench + tyres
+    b.prop(P.wagon, x0 + 4.8, top + 1.9, Math.PI / 2, 1)
+    this.colliders.push({ minX: x0 + 2.6, maxX: x0 + 7.0, minZ: top + 0.8, maxZ: top + 3.0, id: 'garage' })
+    b.prop(P.deskLong, x1 - 1.6, bottom - 1.2, 0, 0.8)
+    b.prop(P.boxA, x1 - 1.2, bottom - 1.1, 0.3, 0.6, 0.62)
+    this.colliders.push({ minX: x1 - 2.6, maxX: x1 - 0.6, minZ: bottom - 1.7, maxZ: bottom - 0.7, id: 'garage' })
+    b.prop(P.barrel, x0 + 1.0, bottom - 1.0, 0, 0.55)
+    b.prop(P.barrel, x0 + 1.7, bottom - 0.9, 0.4, 0.55)
+  }
+
+  private garage: { m: Mesh; t: number; open: boolean } | null = null
+
+  /** Roll-up door on the courtyard side of the garage = the harbor gate. Rolls up when opened. */
+  syncGarage(open: boolean, animate: boolean): void {
+    const { x0, z, doorHalf } = GARAGE
+    if (!this.garage) {
+      const b = new StaticBatch()
+      const h = 2.45
+      // geometry hangs from its top edge (y=0) so scaling y rolls it up
+      b.rbox(0.14, h, doorHalf * 2, 0, -h / 2, 0, 0xc9cfd8, 0.03)
+      for (let i = 0; i < 9; i++) b.rbox(0.18, 0.06, doorHalf * 2 - 0.04, 0, -0.2 - i * 0.26, 0, 0x9aa3b0, 0.02)
+      b.rbox(0.2, 0.36, 0.5, 0, -h + 0.5, 0, PAL.brandYellow, 0.04)
+      const m = new Mesh(b.build(), flatMat)
+      m.position.set(x0, 2.5, z)
+      m.castShadow = true
+      this.scene.add(m)
+      this.garage = { m, t: open ? 1 : 0, open }
+    }
+    const g = this.garage
+    g.open = open
+    if (!animate) g.t = open ? 1 : 0
+    this.placeGarage()
+    for (let i = this.colliders.length - 1; i >= 0; i--) if (this.colliders[i]!.id === 'garage_door') this.colliders.splice(i, 1)
+    if (!open) this.colliders.push({ minX: x0 - 0.3, maxX: x0 + 0.3, minZ: z - doorHalf, maxZ: z + doorHalf, id: 'garage_door' })
+  }
+
+  private placeGarage(): void {
+    const g = this.garage
+    if (!g) return
+    const k = g.t
+    const e = k >= 1 ? 1 : 1 - Math.pow(1 - k, 2)
+    g.m.scale.y = Math.max(0.06, 1 - e * 0.94)
+  }
+
+  // ---------------------------------------------------------------- harbor docks
+  private buildDocks(open: boolean): BufferGeometry {
+    const P = this.p
+    const b = new StaticBatch()
+    const D0 = DOCKS
+    const tag = 'area:harbor'
+    const cx = (D0.x0 + D0.x1) / 2
+    const cz = (D0.z0 + D0.z1) / 2
+    const w = D0.x1 - D0.x0
+    const d = D0.z1 - D0.z0
+    // water all around the docks (always visible, also as a teaser while the gate is closed)
+    b.box(90, 0.1, 90, D0.x0 + 40, -0.75, cz - 6, 0x2f8f9e)
+    for (let i = 0; i < 26; i++) {
+      const wx = D0.x0 + 3 + ((i * 7.3) % 60)
+      const wz = D0.z0 - 14 + ((i * 11.7) % 52)
+      if (wx > D0.x0 && wx < D0.x1 + 1 && wz > D0.z0 - 1 && wz < D0.z1 + 1) continue
+      b.box(1.6 + (i % 3) * 0.6, 0.02, 0.12, wx, -0.68, wz, 0x7fd0da)
+    }
+    // pier slab: concrete quay with timber edge
+    b.rbox(w + 0.2, 1.3, d + 0.2, cx, -0.66, cz, open ? 0x5e6878 : 0x1b2440, 0.15)
+    b.rbox(w + 0.5, 0.12, d + 0.5, cx, -0.04, cz, open ? 0x8b5a3c : PAL.blueprintEdge, 0.05)
+    if (open) this.tiles(b, D0.x0, D0.z0, w, d, 0xb9c0c9, 0xadb5bf, 0x8f98a5)
+    else this.tiles(b, D0.x0, D0.z0, w, d, 0x2b3c66, 0x324674, PAL.blueprint)
+    // dock street: darker asphalt band with a dashed centre line
+    const sx0 = D0.street.x0
+    const sx1 = D0.street.x1
+    if (open) {
+      b.box(sx1 - sx0, 0.04, d - 0.6, (sx0 + sx1) / 2, 0.07, cz, 0x6a7282)
+      for (let z = D0.z0 + 1; z < D0.z1 - 1; z += 2.2) b.box(0.14, 0.02, 1.1, (sx0 + sx1) / 2, 0.1, z, PAL.white)
+    }
+    // container stacks along the west side of the street (not in front of the garage exit)
+    const cols = [0xc8553d, 0x2f6fb0, 0x3f9a5c, 0xe0a030, 0x8a4a6b]
+    let ci = 0
+    for (const [z0, z1] of [[D0.z0 + 0.6, GARAGE.z - GARAGE.doorHalf - 1.2], [GARAGE.z + GARAGE.doorHalf + 1.2, D0.z1 - 0.6]] as const) {
+      for (let z = z0 + 1.3; z + 1.3 <= z1; z += 2.7) {
+        const c = open ? cols[ci++ % cols.length]! : 0x324674
+        b.rbox(1.25, 1.3, 2.55, sx0 + 0.7, 0.68, z, c, 0.04)
+        for (let r = 0; r < 6; r++) b.box(1.27, 1.1, 0.06, sx0 + 0.7, 0.68, z - 1.05 + r * 0.42, shade(c, 0.82))
+        if (ci % 2) b.rbox(1.25, 1.3, 2.55, sx0 + 0.7, 2.0, z + 0.1, open ? cols[(ci + 2) % cols.length]! : 0x324674, 0.04)
+        this.colliders.push({ minX: sx0, maxX: sx0 + 1.4, minZ: z - 1.3, maxZ: z + 1.3, id: tag })
+      }
+    }
+    // quay behind the buildings: bollards, lamp posts, crates, crane base
+    const qx = D0.quayX
+    for (let z = D0.z0 + 1.5; z < D0.z1 - 0.5; z += 4) {
+      b.cyl(0.18, 0.22, 0.5, D0.x1 - 0.4, 0.28, z, PAL.steelDark, 8)
+      b.cyl(0.26, 0.26, 0.08, D0.x1 - 0.4, 0.55, z, PAL.steelDark, 8)
+    }
+    for (const z of [-22, -6, 5]) {
+      b.prop(P.streetlight, qx, z, Math.PI / 2, 0.9)
+      this.colliders.push({ minX: qx - 0.2, maxX: qx + 0.2, minZ: z - 0.2, maxZ: z + 0.2, id: tag })
+    }
+    b.prop(P.pallet, qx, -2, 0.2)
+    b.prop(P.boxB, qx - 0.2, -2, 0.1, 0.7, 0.3)
+    b.prop(P.barrel, qx + 0.6, -10.6, 0, 0.6)
+    this.colliders.push({ minX: qx - 0.9, maxX: qx + 0.9, minZ: -2.8, maxZ: -1.2, id: tag })
+    // crane rails + legs (the rotating jib is a separate animated mesh)
+    const cr = D0.crane
+    for (const dz of [-3.4, 3.4]) b.box(3.2, 0.06, 0.16, cr.x, 0.08, cr.z + dz, PAL.steelDark)
+    for (const [dx, dz] of [[-1.1, -1.1], [1.1, -1.1], [-1.1, 1.1], [1.1, 1.1]] as const) b.rbox(0.3, 6.2, 0.3, cr.x + dx, 3.1, cr.z + dz, open ? PAL.brandYellow : 0x3a4a72, 0.05)
+    b.rbox(2.7, 0.4, 2.7, cr.x, 6.2, cr.z, open ? PAL.brandYellow : 0x3a4a72, 0.06)
+    this.colliders.push({ minX: cr.x - 1.4, maxX: cr.x + 1.4, minZ: cr.z - 1.4, maxZ: cr.z + 1.4, id: tag })
+    // moored boats
+    for (const [bx, bz, c] of [[D0.x1 + 3.6, -18, 0xe8edf4], [D0.x1 + 3.2, -3, 0xc8553d], [D0.x1 + 4.2, 8, 0x2f6fb0]] as const) {
+      b.rbox(2.2, 0.8, 5.2, bx, -0.4, bz, c, 0.35)
+      b.rbox(1.9, 0.12, 4.8, bx, 0.02, bz, PAL.wood, 0.05)
+      b.rbox(1.3, 0.9, 1.5, bx, 0.5, bz + 0.6, 0xf3e2c4, 0.1)
+    }
+    // edges: water on three sides, the HQ plot on the west
+    this.colliders.push({ minX: D0.x0, maxX: D0.x1 + 1, minZ: D0.z0 - 1, maxZ: D0.z0 + 0.15, id: tag })
+    this.colliders.push({ minX: D0.x0, maxX: D0.x1 + 1, minZ: D0.z1 - 0.15, maxZ: D0.z1 + 1, id: tag })
+    this.colliders.push({ minX: D0.x1 - 0.15, maxX: D0.x1 + 1, minZ: D0.z0 - 1, maxZ: D0.z1 + 1, id: tag })
+    return b.build()
+  }
+
+  private crane: Group | null = null
+
+  /** Crane jib swinging a container over the quay (ambient motion, one extra mesh). */
+  private ensureCrane(): void {
+    if (this.crane) return
+    const b = new StaticBatch()
+    b.rbox(9, 0.5, 0.6, -2.2, 0, 0, PAL.brandYellow, 0.06)
+    b.rbox(2.2, 1.0, 1.4, 1.6, 0.6, 0, PAL.steelDark, 0.08)
+    b.rbox(1.6, 1.0, 1.3, -0.2, 0.8, 0, 0x2f6fb0, 0.1)
+    b.box(0.05, 2.2, 0.05, -6.0, -1.2, 0, PAL.dark)
+    b.rbox(2.4, 1.1, 1.1, -6.0, -2.8, 0, 0xc8553d, 0.05)
+    const g = new Group()
+    const m = new Mesh(b.build(), flatMat)
+    m.castShadow = true
+    g.add(m)
+    g.position.set(DOCKS.crane.x, 6.65, DOCKS.crane.z)
+    this.scene.add(g)
+    this.crane = g
   }
 
   // ---------------------------------------------------------------- courtyard hub
@@ -673,7 +857,21 @@ export class World {
       this.placeSecret()
     }
     if (this.holo) this.holo.rotation.y += dt * 0.6
+    const g = this.garage
+    if (g) {
+      const want2 = g.open ? 1 : 0
+      if (g.t !== want2) {
+        g.t = want2 > g.t ? Math.min(1, g.t + dt / 1.6) : Math.max(0, g.t - dt / 1.6)
+        this.placeGarage()
+      }
+    }
+    if (this.crane) {
+      this.craneT += dt
+      this.crane.rotation.y = Math.PI / 2 + Math.sin(this.craneT * 0.25) * 0.9
+    }
   }
+
+  private craneT = 0
 
   // ---------------------------------------------------------------- build animation
   /**

@@ -9,9 +9,10 @@ async function walk(page: Page, tx: number, tz: number): Promise<boolean> {
     const p = await spy<{ x: number; z: number }>(page, 'player')
     const dx = tx - p.x
     const dz = tz - p.z
-    if (Math.hypot(dx, dz) < 0.35) return true
+    // one 70 ms press moves ~0.45 m: 0.5 m counts as arrived (well inside every pad radius)
+    if (Math.hypot(dx, dz) < 0.5) return true
     stuck = Math.hypot(p.x - last.x, p.z - last.z) < 0.02 ? stuck + 1 : 0
-    if (stuck > 20) return false
+    if (stuck > 20) { console.log("STUCK", tx, tz, "at", p.x.toFixed(2), p.z.toFixed(2)); return false }
     last = p
     const keys: string[] = []
     if (dx > 0.15) keys.push('ArrowRight')
@@ -22,6 +23,7 @@ async function walk(page: Page, tx: number, tz: number): Promise<boolean> {
     await page.waitForTimeout(70)
     for (const k of keys) await page.keyboard.up(k)
   }
+  console.log('GAVE UP', tx, tz)
   return false
 }
 
@@ -39,10 +41,18 @@ test('walking from the street: build the desk, never trapped, first sign-up work
   expect(await walk(page, 0.5, 7.0)).toBe(true)
   expect(await walk(page, 0, 4.6)).toBe(true)
   const s = await spy<{ x: number; z: number }>(page, 'spot', 'station', 'vault', 0)
+  // through the Vault door (doors face the courtyard), then to the first safe
+  expect(await walk(page, 5.2, 0.5)).toBe(true)
+  expect(await walk(page, 7.4, 0.5)).toBe(true)
   expect(await walk(page, s.x, s.z - 0.4)).toBe(true)
   await expect.poll(async () => (await raw()).rooms.vault.stations, { timeout: 10_000 }).toBe(1)
+  expect(await walk(page, 7.4, 0.5)).toBe(true)
+  expect(await walk(page, 5.2, 0.5)).toBe(true)
   expect(await walk(page, 0, 4.6)).toBe(true)
-  expect(await walk(page, 0.5, 7.2)).toBe(true)
-  expect(await walk(page, 6.9, 7.4)).toBe(true)
+  // along the middle of the 1.6 m lane behind the counter to the serve spot
+  expect(await walk(page, 0.5, 7.0)).toBe(true)
+  expect(await walk(page, 6.9, 7.0)).toBe(true)
+  const pl = await spy<{ x: number; z: number }>(page, 'player')
+  expect(pl.z).toBeLessThan(7.8) // behind the counter, not in front of it
   await expect.poll(async () => (await raw()).stats.served, { timeout: 10_000 }).toBeGreaterThan(0)
 })
