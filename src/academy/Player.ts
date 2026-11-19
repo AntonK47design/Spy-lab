@@ -7,7 +7,7 @@ const R = 0.36
 
 /** The director: walks with the joystick / keys, collides with walls and furniture. */
 export class Player {
-  readonly char = new Character({ outfit: 0x22304f, skin: 0xf1c27d, hair: 0x5a3a2a, head: 'hat', scale: 1.08 })
+  readonly char = new Character({ model: 'director', tint: { Suit: 0x1e2a48, Tie: 0xf2665c }, scale: 1.05 })
   x: number = LAYOUT.playerSpawn.x
   z: number = LAYOUT.playerSpawn.z
   speed: number = ECONOMY.player.speed
@@ -17,6 +17,7 @@ export class Player {
   constructor() {
     this.char.root.position.set(this.x, 0, this.z)
     this.char.root.rotation.y = Math.PI * 0.85
+    this.char.runner = true
   }
 
   update(dt: number, mx: number, mz: number, colliders: AABB[]): void {

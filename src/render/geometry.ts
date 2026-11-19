@@ -66,6 +66,18 @@ export class StaticBatch {
     return this.push(g, x, y, z, color)
   }
 
+  /** Add a baked prop geometry (vertex colors already set) with a placement transform. */
+  prop(src: BufferGeometry | null, x: number, z: number, rotY = 0, scale = 1, y = 0): this {
+    if (!src) return this
+    const g = src.clone()
+    e.set(0, rotY, 0)
+    q.setFromEuler(e)
+    m4.compose(v.set(x, y, z), q, new Vector3(scale, scale, scale))
+    g.applyMatrix4(m4)
+    this.parts.push(g)
+    return this
+  }
+
   get empty(): boolean {
     return this.parts.length === 0
   }
@@ -75,7 +87,7 @@ export class StaticBatch {
     for (const p of this.parts) p.dispose()
     this.parts = []
     if (!merged) throw new Error('empty batch')
-    merged.computeVertexNormals()
+    if (!merged.getAttribute('normal')) merged.computeVertexNormals()
     merged.computeBoundingSphere()
     return merged
   }

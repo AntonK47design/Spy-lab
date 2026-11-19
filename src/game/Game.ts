@@ -2,7 +2,10 @@
  * Game controller: runs the sim, drives the academy view, routes input, hosts the
  * mission flow (briefing -> minigame -> result) and owns every ad call site.
  */
-import { ConeGeometry, Mesh, MeshBasicMaterial, type WebGLRenderer } from 'three'
+import { ConeGeometry, Mesh, MeshBasicMaterial, PCFShadowMap, type WebGLRenderer } from 'three'
+import { Character } from '../academy/Character'
+import { flatMat } from '../render/materials'
+import { charMaterial } from '../render/assets'
 import { World } from '../academy/World'
 import { Player } from '../academy/Player'
 import { CadetViews } from '../academy/CadetViews'
@@ -38,7 +41,6 @@ import { DEBUG } from '../debug/flags'
 import { lang } from '../i18n/i18n'
 
 export class Game {
-  readonly world = new World()
   readonly player = new Player()
   readonly cam = new FollowCamera()
   readonly input: Input
@@ -66,6 +68,7 @@ export class Game {
   private ev: SimEvents
 
   constructor(
+    readonly world: World,
     private renderer: WebGLRenderer,
     private canvas: HTMLCanvasElement,
     uiLayer: HTMLElement,
@@ -207,6 +210,8 @@ export class Game {
     const steps = Math.max(1, Math.ceil(dt / (1 / 30)))
     for (let i = 0; i < steps; i++) this.player.update(dt / steps, this.input.move.x, this.input.move.y, this.world.colliders)
     this.cam.follow(this.player.x, this.player.z, dt || 0.016)
+    this.world.followShadow(this.cam.target.x, this.cam.target.z)
+    this.cadets.syncInstructors(state, dt)
     this.cadets.sync(state, dt)
     this.piles.sync(state)
     this.piles.update(dt, this.player.x, this.player.z)
@@ -501,6 +506,20 @@ export class Game {
     panel.value = null
     if (p?.kind === 'levelup') showInterstitial('level_up')
     if (!nextPopup()) bump()
+  }
+
+  /** Quality tier: real soft shadows on mid/high, blob shadows on low. */
+  applyQuality(tier: 'low' | 'mid' | 'high'): void {
+    const shadows = tier !== 'low'
+    this.renderer.shadowMap.enabled = shadows
+    this.renderer.shadowMap.type = PCFShadowMap
+    this.world.setShadows(shadows)
+    this.world.sun.shadow.mapSize.setScalar(tier === 'high' ? 2048 : 1024)
+    this.world.sun.shadow.map?.dispose()
+    this.world.sun.shadow.map = null
+    Character.blobs = !shadows
+    flatMat.needsUpdate = true
+    charMaterial.needsUpdate = true
   }
 
   /** Debug: teleport the player. */

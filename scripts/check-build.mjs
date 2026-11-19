@@ -140,8 +140,13 @@ if (!fs.existsSync(manifestPath)) {
   // Core audio from src/config/audio.ts
   const { AUDIO } = await import(path.join(root, 'src/config/audio.ts'))
   for (const g of ['music', 'sfx']) for (const [id, m] of Object.entries(AUDIO[g])) if (m.core) initial.add(`assets/audio/${id}.mp3`)
-  // Core models (Phase 1+): any file under assets/core/
-  for (const f of files) if (rel(f).startsWith('assets/core/')) initial.add(rel(f))
+  // Core models (src/config/models.ts: core flag) + their animation libraries
+  const { MODELS, CHARACTERS, ANIM_LIBS } = await import(path.join(root, 'src/config/models.ts'))
+  for (const m of Object.values(MODELS)) if (m.core) initial.add(`assets/models/${m.file}`)
+  for (const c of Object.values(CHARACTERS)) if (c.core) {
+    initial.add(`assets/models/${c.file}`)
+    initial.add(`assets/models/${ANIM_LIBS[c.anims]}`)
+  }
   let initialBytes = 0
   const missing = []
   for (const f of initial) {

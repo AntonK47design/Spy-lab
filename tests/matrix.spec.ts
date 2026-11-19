@@ -79,7 +79,7 @@ for (const lang of ['en', 'de', 'ru']) {
       test.setTimeout(240_000)
       const wt = watch(page)
       await page.setViewportSize({ width: w, height: h })
-      await boot(page)
+      await boot(page, '', lang === 'en' ? 'auto' : 'low')
       if (lang !== 'en') {
         await page.getByTestId('bar-settings').click()
         await page.getByTestId(`lang-${lang}`).click()

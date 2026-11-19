@@ -44,7 +44,10 @@ export function installDebugHooks(g: { renderer: ReturnType<typeof createRendere
       warp(minutes)
       return new Date(now()).toISOString()
     },
-    setQuality: (tier: QualityTier) => g.renderer.setTier(tier),
+    setQuality: (tier: QualityTier) => {
+      g.renderer.setTier(tier)
+      game.applyQuality(tier)
+    },
     simulateAd: (result: SimOutcome, durationMs?: number) => {
       setNextOutcome(result)
       if (durationMs != null) setDuration(durationMs)
@@ -101,6 +104,16 @@ export function installDebugHooks(g: { renderer: ReturnType<typeof createRendere
       save: { ...saveStats },
     }),
     raw: () => state,
+    sceneReport: () => {
+      const rows: [string, number][] = []
+      game.world.scene.traverse((o) => {
+        const m = o as unknown as { isMesh?: boolean; geometry?: { index: { count: number } | null; getAttribute(n: string): { count: number } }; name: string; count?: number; isInstancedMesh?: boolean }
+        if (!m.isMesh || !m.geometry) return
+        const t = (m.geometry.index ? m.geometry.index.count : m.geometry.getAttribute('position').count) / 3
+        rows.push([`${o.type}:${o.name || o.parent?.name || ''}`, Math.round(t * (m.isInstancedMesh ? (m.count ?? 1) : 1))])
+      })
+      return rows.sort((a, b) => b[1] - a[1]).slice(0, 12)
+    },
     grantAgent: () => {
       state.agents.push(createAgent(state, 'vault'))
       persist(['agents'])

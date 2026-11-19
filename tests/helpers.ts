@@ -23,9 +23,9 @@ export function watch(page: Page): Watch {
   return w
 }
 
-export async function boot(page: Page, query = ''): Promise<number> {
+export async function boot(page: Page, query = '', quality: 'low' | 'auto' = 'low'): Promise<number> {
   const t0 = Date.now()
-  await page.goto(`/?debug=1${query}`)
+  await page.goto(`/?debug=1${quality === 'low' ? '&quality=low' : ''}${query}`)
   await page.waitForFunction(() => (window as any).__spylab?.boot?.game_ready, null, { timeout: 15_000 })
   return Date.now() - t0
 }

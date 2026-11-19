@@ -19,6 +19,8 @@ import { sendPerformanceSample } from '../analytics/telemetry'
 import { AUTO_QUALITY, type QualityTier } from '../config/quality'
 import { DEBUG } from '../debug/flags'
 import { Game } from './Game'
+import { World } from '../academy/World'
+import { preload, coreFiles, lazyFiles, characterProto } from '../render/assets'
 import { setGame } from './actions'
 
 export async function start(progress: (p: number) => void): Promise<void> {
@@ -34,18 +36,23 @@ export async function start(progress: (p: number) => void): Promise<void> {
   // Server time in the background, then offline earnings use it.
   const timeSync = Promise.race([syncTime(), new Promise((r) => setTimeout(r, 1200))])
 
-  // 3. Core audio (real files only), with real progress.
+  // 3. Core audio (real files only) + core models, with real progress.
   AudioManager.init()
   const core = AudioManager.coreIds()
   let done = 0
-  await Promise.all(
+  const audio = Promise.all(
     core.map((id) =>
       AudioManager.load(id).then(() => {
         done++
-        progress(66 + (done / core.length) * 20)
+        progress(66 + (done / core.length) * 6)
       }),
     ),
   )
+  await preload(coreFiles(), (p) => progress(72 + p * 18))
+  await audio
+  const world = new World()
+  await world.init()
+  await Promise.all([characterProto('director', { Suit: 0x1e2a48, Tie: 0xf2665c })])
   await timeSync
 
   // 4. Renderer + world + UI.
@@ -54,8 +61,12 @@ export async function start(progress: (p: number) => void): Promise<void> {
   let game: Game | null = null
   const renderer = createRenderer(host, (w, hh) => game?.resize(w, hh))
   host.insertBefore(renderer.canvas, host.firstChild)
-  game = new Game(renderer.renderer, renderer.canvas, uiLayer)
+  game = new Game(world, renderer.renderer, renderer.canvas, uiLayer)
   setGame(game)
+  // QA: ?debug=1&quality=low|mid|high forces a tier
+  const forced = DEBUG ? new URLSearchParams(location.search).get('quality') : null
+  if (forced === 'low' || forced === 'mid' || forced === 'high') renderer.setTier(forced)
+  game.applyQuality(renderer.tier)
   game.resize(renderer.width, renderer.height)
   progress(92)
 
@@ -80,6 +91,7 @@ export async function start(progress: (p: number) => void): Promise<void> {
       if (t - lowSince > AUTO_QUALITY.windowMs) {
         const next: Record<QualityTier, QualityTier> = { high: 'mid', mid: 'low', low: 'low' }
         renderer.setTier(next[renderer.tier])
+        game?.applyQuality(renderer.tier)
         lowSince = 0
       }
     } else lowSince = 0
@@ -98,6 +110,8 @@ export async function start(progress: (p: number) => void): Promise<void> {
       readyAt = performance.now()
       AudioManager.playMusic('music_academy')
       for (const id of AudioManager.lazyIds()) void AudioManager.load(id)
+      platform.sendMessage('in_game_loading_started')
+      void preload(lazyFiles()).finally(() => platform.sendMessage('in_game_loading_stopped'))
       persist(['core', 'meta'])
     }),
   )

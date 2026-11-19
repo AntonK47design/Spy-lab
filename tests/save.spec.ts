@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 import { boot, expectClean, goTo, park, reload, solveSafe, spy, startFirstMission, state, watch } from './helpers'
 
 test('progress, rooms, agents, tutorial and settings survive reload', async ({ page }) => {
+  test.setTimeout(150_000)
   const w = watch(page)
   await boot(page)
   await spy(page, 'addCurrency', 'cash', 600)

@@ -1,0 +1,20 @@
+<!doctype html><html><head><base href="/"></head><body style="margin:0"><script type="module">
+import * as THREE from 'three'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js'
+import { propGeometry, characterProto, instantiate } from '/src/render/assets.ts'
+import { flatMat } from '/src/render/materials.ts'
+const r = new THREE.WebGLRenderer(); r.setSize(900, 500); document.body.appendChild(r.domElement)
+const s = new THREE.Scene(); s.background = new THREE.Color(0x335577)
+s.add(new THREE.HemisphereLight(0xffffff, 0x444444, 2))
+const cam = new THREE.PerspectiveCamera(35, 900/500, 0.1, 100); cam.position.set(0, 3, 9); cam.lookAt(0, 0.8, 0)
+const l = new GLTFLoader(); l.setMeshoptDecoder(MeshoptDecoder)
+const name = new URLSearchParams(location.search).get('m') || 'desk'
+// left: raw gltf; right: baked
+const files = { desk: 'interior_furniture_Desk.glb', oven: 'interior_home_Kitchen_Oven_Large.glb', comp: 'props_cyber_Computer_Large.glb', crois: 'food_Croissant.glb' }
+const raw = await l.loadAsync('/assets/models/' + files[name]); raw.scene.position.x = -2.5; s.add(raw.scene)
+const g = await propGeometry(name === 'comp' ? 'computerLarge' : name === 'crois' ? 'croissant' : name); const m = new THREE.Mesh(g, flatMat); m.position.x = 0; s.add(m)
+const proto = await characterProto('director'); const c = instantiate(proto); c.position.x = 2.5; s.add(c)
+const rawc = await l.loadAsync('/assets/models/characters_men_Suit.glb'); rawc.scene.position.x = 4.5; s.add(rawc.scene)
+r.render(s, cam); window.done = true
+</script></body></html>
