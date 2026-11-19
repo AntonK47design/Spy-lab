@@ -1,0 +1,79 @@
+{
+  "advertisement": {
+    "interstitial": {
+      "preloadOnStart": "mission_end",
+      "placementFallback": "mission_end",
+      "placements": [
+        {
+          "id": "mission_end"
+        },
+        {
+          "id": "boss_end"
+        },
+        {
+          "id": "map_close"
+        },
+        {
+          "id": "level_up"
+        },
+        {
+          "id": "panel_close"
+        },
+        {
+          "id": "pause_resume"
+        },
+        {
+          "id": "prestige"
+        }
+      ]
+    },
+    "rewarded": {
+      "preloadOnStart": "mission_double",
+      "placementFallback": "mission_double",
+      "placements": [
+        {
+          "id": "mission_double"
+        },
+        {
+          "id": "mission_revive"
+        },
+        {
+          "id": "mission_skip"
+        },
+        {
+          "id": "minigame_hint"
+        },
+        {
+          "id": "gadget_trial"
+        },
+        {
+          "id": "offline_double"
+        },
+        {
+          "id": "income_boost"
+        },
+        {
+          "id": "supply_drop"
+        },
+        {
+          "id": "missing_cash"
+        },
+        {
+          "id": "vip_recruit"
+        },
+        {
+          "id": "fieldop_finish"
+        },
+        {
+          "id": "daily_double"
+        },
+        {
+          "id": "vault_retry"
+        },
+        {
+          "id": "free_badges"
+        }
+      ]
+    }
+  }
+}
