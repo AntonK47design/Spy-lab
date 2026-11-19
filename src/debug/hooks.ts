@@ -84,6 +84,14 @@ export function installDebugHooks(g: { renderer: ReturnType<typeof createRendere
       persist(['core'])
     },
     player: () => ({ x: game.player.x, z: game.player.z }),
+    /** QA: add one station to a room and play its build animation. */
+    fxSlow: (k: number) => (game.world.fxScale = Math.max(1, k)),
+    buildStation: (room: RoomId) => {
+      const r = state.rooms[room]
+      r.stations++
+      r.supply.push(0)
+      game.world.playBuild(state, 'station', room)
+    },
     /** Screen position (CSS px) of a world spot, e.g. to tap it. */
     screenOf: (kind: 'crate' | 'cash' | 'upgrade', room: RoomId) => {
       const p = kind === 'crate' ? crateOf(room) : kind === 'cash' ? cashSpotOf(room) : upgradeSpotOf(room)

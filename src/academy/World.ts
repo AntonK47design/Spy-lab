@@ -5,7 +5,7 @@
  * Static parts are merged per room (one draw call each). Locked rooms are translucent blueprints.
  */
 import {
-  Color, DirectionalLight, Fog, Group, HemisphereLight, Mesh, MeshLambertMaterial, Scene, type BufferGeometry,
+  BoxGeometry, Color, DirectionalLight, Fog, Group, HemisphereLight, IcosahedronGeometry, Mesh, MeshBasicMaterial, MeshLambertMaterial, Scene, type BufferGeometry,
 } from 'three'
 import { StaticBatch } from '../render/geometry'
 import { flatMat } from '../render/materials'
@@ -30,6 +30,24 @@ const USED: ModelId[] = Object.keys(MODELS) as ModelId[]
 const blueprintMat = new MeshLambertMaterial({ color: PAL.blueprint, transparent: true, opacity: 0.35, depthWrite: false, emissive: 0x1a3d66 })
 const BACK_WALL = 2.4
 const STUB = 0.3
+const PUFF_GEO = new IcosahedronGeometry(0.22, 0)
+const SPARK_GEO = new BoxGeometry(0.15, 0.15, 0.15)
+const SPARK_MAT = new MeshBasicMaterial({ color: 0xf2b134 })
+
+interface BuildFx {
+  m: Mesh
+  x: number
+  z: number
+  room: RoomId | null
+  t: number
+  landed: boolean
+  puffs: Mesh[]
+  sparks: Mesh[]
+  dustMat: MeshBasicMaterial
+  size: number
+  /** Room items are temporary meshes baked into the room afterwards; the desk stays its own mesh. */
+  baked: boolean
+}
 
 export class World {
   readonly scene = new Scene()
@@ -39,6 +57,11 @@ export class World {
   private roomMeshes = new Map<RoomId, Mesh[]>()
   private p = {} as Record<ModelId, BufferGeometry | null>
   private counterMesh: Mesh | null = null
+  /** Items being built right now: excluded from the room bake until their animation ends. */
+  private hold = new Map<RoomId, { stations: number; crate: boolean }>()
+  private fx: BuildFx[] = []
+  /** QA only: slow-motion factor for build animations. */
+  fxScale = 1
 
   constructor() {
     const s = this.scene
@@ -371,7 +394,8 @@ export class World {
     b.prop(P.jarA, c.x - 1.6, c.z + 0.1, 0, 0.6, 0.85)
     b.prop(P.bun, c.x + 1.4, c.z + 0.2, 0, 0.6, 0.85)
     b.prop(P.bun, c.x + 1.8, c.z, 0.6, 0.6, 0.85)
-    this.counterMesh = new Mesh(b.build(), flatMat)
+    this.counterMesh = new Mesh(b.build().translate(-c.x, 0, -c.z), flatMat)
+    this.counterMesh.position.set(c.x, 0, c.z)
     this.counterMesh.castShadow = true
     this.counterMesh.receiveShadow = true
     this.scene.add(this.counterMesh)
@@ -381,7 +405,9 @@ export class World {
   // ---------------------------------------------------------------- rooms
   syncRooms(s: GameState): void {
     for (const id of ROOM_ORDER) {
-      const r = s.rooms[id]
+      const r0 = s.rooms[id]
+      const h = this.hold.get(id)
+      const r = h ? { ...r0, stations: Math.min(r0.stations, h.stations), crate: r0.crate && h.crate } : r0
       const key = `${r.unlocked}|${r.stations}|${r.crate}`
       const meshes = this.roomMeshes.get(id)
       if (meshes && meshes[0]?.userData.key === key) continue
@@ -505,6 +531,126 @@ export class World {
     for (let i = 0; i < slots; i++) {
       const p = slotOf(id, i)
       this.station(b, id, p.x, p.z - 0.85, def.accent)
+    }
+  }
+
+  // ---------------------------------------------------------------- build animation
+  /**
+   * Play the "just built" sequence for a station / crate (or the sign-up desk): the item drops
+   * in, squashes on landing, springs back, kicks up dust and sparks, then joins the room bake.
+   */
+  playBuild(s: GameState, kind: 'station' | 'crate' | 'counter', room: RoomId | null): void {
+    if (kind === 'counter') {
+      if (this.counterMesh) this.startFx(this.counterMesh, LAYOUT.counter.x, LAYOUT.counter.z, null, 2.6)
+      return
+    }
+    if (!room) return
+    const r = s.rooms[room]
+    const prev = this.hold.get(room) ?? { stations: r.stations, crate: r.crate }
+    const b = new StaticBatch()
+    let cx: number
+    let cz: number
+    if (kind === 'station') {
+      const p = slotOf(room, r.stations - 1)
+      cx = p.x
+      cz = p.z - 0.85
+      this.station(b, room, cx, cz, ROOMS[room].accent)
+      this.hold.set(room, { stations: Math.min(prev.stations, r.stations - 1), crate: prev.crate })
+    } else {
+      const k = crateOf(room)
+      cx = k.x
+      cz = k.z
+      b.prop(this.p.crateLid, k.x, k.z, 0.2, 0.42)
+      b.prop(this.p.boxC, k.x + 0.05, k.z, 0.3, 0.7, 0.34)
+      b.rbox(1.0, 0.04, 1.0, k.x, 0.03, k.z, PAL.kit, 0.02)
+      this.hold.set(room, { stations: prev.stations, crate: false })
+    }
+    this.syncRooms(s)
+    if (b.empty) return
+    const m = new Mesh(b.build().translate(-cx, 0, -cz), flatMat)
+    m.position.set(cx, 0, cz)
+    m.castShadow = true
+    this.scene.add(m)
+    this.startFx(m, cx, cz, room, 1.2)
+  }
+
+  private startFx(m: Mesh, x: number, z: number, room: RoomId | null, size: number): void {
+    const dustMat = new MeshBasicMaterial({ color: 0xfff3e0, transparent: true, opacity: 0.9, depthWrite: false })
+    const puffs: Mesh[] = []
+    for (let i = 0; i < 12; i++) {
+      const p = new Mesh(PUFF_GEO, dustMat)
+      p.visible = false
+      p.userData.a = (i / 12) * Math.PI * 2 + Math.random() * 0.3
+      this.scene.add(p)
+      puffs.push(p)
+    }
+    const sparks: Mesh[] = []
+    for (let i = 0; i < 14; i++) {
+      const p = new Mesh(SPARK_GEO, SPARK_MAT)
+      p.visible = false
+      p.userData.v = [(Math.random() - 0.5) * 3.2, 3.5 + Math.random() * 2.5, (Math.random() - 0.5) * 3.2]
+      this.scene.add(p)
+      sparks.push(p)
+    }
+    this.fx.push({ m, x, z, room, t: 0, landed: false, puffs, sparks, dustMat, size, baked: room !== null })
+  }
+
+  /** Advance build animations; finished items are baked back into their room. */
+  updateFx(dt: number, s: GameState): void {
+    for (let i = this.fx.length - 1; i >= 0; i--) {
+      const f = this.fx[i]!
+      f.t += dt / this.fxScale
+      const DROP = 0.3
+      if (f.t < DROP) {
+        const k = f.t / DROP
+        f.m.position.y = (1 - k * k) * 2.6
+        const sc = 0.75 + 0.25 * k
+        f.m.scale.set(sc, 1.15 - 0.15 * k, sc)
+      } else {
+        if (!f.landed) {
+          f.landed = true
+          for (const p of f.puffs) p.visible = true
+          for (const p of f.sparks) {
+            p.visible = true
+            p.position.set(f.x, 0.4, f.z)
+          }
+        }
+        const u = f.t - DROP
+        const wob = Math.exp(-6 * u) * Math.cos(13 * u)
+        f.m.position.y = 0
+        f.m.scale.set(1 + 0.16 * wob, 1 - 0.26 * wob, 1 + 0.16 * wob)
+        const k = Math.min(1, u / 0.55)
+        for (const p of f.puffs) {
+          const a = p.userData.a as number
+          const r = f.size * 0.45 + k * f.size * 0.6
+          p.position.set(f.x + Math.cos(a) * r, 0.12 + k * 0.35, f.z + Math.sin(a) * r)
+          p.scale.setScalar(0.6 + k * 1.1)
+        }
+        f.dustMat.opacity = 0.9 * (1 - k)
+        for (const p of f.sparks) {
+          const v = p.userData.v as number[]
+          v[1]! -= 14 * dt
+          p.position.x += v[0]! * dt
+          p.position.y = Math.max(0.05, p.position.y + v[1]! * dt)
+          p.position.z += v[2]! * dt
+          p.rotation.x += dt * 9
+          p.rotation.y += dt * 7
+          p.scale.setScalar(Math.max(0.01, 1 - k))
+        }
+      }
+      if (f.t >= DROP + 0.6) {
+        for (const p of [...f.puffs, ...f.sparks]) this.scene.remove(p)
+        f.dustMat.dispose()
+        f.m.scale.set(1, 1, 1)
+        f.m.position.y = 0
+        if (f.baked && f.room) {
+          this.scene.remove(f.m)
+          f.m.geometry.dispose()
+          if (!this.fx.some((o) => o !== f && o.room === f.room)) this.hold.delete(f.room)
+          this.syncRooms(s)
+        }
+        this.fx.splice(i, 1)
+      }
     }
   }
 

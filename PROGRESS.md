@@ -69,3 +69,12 @@
 - Missionen 2, 4, 5, 7, 8, 10 brauchen Minispiele aus Phase 2 („Coming soon"). Laser Gym ist kaufbar, sein Minispiel kommt in Phase 2.
 - Pacing nach 3:00 ist absichtlich noch nicht justiert (Phase 3).
 - Weltkarte ist vorerst eine Missionsliste (3D-Karte in Phase 2).
+
+## Feedback-Runde (Straße, UI-Qualität, Bau-Animation) — 2026-11-19
+- Straße vor der Bäckerei: Gehweg, Fahrbahn, Zebrastreifen, Taxi-Haltestelle; Kadetten kommen per Taxi und laufen durch die Eingangstür. Neue Spieler starten auf dem Gehweg (Tutorial beginnt draußen).
+- Eingang als Fassade (Pfeiler, Schild, Markise, Glastüren). Bug behoben: der gebaute Anmeldetisch sperrte den Helden ein.
+- UI-Qualität nach Kickoff-Referenz, eigene Palette: Fredoka/Nunito gebündelt (OFL), einheitliche Outline, harte Schatten, rollende Cash-Zahl, Ziel-Pille oben rechts, Bau-Felder mit gestricheltem Rand, Labels blenden unter dem HUD aus.
+- Ziel-Zeiger: 3D-Pfeil über dem Ziel + Rand-Badge, wenn das Ziel außerhalb liegt (Tutorial, danach bezahlbare Raum-Freischaltung).
+- Cash als Bündel mit Banderole. Kein Pause-Button in der Akademie (nur in Missionen).
+- Stationen, Kisten und Anmeldetisch bauen sich mit Animation auf (Fall, Stauchen, Staub, Funken, ~0,9 s); Spielwerte unverändert.
+- Tests: 30 Funktionstests + Layout-Matrix 45/45 grün. Debug: `fxSlow(k)`, `buildStation(room)`.

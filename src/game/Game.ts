@@ -135,11 +135,14 @@ export class Game {
         this.padOpened = 'just-built'
         if (what === 'counter') {
           this.world.syncCounter(true)
+          this.world.playBuild(state, 'counter', null)
           // the desk now stands where the hero was: put the hero behind it, ready to serve
           this.player.x = LAYOUT.serveSpot.x
           this.player.z = LAYOUT.serveSpot.z
         }
-        if (room) this.world.syncRooms(state)
+        // stations / crates drop in with a build animation instead of popping into place
+        if (room && (what === 'station' || what === 'crate')) this.world.playBuild(state, what, room)
+        else if (room) this.world.syncRooms(state)
         track('built', { what, room_id: room ?? 'bakery' })
         persist(['core', 'meta'], true)
       },
@@ -280,6 +283,7 @@ export class Game {
     this.cadets.sync(state, dt)
     this.cadets.syncStaff(state, dt)
     this.traffic.update(state, dt)
+    this.world.updateFx(dt, state)
     this.piles.sync(state)
     this.piles.update(dt, this.player.x, this.player.z)
     this.pads.update(dt)
