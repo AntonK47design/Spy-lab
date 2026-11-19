@@ -19,11 +19,11 @@ import { Input } from '../input/Input'
 import { flatMat } from '../render/materials'
 import { charMaterial } from '../render/assets'
 import { ECONOMY, padFillSeconds } from '../config/economy'
-import { LAYOUT, ROOMS, ROOM_ORDER, cashSpotOf, crateOf, padOf, slotOf, upgradeSpotOf, type RoomId } from '../config/rooms'
+import { LAYOUT, OFFICE, ROOMS, ROOM_ORDER, cashSpotOf, crateOf, padOf, slotOf, upgradeSpotOf, type RoomId } from '../config/rooms'
 import { missionById, type MissionDef } from '../config/missions'
 import {
   tick, collect, collectWelcome, payPad, padPrice, pickKits, dropKits, resolveGraduate, buySpeed, upgradeLevel,
-  offlineEarnings, trainingRooms, nextUnlock, canUnlock, type SimEvents, type HeroInput,
+  offlineEarnings, trainingRooms, nextUnlock, canUnlock, officeAct, autoSellWeak, type SimEvents, type HeroInput,
 } from '../sim/academy'
 import { bestAgent, missionLock, missionReward, recordFail, recordWin } from '../sim/missions'
 import type { Agent } from '../sim/state'
@@ -40,7 +40,7 @@ import type { Minigame, MinigameResult } from '../minigames/Minigame'
 import { coachLine, infoCard, missionUi, moveHint, nextPopup, panel, queuePopup, showToast, type Panel } from '../ui/uiState'
 import { formatNumber } from '../core/format'
 import { DEBUG } from '../debug/flags'
-import { lang } from '../i18n/i18n'
+import { lang, t } from '../i18n/i18n'
 
 const SIM_DT = 1 / 60
 const MAX_STEPS = 15
@@ -106,11 +106,18 @@ export class Game {
         AudioManager.play('stamp')
         persist(['core', 'meta'])
       },
-      graduate: (_c, agent) => {
+      graduate: (c, agent) => {
+        if (c.room) this.cadets.graduated(c.id, agent.id, c.room, c.slot)
         AudioManager.play('level_up')
         track('agent_graduated', { rarity: agent.rarity })
-        queuePopup({ kind: 'graduate' })
+        // no pop-up: graduates walk to the agency office; only rare+ ones get a short notice
+        if (agent.rarity !== 'common') showToast(`grad.toast.${agent.rarity}`)
+        this.pads.sync(state)
         persist(['core', 'agents', 'meta'])
+      },
+      autoSold: (cash) => {
+        if (this.mode === 'academy') this.popText(OFFICE.laptopPad, `+${formatNumber(cash, lang.value)}`, 'auto')
+        this.pads.sync(state)
       },
       levelUp: (level) => {
         track('academy_level_up', { level })
@@ -262,7 +269,6 @@ export class Game {
       this.pads.sync(state)
       const finished = advanceTutorial(state)
       if (finished.length) this.onTutorialStep(finished)
-      if (!panel.value && state.pending.length && !missionUi.value) queuePopup({ kind: 'graduate' })
       while (this.minuteIdx < MINUTE_MARKS.length && state.stats.playSeconds >= MINUTE_MARKS[this.minuteIdx]! * 60) {
         track('minute_mark', { minute: MINUTE_MARKS[this.minuteIdx]! })
         this.minuteIdx++
@@ -405,6 +411,7 @@ export class Game {
     this.padOpened = key
     AudioManager.play('ui_click')
     if (pad.kind === 'missions') panel.value = { kind: 'missions' }
+    else if (pad.kind === 'laptop') panel.value = { kind: 'office' }
     else if (pad.kind === 'upgrade' && pad.room) panel.value = { kind: 'upgrade', room: pad.room }
   }
 
@@ -534,6 +541,39 @@ export class Game {
   }
 
   /** Graduation card: keep the agent or loan them out for the fee. */
+  /** Laptop menu actions on one waiting graduate. */
+  office(agentId: number, action: 'sell' | 'hire' | 'swap'): void {
+    const fee = state.pending.find((p) => p.agent.id === agentId)?.fee ?? 0
+    const r = officeAct(state, agentId, action)
+    if (!r) return
+    if (r === 'sold') AudioManager.play('coin')
+    else AudioManager.play('stamp')
+    if (r === 'sold') this.popText(OFFICE.laptopPad, `+${formatNumber(fee, lang.value)}`, 'cash')
+    this.pads.sync(state)
+    bump()
+    persist(['core', 'agents', 'meta'], true)
+  }
+
+  officeSellAll(): void {
+    let total = 0
+    for (const p of [...state.pending]) if (officeAct(state, p.agent.id, 'sell') === 'sold') total += p.fee
+    if (total > 0) {
+      AudioManager.play('coin')
+      this.popText(OFFICE.laptopPad, `+${formatNumber(total, lang.value)}`, 'cash')
+    }
+    this.pads.sync(state)
+    bump()
+    persist(['core', 'agents', 'meta'], true)
+  }
+
+  setAutoSell(on: boolean): void {
+    state.flags.autoSellWeak = on
+    autoSellWeak(state)
+    this.pads.sync(state)
+    bump()
+    persist(['core', 'meta'], true)
+  }
+
   resolveGraduate(keep: boolean): void {
     const r = resolveGraduate(state, keep)
     if (r === 'loaned') AudioManager.play('coin')

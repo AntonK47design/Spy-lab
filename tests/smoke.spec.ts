@@ -162,3 +162,35 @@ test('long press: no context menu, no text selection', async ({ page }) => {
   await page.mouse.up()
   expect(await page.evaluate(() => String(window.getSelection()))).toBe('')
 })
+
+test('agency office laptop: sell, hire and auto-sell the weakest', async ({ page }) => {
+  await boot(page)
+  await spy(page, 'quickStart')
+  await spy(page, 'skipTutorial')
+  await spy(page, 'addGraduates', 3)
+  await expect(page.getByTestId('panel-graduate')).toHaveCount(0) // never pops up on its own
+  await goTo(page, 'laptop', 'vault')
+  await expect(page.getByTestId('panel-office')).toBeVisible()
+  const cash0 = (await state(page)).cash
+  await page.getByTestId('btn-sell-0').click()
+  await expect.poll(async () => (await spy<any>(page, 'raw')).pending.length).toBe(2)
+  expect((await state(page)).cash).toBeGreaterThan(cash0)
+  await page.getByTestId('btn-hire-0').click()
+  await expect.poll(async () => (await state(page)).agents).toBe(1)
+  // fill the roster, then auto mode sells graduates that are not stronger than the weakest agent
+  await page.evaluate(() => {
+    const s = (window as any).__spylab.raw()
+    s.rosterLimit = s.agents.length
+  })
+  await page.getByTestId('btn-auto-sell').click()
+  await expect.poll(async () => (await spy<any>(page, 'raw')).flags.autoSellWeak).toBe(true)
+  await spy(page, 'addGraduates', 4)
+  await page.waitForTimeout(800)
+  const left = await page.evaluate(() => {
+    const s = (window as any).__spylab.raw()
+    const pw = (a: any) => Object.values(a.skills).reduce((x: number, y: any) => x + y, 0) as number
+    const floor = Math.min(...s.agents.map(pw))
+    return s.pending.map((p: any) => pw(p.agent)).filter((p: number) => p <= floor).length
+  })
+  expect(left).toBe(0) // only stronger ones remain; they can be swapped in
+})

@@ -4,7 +4,7 @@
  * skip what they have already done; it never comes back after a reload.
  */
 import { ECONOMY } from '../config/economy'
-import { LAYOUT, ROOMS, cashSpotOf, crateOf, padOf, slotOf, staffPadOf } from '../config/rooms'
+import { LAYOUT, OFFICE, ROOMS, cashSpotOf, crateOf, padOf, slotOf, staffPadOf } from '../config/rooms'
 import type { GameState } from '../sim/state'
 
 export interface TutorialStep {
@@ -32,6 +32,8 @@ export const TUTORIAL: TutorialStep[] = [
   { id: 'fees', line: 'coach.fees', target: () => cashSpotOf('vault'), done: (s) => s.stats.collects > 1 },
   { id: 'station2', line: 'coach.station2', target: () => slotOf('vault', 1), done: (s) => v(s).stations > 1 },
   { id: 'graduate', line: 'coach.graduate', target: () => null, done: (s) => s.graduatedTotal > 0 },
+  // graduates wait in the agency office (no pop-up): hire the first one for Mission 1
+  { id: 'hire', line: 'coach.hire', target: () => OFFICE.laptopPad, done: (s) => s.agents.length > 0 },
   { id: 'mission', line: 'coach.mission', target: () => padOf('mission_control'), done: (s) => (s.missions.harbor_01?.wins ?? 0) > 0 },
   { id: 'unlock', line: 'coach.unlock', target: (s) => (s.rooms.laser.unlocked ? null : padOf('laser')), done: (s) => s.rooms.laser.unlocked },
   {

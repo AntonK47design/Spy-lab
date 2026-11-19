@@ -13,7 +13,7 @@ import { propGeometry } from '../render/assets'
 import { PAL, ROOM_FLOOR } from '../render/palette'
 import { MODELS, type ModelId } from '../config/models'
 import {
-  AREAS, AREA_ORDER, DOCKS, FERRY, GARAGE, ISLAND, LAYOUT, PLAZAS, ROOMS, ROOM_AREA, ROOM_ORDER, slotOf, upgradeSpotOf, cashSpotOf, crateOf, gateOf,
+  AREAS, AREA_ORDER, DOCKS, FERRY, GARAGE, ISLAND, LAYOUT, OFFICE, PLAZAS, ROOMS, ROOM_AREA, ROOM_ORDER, slotOf, upgradeSpotOf, cashSpotOf, crateOf, gateOf,
   type AreaId, type RoomId,
 } from '../config/rooms'
 import type { GameState } from '../sim/state'
@@ -307,6 +307,7 @@ export class World {
       this.colliders.push({ minX: half - 0.2, maxX: half + 1, minZ: A.zBack, maxZ: gz0, id: tag })
       this.colliders.push({ minX: half - 0.2, maxX: half + 1, minZ: gz1, maxZ: A.zFront, id: tag })
       this.buildGarage(b)
+      this.buildOffice(b)
       // north edge: open water beyond the lounge row (the lighthouse is reached by ferry)
       this.colliders.push({ minX: -half - 1, maxX: half + 1, minZ: A.zBack - 1, maxZ: A.zBack + 0.15, id: tag })
     } else this.colliders.push({ minX: half - 0.2, maxX: half + 1, minZ: A.zBack, maxZ: A.zFront, id: tag })
@@ -568,6 +569,60 @@ export class World {
     this.colliders.push({ minX: x1 - 2.6, maxX: x1 - 0.6, minZ: bottom - 1.7, maxZ: bottom - 0.7, id: 'garage' })
     b.prop(P.barrel, x0 + 1.0, bottom - 1.0, 0, 0.55)
     b.prop(P.barrel, x0 + 1.7, bottom - 0.9, 0.4, 0.55)
+  }
+
+  // ---------------------------------------------------------------- agency office
+  /** Where graduates wait: long desk with two pads in front, bench behind it, sign over the door. */
+  private buildOffice(b: StaticBatch): void {
+    const P = this.p
+    const { x, z, w, d } = OFFICE.rect
+    const top = z - d / 2
+    const bottom = z + d / 2
+    const inner = x + w / 2
+    const outer = x - w / 2
+    const doorHalf = 1.25
+    const wall = 0x3b4f7a
+    const trim = PAL.brandYellow
+    const tag = 'office'
+    this.tiles(b, outer, top, w, d, 0x7a3e5a, 0x6c3550, 0x4a2438)
+    b.prop(P.rugStripes, x + 0.4, z, Math.PI / 2, 1.1, 0.01)
+    this.wallX(b, outer, inner, top, BACK_WALL, wall, trim)
+    this.wallZ(b, outer, top, bottom, BACK_WALL * 0.6, wall, trim)
+    this.wallX(b, outer, inner, bottom, STUB, wall, trim)
+    this.wallZ(b, inner, top, z - doorHalf, 1.0, wall, trim)
+    this.wallZ(b, inner, z + doorHalf, bottom, 1.0, wall, trim)
+    // sign above the door (courtyard side)
+    b.rbox(0.14, 0.6, 2.6, inner + 0.1, 1.55, z, PAL.dark, 0.05)
+    b.rbox(0.06, 0.42, 2.3, inner + 0.18, 1.55, z, PAL.brandYellow, 0.03)
+    // the desk: long counter along z, files + lamp + computer
+    const dk = OFFICE.desk
+    b.rbox(1.1, 0.85, 3.8, dk.x, 0.43, dk.z, 0x8b5a3c, 0.06)
+    b.rbox(1.2, 0.08, 3.9, dk.x, 0.88, dk.z, 0x5e3f26, 0.03)
+    b.prop(P.lampTable, dk.x, dk.z - 1.4, 0, 0.8, 0.92)
+    b.prop(P.books, dk.x, dk.z + 1.3, 0.3, 0.7, 0.92)
+    // the laptop (opens the office menu), screen facing the hero side of the desk (+x)
+    const lx = dk.x + 0.2
+    b.rbox(0.62, 0.05, 0.9, lx + 0.04, 0.945, dk.z, PAL.steelDark, 0.02)
+    b.rbox(0.42, 0.012, 0.72, lx + 0.1, 0.975, dk.z, 0x3a4250, 0.005)
+    b.rboxRot(0.05, 0.6, 0.9, lx - 0.28, 1.22, dk.z, PAL.steelDark, 0.02, 0, 0, -0.3)
+    b.rboxRot(0.012, 0.5, 0.78, lx - 0.25, 1.22, dk.z, 0x7cd6e0, 0.005, 0, 0, -0.3)
+    b.rboxRot(0.014, 0.09, 0.3, lx - 0.243, 1.33, dk.z, PAL.brandYellow, 0.005, 0, 0, -0.3)
+    b.rboxRot(0.014, 0.05, 0.5, lx - 0.243, 1.16, dk.z, PAL.white, 0.005, 0, 0, -0.3)
+    this.colliders.push({ minX: dk.x - 0.6, maxX: dk.x + 0.6, minZ: dk.z - 1.95, maxZ: dk.z + 1.95, id: tag })
+    // waiting bench behind the desk
+    const sx = OFFICE.seats[0]!.x
+    const z0 = OFFICE.seats[0]!.z - 0.6
+    const z1 = OFFICE.seats[OFFICE.seats.length - 1]!.z + 0.6
+    b.rbox(0.7, 0.12, z1 - z0, sx - 0.15, 0.45, (z0 + z1) / 2, 0x2f6fb0, 0.04)
+    b.rbox(0.14, 0.6, z1 - z0, sx - 0.5, 0.8, (z0 + z1) / 2, 0x2f6fb0, 0.04)
+    for (const zz of [z0 + 0.2, (z0 + z1) / 2, z1 - 0.2]) b.rbox(0.5, 0.42, 0.1, sx - 0.15, 0.2, zz, PAL.steelDark, 0.02)
+    this.colliders.push({ minX: sx - 0.9, maxX: sx + 0.25, minZ: z0, maxZ: z1, id: tag })
+    // decoration
+    b.prop(P.cactus, outer + 0.6, top + 0.6)
+    b.prop(P.cactus, outer + 0.6, bottom - 0.6)
+    b.prop(P.frameLarge, x, top + 0.28, 0, 1.0, 1.2)
+    b.prop(P.cabinet, inner - 0.7, top + 0.6, 0, 0.75)
+    this.colliders.push({ minX: inner - 1.3, maxX: inner - 0.2, minZ: top, maxZ: top + 1.1, id: tag })
   }
 
   private garage: { m: Mesh; t: number; open: boolean } | null = null

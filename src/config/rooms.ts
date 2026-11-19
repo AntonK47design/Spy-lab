@@ -174,9 +174,33 @@ export function gateOf(id: AreaId): { x: number; z: number } {
 }
 
 /** Plazas (decorated open squares) on the free row slots. */
-export const PLAZAS: { x: number; z: number; area: AreaId }[] = [
-  { x: -cx, z: rowZ(1, 0), area: 'hq' },
-]
+export const PLAZAS: { x: number; z: number; area: AreaId }[] = []
+
+/**
+ * Agency office (left lounge slot of the courtyard): graduates wait on a bench; at the laptop on
+ * the desk the hero sells them (loan fee), hires them as agents, or swaps out the weakest agent.
+ * Nothing pops up on its own: the menu opens only at the laptop.
+ */
+const OFF_Z = rowZ(1, 0)
+const OFF_DOOR_X = -cx + W / 2
+export const OFFICE = {
+  rect: { x: -cx, z: OFF_Z, w: W, d: D },
+  door: { x: OFF_DOOR_X, z: OFF_Z },
+  desk: { x: OFF_DOOR_X - 4.0, z: OFF_Z },
+  /** Stand here at the laptop on the desk: opens the office menu (sell / hire / swap, auto mode). */
+  laptopPad: { x: OFF_DOOR_X - 2.1, z: OFF_Z },
+  /** Waiting bench seats behind the desk (graduates face the hero across the desk). */
+  seats: [0, 1, 2, 3, 4, 5].map((i) => ({ x: -cx - W / 2 + 1.3, z: OFF_Z - 2.9 + i * 1.16 })),
+} as const
+
+/** Walk of a fresh graduate from their station to the office bench. */
+export function officePath(id: RoomId, slot: number, seat: number): { x: number; z: number }[] {
+  const back = cadetPath(id, slot).slice(3).reverse() // station -> door -> ... -> courtyard
+  const s = OFFICE.seats[Math.min(seat, OFFICE.seats.length - 1)]!
+  // in through the door, around the end of the desk, along the bench to the seat
+  const zEnd = OFF_Z + (s.z > OFF_Z ? 3.3 : -3.3)
+  return [...back, { x: OFF_DOOR_X + 0.8, z: 0.5 }, { x: OFF_DOOR_X + 0.8, z: OFF_Z }, { x: OFF_DOOR_X - 1, z: OFF_Z }, { x: OFF_DOOR_X - 1.2, z: zEnd }, { x: s.x + 1.0, z: zEnd }, s]
+}
 
 export const ROOMS: Record<RoomId, RoomDef> = {
   mission_control: {

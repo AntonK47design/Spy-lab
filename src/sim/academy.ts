@@ -23,6 +23,8 @@ export interface SimEvents {
   served?(cadet: CadetState): void
   arrive?(cadet: CadetState): void
   graduate?(cadet: CadetState, agent: Agent, fee: number): void
+  /** Auto mode loaned out weak graduates for this much cash. */
+  autoSold?(cash: number): void
   levelUp?(level: number): void
   unlock?(room: RoomId): void
   built?(what: string, room: RoomId | null): void
@@ -154,6 +156,12 @@ export function tick(s: GameState, dt: number, hero: HeroInput, ev: SimEvents = 
     }
   } else s.serveT = Math.max(0, s.serveT - dt * 2)
 
+  // agency office auto mode (laptop switch)
+  if (s.pending.length) {
+    const auto = autoSellWeak(s)
+    if (auto > 0) ev.autoSold?.(auto)
+  }
+
   // kit runners
   for (const id of trainingRooms(s)) {
     const r = s.rooms[id]
@@ -266,6 +274,74 @@ export function resolveGraduate(s: GameState, keep: boolean): 'kept' | 'loaned' 
   s.cash += p.fee
   s.stats.earned += p.fee
   return 'loaned'
+}
+
+/** Overall strength of an agent (sum of all skills; rarity shows in higher skills). */
+export function agentPower(a: Agent): number {
+  let p = 0
+  for (const v of Object.values(a.skills)) p += v
+  return p
+}
+
+/** What loaning an agent out pays (same formula as a graduate's fee). */
+export function agentFee(s: GameState, a: Agent): number {
+  return Math.round(income(s, a.room) * ECONOMY.loanFeeReps * ECONOMY.loanRarity[a.rarity])
+}
+
+export function weakestAgent(s: GameState): Agent | null {
+  let w: Agent | null = null
+  for (const a of s.agents) if (!w || agentPower(a) < agentPower(w)) w = a
+  return w
+}
+
+/**
+ * Agency office (laptop menu): act on one waiting graduate.
+ * sell = loan out for the fee; hire = join the roster (needs room); swap = roster full: the
+ * weakest agent is loaned out for their fee and the graduate takes the place.
+ */
+export function officeAct(s: GameState, agentId: number, action: 'sell' | 'hire' | 'swap'): 'sold' | 'hired' | 'swapped' | null {
+  const i = s.pending.findIndex((p) => p.agent.id === agentId)
+  if (i < 0) return null
+  const p = s.pending[i]!
+  if (action === 'sell') {
+    s.pending.splice(i, 1)
+    s.cash += p.fee
+    s.stats.earned += p.fee
+    return 'sold'
+  }
+  if (action === 'hire') {
+    if (s.agents.length >= s.rosterLimit) return null
+    s.pending.splice(i, 1)
+    s.agents.push(p.agent)
+    return 'hired'
+  }
+  const w = weakestAgent(s)
+  if (!w || s.agents.length < s.rosterLimit || agentPower(w) >= agentPower(p.agent)) return null
+  const fee = agentFee(s, w)
+  s.agents.splice(s.agents.indexOf(w), 1)
+  s.cash += fee
+  s.stats.earned += fee
+  s.pending.splice(i, 1)
+  s.agents.push(p.agent)
+  return 'swapped'
+}
+
+/** Auto mode: with a full roster, graduates not stronger than the weakest agent are loaned out at once. */
+export function autoSellWeak(s: GameState): number {
+  if (!s.flags.autoSellWeak || s.agents.length < s.rosterLimit) return 0
+  const w = weakestAgent(s)
+  if (!w) return 0
+  const floor = agentPower(w)
+  let earned = 0
+  for (let i = s.pending.length - 1; i >= 0; i--) {
+    const p = s.pending[i]!
+    if (agentPower(p.agent) > floor) continue
+    s.pending.splice(i, 1)
+    s.cash += p.fee
+    s.stats.earned += p.fee
+    earned += p.fee
+  }
+  return earned
 }
 
 export function createAgent(s: GameState, room: RoomId): Agent {

@@ -19,7 +19,7 @@ import { missingKeys, lang } from '../i18n/i18n'
 import { panel, missionUi, type Panel } from '../ui/uiState'
 import { TUTORIAL } from '../game/tutorial'
 import { blockInterstitials } from '../platform/ads'
-import { LAYOUT, cashSpotOf, crateOf, padOf, slotOf, staffPadOf, upgradeSpotOf, type RoomId } from '../config/rooms'
+import { LAYOUT, OFFICE, cashSpotOf, crateOf, padOf, slotOf, staffPadOf, upgradeSpotOf, type RoomId } from '../config/rooms'
 import type { SafeCracker } from '../minigames/safe/SafeCracker'
 
 export function installDebugHooks(g: { renderer: ReturnType<typeof createRenderer>; game: Game }): void {
@@ -59,7 +59,7 @@ export function installDebugHooks(g: { renderer: ReturnType<typeof createRendere
       return flush()
     },
     teleport: (x: number, z: number) => game.teleport(x, z),
-    spot: (kind: 'cash' | 'pad' | 'upgrade' | 'crate' | 'station' | 'staff' | 'serve' | 'welcome' | 'clerk', room: RoomId, slot = 0) => {
+    spot: (kind: 'cash' | 'pad' | 'upgrade' | 'crate' | 'station' | 'staff' | 'serve' | 'welcome' | 'clerk' | 'hire' | 'sell' | 'laptop', room: RoomId, slot = 0) => {
       switch (kind) {
         case 'cash': return cashSpotOf(room)
         case 'pad': return padOf(room)
@@ -70,6 +70,9 @@ export function installDebugHooks(g: { renderer: ReturnType<typeof createRendere
         case 'serve': return LAYOUT.serveSpot
         case 'welcome': return LAYOUT.welcomeSpot
         case 'clerk': return LAYOUT.clerkPad
+        case 'hire': return OFFICE.laptopPad
+        case 'sell': return OFFICE.laptopPad
+        case 'laptop': return OFFICE.laptopPad
       }
     },
     /** Set up a playable academy instantly (for tests): desk, crate, one station, cash. */
@@ -85,6 +88,11 @@ export function installDebugHooks(g: { renderer: ReturnType<typeof createRendere
       persist(['core'])
     },
     player: () => ({ x: game.player.x, z: game.player.z }),
+    /** QA: n graduates waiting in the agency office. */
+    addGraduates: (n: number, room: RoomId = 'vault') => {
+      for (let i = 0; i < n; i++) state.pending.push({ agent: createAgent(state, room), fee: 40 + i * 5 })
+      game.syncPads()
+    },
     /** QA: add one station to a room and play its build animation. */
     fxSlow: (k: number) => (game.world.fxScale = Math.max(1, k)),
     /** QA: open an area (harbor / lighthouse) as if its gate had been paid. */

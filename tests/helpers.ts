@@ -54,7 +54,7 @@ export const state = (page: Page) => page.evaluate(() => (window as any).__spyla
 /** Walk-free: put the player on a spot (cash / pad / upgrade desk). */
 export async function goTo(
   page: Page,
-  kind: 'cash' | 'pad' | 'upgrade' | 'crate' | 'station' | 'staff' | 'serve' | 'welcome' | 'clerk',
+  kind: 'cash' | 'pad' | 'upgrade' | 'crate' | 'station' | 'staff' | 'serve' | 'welcome' | 'clerk' | 'hire' | 'sell' | 'laptop',
   room: string,
   slot = 0,
 ): Promise<void> {

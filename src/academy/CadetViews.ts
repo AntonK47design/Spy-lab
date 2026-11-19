@@ -5,7 +5,7 @@
  */
 import type { Group } from 'three'
 import { Character, type Look } from './Character'
-import { FERRY, LAYOUT, ROOMS, arrivalPath, cadetPath, crateOf, slotOf, upgradeSpotOf, type RoomId } from '../config/rooms'
+import { FERRY, LAYOUT, OFFICE, ROOMS, arrivalPath, cadetPath, crateOf, officePath, slotOf, upgradeSpotOf, type RoomId } from '../config/rooms'
 import type { CadetState, GameState } from '../sim/state'
 
 /** Tracksuit color per training room (sRGB). */
@@ -51,6 +51,10 @@ export class CadetViews {
   private instructors = new Map<RoomId, Character>()
   private runners = new Map<RoomId, { ch: Character; t: number; x: number; z: number }>()
   private clerk: Character | null = null
+  /** Graduates walking to / waiting in the agency office, by agent id. */
+  private office = new Map<number, View & { t: number; seat: number }>()
+  /** cadet id -> graduate info, set by the graduate event right before the cadet leaves the sim. */
+  private grads = new Map<number, { agent: number; room: RoomId; slot: number }>()
   camX = 0
   camZ = 0
 
@@ -125,11 +129,22 @@ export class CadetViews {
     for (const [id, v] of this.views) {
       if (!seen.has(id)) {
         this.views.delete(id)
+        const g = this.grads.get(id)
+        this.grads.delete(id)
+        const seat = g ? s.pending.findIndex((p) => p.agent.id === g.agent) : -1
+        if (g && seat >= 0 && seat < OFFICE.seats.length) {
+          // the graduate walks over to the office bench instead of vanishing
+          const path = [{ x: v.px, z: v.pz }, ...officePath(g.room, g.slot, seat)]
+          this.office.set(g.agent, { ...v, path, ...prep(path), t: 0, seat })
+          v.ch.cheer(1.2)
+          continue
+        }
         v.ch.activity = 'cheer'
         v.ch.cheer(1.6)
         this.leaving.push({ ch: v.ch, t: 0 })
       }
     }
+    this.syncOffice(s, dt)
     for (let i = this.leaving.length - 1; i >= 0; i--) {
       const l = this.leaving[i]!
       l.t += dt
@@ -140,6 +155,53 @@ export class CadetViews {
         this.leaving.splice(i, 1)
       }
     }
+  }
+
+  /** A cadet graduated (called before it disappears from the sim state). */
+  graduated(cadetId: number, agentId: number, room: RoomId, slot: number): void {
+    this.grads.set(cadetId, { agent: agentId, room, slot })
+  }
+
+  /** Graduates in the agency office: walk to their seat, wait, leave with a cheer when resolved. */
+  private syncOffice(s: GameState, dt: number): void {
+    const waiting = s.pending.slice(0, OFFICE.seats.length)
+    const ids = new Set(waiting.map((p) => p.agent.id))
+    for (const [aid, v] of this.office) {
+      if (ids.has(aid)) continue
+      this.office.delete(aid)
+      v.ch.activity = 'cheer'
+      v.ch.cheer(1.6)
+      this.leaving.push({ ch: v.ch, t: 0 })
+    }
+    waiting.forEach((p, i) => {
+      let v = this.office.get(p.agent.id)
+      const seat = OFFICE.seats[i]!
+      if (!v) {
+        // loaded / offline graduates: already seated
+        const models = ['cadetM1', 'cadetF1', 'cadetM2', 'cadetF2', 'cadetM3', 'cadetF3'] as const
+        const ch = new Character({ model: models[p.agent.id % models.length]!, tint: { shirt: OUTFITS[p.agent.room] ?? 0x2f6bff, pants: 0x2b3a7a }, scale: 0.9 })
+        this.parent.add(ch.root)
+        v = { ch, key: 'office', path: [seat], lens: [], total: 0, px: seat.x, pz: seat.z, far: 0, t: 0, seat: i }
+        this.office.set(p.agent.id, v)
+      }
+      if (v.seat !== i) {
+        // someone ahead left: slide over to the next seat
+        const path = [{ x: v.px, z: v.pz }, { x: seat.x + 0.6, z: v.pz }, { x: seat.x + 0.6, z: seat.z }, seat]
+        Object.assign(v, { path, ...prep(path), t: 0, seat: i })
+      }
+      v.t += dt * 2.6
+      const pos = v.total > 0 ? along(v, v.t / v.total) : seat
+      const moved = Math.hypot(pos.x - v.px, pos.z - v.pz)
+      v.ch.walking = dt > 0 && moved / dt > 0.3 ? 1 : 0
+      if (moved > 1e-3) v.ch.face(pos.x - v.px, pos.z - v.pz, dt)
+      else v.ch.face(1, 0, dt) // face the desk / the hero
+      v.ch.activity = 'idle'
+      v.px = pos.x
+      v.pz = pos.z
+      v.ch.root.position.set(pos.x, 0, pos.z)
+      v.ch.root.visible = !(Math.abs(pos.x - FERRY.x) < 1.6 && pos.z < FERRY.docksEnd + 0.2 && pos.z > FERRY.islandEnd - 0.2)
+      this.animate(v.ch, v, dt, pos.x, pos.z)
+    })
   }
 
   /** Far characters (> 16 units from the camera focus) animate at 8 Hz. */

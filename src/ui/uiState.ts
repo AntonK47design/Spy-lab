@@ -12,6 +12,7 @@ export type Panel =
   | { kind: 'levelup'; level: number }
   | { kind: 'agent'; agentId: number }
   | { kind: 'graduate' }
+  | { kind: 'office' }
 
 export const panel = signal<Panel | null>(null)
 /** Celebration popups wait here while another panel is open. */

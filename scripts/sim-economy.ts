@@ -12,7 +12,7 @@ import {
 } from '../src/sim/academy.ts'
 import { missionLock, missionReward, recordWin, recordFail, bestAgent } from '../src/sim/missions.ts'
 import { MISSIONS } from '../src/config/missions.ts'
-import { LAYOUT, ROOMS, ROOM_ORDER, cashSpotOf, crateOf, gateOf, padOf, slotOf, staffPadOf, upgradeSpotOf, type RoomId } from '../src/config/rooms.ts'
+import { LAYOUT, OFFICE, ROOMS, ROOM_ORDER, cashSpotOf, crateOf, gateOf, padOf, slotOf, staffPadOf, upgradeSpotOf, type RoomId } from '../src/config/rooms.ts'
 import { ECONOMY, padFillSeconds } from '../src/config/economy.ts'
 import { createRng } from '../src/core/rng.ts'
 
@@ -98,8 +98,6 @@ function runBot(seed: number, efficiency: number, seconds: number): Run {
       }
       if (playing || cheapestPrice(s) <= s.cash) lastAffordable = t()
       longestUnaffordable = Math.max(longestUnaffordable, t() - lastAffordable)
-      // graduation cards: keep the first few agents, then loan out for cash
-      while (s.pending.length) resolveGraduate(s, s.agents.length < 3)
     }
   }
   const walkTo = (p: P) => {
@@ -121,6 +119,15 @@ function runBot(seed: number, efficiency: number, seconds: number): Run {
       walkTo(LAYOUT.welcomeSpot)
       collectWelcome(s)
       mark('first_cash')
+      continue
+    }
+    // 1a. graduates wait in the agency office: walk there, hire the first few, sell the rest
+    if (s.pending.length) {
+      walkTo(OFFICE.laptopPad)
+      while (s.pending.length) {
+        resolveGraduate(s, s.agents.length < 3)
+        step(0.5)
+      }
       continue
     }
     // 1b. tutorial route: first mission as soon as an agent is there

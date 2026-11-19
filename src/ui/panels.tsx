@@ -9,7 +9,7 @@ import { game } from '../game/actions'
 import { ROOMS, type RoomId } from '../config/rooms'
 import { MISSIONS, missionById } from '../config/missions'
 import { ECONOMY, speedCost } from '../config/economy'
-import { cycleTime, income, levelCost } from '../sim/academy'
+import { agentPower, cycleTime, income, levelCost, weakestAgent } from '../sim/academy'
 import { bestAgent, missionLock, missionReward } from '../sim/missions'
 import { panel, type Panel } from './uiState'
 import { Btn, Folder, Stars, click } from './common'
@@ -180,6 +180,56 @@ export function GraduatePanel() {
   )
 }
 
+/**
+ * Agency office laptop: the waiting graduates with sell / hire / swap, plus the auto switch
+ * (with a full roster, graduates not stronger than the weakest agent are loaned out at once).
+ */
+export function OfficePanel() {
+  void rev.value
+  const g = game()
+  const full = state.agents.length >= state.rosterLimit
+  const weak = weakestAgent(state)
+  const floor = weak ? agentPower(weak) : 0
+  const auto = !!state.flags.autoSellWeak
+  return (
+    <Folder title={t('office.title')} testid="panel-office" onClose={closePanel} tab={t('office.tab')} wide>
+      <button class={`row toggle ${auto ? 'on' : 'off'}`} data-testid="btn-auto-sell" onClick={() => { click(); g.setAutoSell(!auto) }}>
+        <span class="row-label">{t('office.auto')}</span>
+        <span class="toggle-state">{auto ? t('office.on') : t('office.off')}</span>
+      </button>
+      <div class="muted small">{t('agents.roster', { n: state.agents.length, max: state.rosterLimit })}{weak ? ` · ${t('office.weakest', { p: floor })}` : ''}</div>
+      {state.pending.length === 0 && <div class="empty">{t('office.empty')}</div>}
+      <div class="office-list">
+        {state.pending.map((p, i) => {
+          const a = p.agent
+          const pow = agentPower(a)
+          const top = (Object.entries(a.skills) as [string, number][]).sort((x, y) => y[1] - x[1])[0]!
+          const better = full && weak !== null && pow > floor
+          return (
+            <div class={`office-row rarity-${a.rarity}`} data-testid={`office-row-${i}`}>
+              <div class="or-info">
+                <div class="ac-rarity typewriter">{t(`rarity.${a.rarity}`)}</div>
+                <div class="ac-name fit">{a.name}</div>
+                <div class="ac-skill">{t(`skill.${top[0]}`)} {top[1]} · {t('office.power', { p: pow })}</div>
+              </div>
+              <div class="or-actions">
+                <Btn testid={`btn-sell-${i}`} kind="buy" onClick={() => g.office(a.id, 'sell')}>{t('office.sell', { fee: fmt(p.fee) })}</Btn>
+                {!full && <Btn testid={`btn-hire-${i}`} onClick={() => g.office(a.id, 'hire')}>{t('office.hire')}</Btn>}
+                {full && <Btn testid={`btn-swap-${i}`} kind="secondary" disabled={!better} onClick={() => g.office(a.id, 'swap')}>{better ? t('office.swap') : t('office.weaker')}</Btn>}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+      {state.pending.length > 1 && (
+        <Btn testid="btn-sell-all" kind="buy" onClick={() => g.officeSellAll()}>
+          {t('office.sellAll', { fee: fmt(state.pending.reduce((sum, p) => sum + p.fee, 0)) })}
+        </Btn>
+      )}
+    </Folder>
+  )
+}
+
 function bumpPanel(): void {
   panel.value = { kind: 'graduate' }
 }
@@ -326,6 +376,7 @@ export function PanelHost() {
     case 'agents': return <AgentsPanel />
     case 'agent': return <AgentReveal agentId={p.agentId} />
     case 'graduate': return <GraduatePanel />
+    case 'office': return <OfficePanel />
     case 'levelup': return <LevelUpPanel level={p.level} />
     case 'welcome': return <WelcomePanel amount={p.amount} seconds={p.seconds} />
   }

@@ -59,6 +59,12 @@ export class StaticBatch {
     return this.push(new RoundedBoxGeometry(w, h, d, 2, Math.max(0.005, rr)), x, y, z, color, rotY)
   }
 
+  /** Bevelled box with full rotation (e.g. a tilted laptop screen). */
+  rboxRot(w: number, h: number, d: number, x: number, y: number, z: number, color: number, r: number, rotY: number, rotX: number, rotZ: number): this {
+    const rr = Math.min(r, w / 2 - 0.001, h / 2 - 0.001, d / 2 - 0.001)
+    return this.push(new RoundedBoxGeometry(w, h, d, 2, Math.max(0.005, rr)), x, y, z, color, rotY, rotX, rotZ)
+  }
+
   cyl(rTop: number, rBot: number, h: number, x: number, y: number, z: number, color: number, seg = 10, rotX = 0, rotZ = 0): this {
     return this.push(new CylinderGeometry(rTop, rBot, h, seg), x, y, z, color, 0, rotX, rotZ)
   }

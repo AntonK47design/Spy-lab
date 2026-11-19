@@ -5,7 +5,7 @@
  */
 import { BoxGeometry, BufferGeometry, Group, Mesh, MeshLambertMaterial, MeshBasicMaterial, Shape, ShapeGeometry } from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
-import { AREAS, AREA_ORDER, LAYOUT, ROOMS, ROOM_AREA, ROOM_ORDER, crateOf, gateOf, padOf, slotOf, staffPadOf, upgradeSpotOf, type RoomId } from '../config/rooms'
+import { AREAS, AREA_ORDER, LAYOUT, OFFICE, ROOMS, ROOM_AREA, ROOM_ORDER, crateOf, gateOf, padOf, slotOf, staffPadOf, upgradeSpotOf, type RoomId } from '../config/rooms'
 import type { GameState } from '../sim/state'
 import { levelCost, nextArea, nextStaff, nextUnlock, padPrice, trainingRooms, type PadTarget } from '../sim/academy'
 import { formatNumber } from '../core/format'
@@ -13,7 +13,7 @@ import { t, lang } from '../i18n/i18n'
 import type { WorldLabels, WorldLabel } from './WorldLabels'
 import { ECONOMY } from '../config/economy'
 
-export type PadKind = PadTarget['kind'] | 'missions' | 'upgrade'
+export type PadKind = PadTarget['kind'] | 'missions' | 'upgrade' | 'laptop'
 
 export interface Pad {
   kind: PadKind
@@ -128,7 +128,7 @@ export class Pads {
     const fill = new Mesh(fillGeo, fillMat)
     fill.scale.set(0.001, 1, 1.5)
     fill.position.set(-0.75, 0.05, 0)
-    const ring = new Mesh(ringGeo, kind === 'missions' ? ringMats.missions : kind === 'upgrade' ? ringMats.upgrade : ringMats.buy)
+    const ring = new Mesh(ringGeo, kind === 'missions' || kind === 'laptop' ? ringMats.missions : kind === 'upgrade' ? ringMats.upgrade : ringMats.buy)
     group.add(plate, fill, ring)
     this.parent.add(group)
     const label = this.labels.add(`pad pad-${kind}`, x, kind === 'missions' || kind === 'upgrade' ? 0.9 : 0.4, z, `pad-${kind}-${room ?? 'bakery'}`)
@@ -158,6 +158,8 @@ export class Pads {
       if (s.rooms[id].stations > 0) out.push({ kind: 'upgrade', room: id, target: null, ...upgradeSpotOf(id) })
     }
     if (s.rooms.mission_control.unlocked) out.push({ kind: 'missions', room: 'mission_control', target: null, ...padOf('mission_control') })
+    // agency office: the laptop on the desk opens the office menu
+    out.push({ kind: 'laptop', room: null, target: null, ...OFFICE.laptopPad })
     return out
   }
 
@@ -218,6 +220,12 @@ export class Pads {
           : `<div class="pad-title dim"><span class="ico-lock"></span> ${name}</div><div class="pad-price dim">${needLv ? t('pad.level', { n: AREAS[area].gateLevel }) : t('pad.gateRooms')}</div>`
       ;(p.group.children[0] as Mesh).material = can ? plateMat : plateMatDim
       p.ring.material = can ? ringMats.buy : ringMats.dim
+    } else if (p.kind === 'laptop') {
+      const n = s.pending.length
+      p.active = n > 0
+      key = `laptop${n}${s.flags.autoSellWeak ? 1 : 0}`
+      if (key !== p.key || force)
+        html = `<div class="pad-title${n ? ' big' : ''}"><b>${t('pad.laptop')}</b> ${n ? t('office.waiting', { n }) : t('office.none')}</div>${s.flags.autoSellWeak ? `<div class="pad-title dim">${t('office.autoOn')}</div>` : ''}`
     } else if (p.kind === 'missions') {
       key = 'm'
       if (key !== p.key || force) html = `<div class="pad-title big"><b>${t('pad.missions')}</b></div>`
