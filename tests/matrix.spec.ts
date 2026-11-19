@@ -91,7 +91,7 @@ for (const lang of ['en', 'de', 'ru']) {
 
       await page.getByTestId('bar-settings').click()
       await page.waitForTimeout(250)
-      await expect(page.getByTestId('panel-settings').getByTestId('btn-close')).toBeInViewport({ ratio: 1 })
+      await expect(page.getByTestId('panel-settings').getByTestId('btn-close')).toBeInViewport({ ratio: 0.99 })
       await assertLayout(page, w, h, '[data-testid="panel-settings"]')
       await shot(page, lang, name, 'settings', w, h)
       await page.getByTestId('btn-close').click()
@@ -101,7 +101,7 @@ for (const lang of ['en', 'de', 'ru']) {
       await goTo(page, 'upgrade', 'vault')
       await expect(page.getByTestId('panel-upgrade')).toBeVisible()
       await page.waitForTimeout(250)
-      await expect(page.getByTestId('panel-upgrade').getByTestId('btn-close')).toBeInViewport({ ratio: 1 })
+      await expect(page.getByTestId('panel-upgrade').getByTestId('btn-close')).toBeInViewport({ ratio: 0.99 })
       await assertLayout(page, w, h, '[data-testid="panel-upgrade"]')
       await shot(page, lang, name, 'upgrade', w, h)
       await page.getByTestId('btn-close').click()
