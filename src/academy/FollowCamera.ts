@@ -7,8 +7,8 @@ import { PerspectiveCamera, Raycaster, Vector2, Vector3, Plane, type Object3D } 
 export const FOLLOW = {
   fov: 34,
   pitchDeg: 54,
-  safeWPortrait: 11,
-  safeHPortrait: 15,
+  safeWPortrait: 8.5,
+  safeHPortrait: 12,
   safeWLandscape: 20,
   safeHLandscape: 11,
   lerp: 6,

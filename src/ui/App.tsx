@@ -7,12 +7,12 @@ import { formatNumber } from '../core/format'
 import { hud, state, rev } from '../game/store'
 import { nextUnlock } from '../sim/academy'
 import { ROOMS } from '../config/rooms'
-import { coachLine, inMission, panel, toast, missionUi } from './uiState'
+import { coachLine, infoCard, inMission, moveHint, panel, toast, missionUi } from './uiState'
 import { PanelHost, closePanel, openPause } from './panels'
 import { MissionLayer } from './mission'
 import { click } from './common'
 import {
-  AvatarDirector, AvatarMarmalade, IconAgent, IconBadge, IconCash, IconGear, IconIntel, IconMap, IconPause, IconStar,
+  AvatarDirector, AvatarMarmalade, IconAgent, IconHand, IconBadge, IconCash, IconGear, IconIntel, IconMap, IconPause, IconStar,
 } from './icons'
 
 const fmt = (n: number) => formatNumber(n, lang.value)
@@ -93,6 +93,28 @@ function Coach() {
   )
 }
 
+function InfoCard() {
+  const c = infoCard.value
+  if (!c) return null
+  return (
+    <div class="info-card" data-testid="info-card" role="status" onPointerDown={() => (infoCard.value = null)}>
+      <div class="info-title typewriter">{c.room ? t(`room.${c.room}`) : t('game.title')}</div>
+      <div>{t(c.key)}</div>
+    </div>
+  )
+}
+
+function MoveHint() {
+  const h = moveHint.value
+  if (!h) return null
+  return (
+    <div class={`move-hint ${h === 'hint.drag' ? 'touch' : ''}`} data-testid="move-hint" aria-live="polite">
+      {h === 'hint.drag' && <span class="finger" aria-hidden="true"><IconHand size="48px" /></span>}
+      <span>{t(h)}</span>
+    </div>
+  )
+}
+
 function Orders() {
   const next = nextUnlock(state)
   if (!next) return null
@@ -133,6 +155,8 @@ export function App() {
           <TopRight />
           <Coach />
           <ActionButtons />
+          <MoveHint />
+          <InfoCard />
         </>
       )}
       <MissionLayer />

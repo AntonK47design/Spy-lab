@@ -1,3 +1,4 @@
+import { BoxGeometry, Group, Mesh, MeshLambertMaterial } from 'three'
 import { Character } from './Character'
 import { ECONOMY } from '../config/economy'
 import { LAYOUT } from '../config/rooms'
@@ -13,11 +14,25 @@ export class Player {
   speed: number = ECONOMY.player.speed
   /** Seconds the player has been standing still. */
   still = 0
+  /** Visible stack of carried training kits. */
+  private stack = new Group()
+  private kitMat = new MeshLambertMaterial({ color: 0xf2b134 })
+  private kitGeo = new BoxGeometry(0.34, 0.16, 0.26)
 
   constructor() {
     this.char.root.position.set(this.x, 0, this.z)
     this.char.root.rotation.y = Math.PI * 0.85
     this.char.runner = true
+    for (let i = 0; i < 5; i++) {
+      const m = new Mesh(this.kitGeo, this.kitMat)
+      m.position.set(0, i * 0.17, 0)
+      m.rotation.y = (i % 2) * 0.25
+      m.castShadow = true
+      m.visible = false
+      this.stack.add(m)
+    }
+    this.stack.position.set(0, 1.0, 0.38)
+    this.char.root.add(this.stack)
   }
 
   update(dt: number, mx: number, mz: number, colliders: AABB[]): void {
@@ -33,6 +48,11 @@ export class Player {
     this.char.walking = moving ? Math.min(1, Math.hypot(mx, mz) * 1.2) : 0
     this.char.root.position.set(this.x, 0, this.z)
     this.char.update(dt)
+  }
+
+  setCarry(n: number, color: number): void {
+    this.stack.children.forEach((m, i) => (m.visible = i < n))
+    this.kitMat.color.setHex(color)
   }
 
   near(x: number, z: number, r: number): boolean {

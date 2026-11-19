@@ -18,6 +18,10 @@ export type GameEvent =
   | 'shop_opened'
   | 'gadget_crafted'
   | 'daily_claimed'
+  | 'built'
+  | 'first_frame'
+  | 'minute_mark'
+  | 'info_tap'
 
 export function track(event: GameEvent, data?: Record<string, string | number | boolean>): void {
   analytics.send(event, data)

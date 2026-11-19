@@ -4,12 +4,33 @@
  */
 export const ECONOMY = {
   startCash: 0,
+  /** Cash pile lying next to the spawn (first cash within ~2 m). */
+  welcomeCash: 30,
+  /** Price of the cadet sign-up desk (first purchase, ~0:02). */
+  counterCost: 10,
+  clerkCost: 240,
+  stationGrowth: 1.8,
+  /** Training kits: hero carry capacity, basket size per station, pick/drop speed (s per kit). */
+  supply: { carryMax: 5, basketMax: 4, pickSeconds: 0.12, dropSeconds: 0.12, runnerSecondsPerKit: 2.2 },
+  /** Seconds the hero (or clerk) needs to sign up one cadet. */
+  serveSeconds: 1.0,
+  clerkServeSeconds: 2.0,
+  queueMax: 4,
+  /** A new cadet arrives every N s while the queue has room. */
+  arrivalSeconds: 4,
+  /** Opening boost (first ~50 s of total play time, fades over 20 s): walk faster, serve faster. */
+  opening: { fullUntil: 50, fadeSeconds: 20, walkMult: 2, serveMult: 0.5 },
+  /** Kit crate pad price = stationBase * this (the very first one costs ~5). */
+  crateShare: 0.34,
+  /** Graduate "loan out" fee = room income per rep * this * rarity factor. */
+  loanFeeReps: 10,
+  loanRarity: { common: 1, rare: 1.5, epic: 2.2, legendary: 3.5 },
   upgradeGrowth: 1.15,
   /** Room level milestones that double income. */
   milestones: [10, 25, 50, 100, 150, 200],
   maxRoomLevel: 200,
 
-  slots: { start: 2, max: 6, baseCost: 40, growth: 3.2 },
+  slots: { start: 0, max: 6, baseCost: 40, growth: 3.2 },
   speed: { max: 10, baseCost: 60, growth: 2.4, factorPerLevel: 0.92 },
   /** Instructor: auto-collects the stack and trains faster. */
   instructorSpeedFactor: 0.8,
@@ -51,11 +72,16 @@ export const ECONOMY = {
   },
 
   player: {
-    speed: 5.2,
+    speed: 6.5,
     collectRadius: 1.4,
     padRadius: 1.1,
     /** Seconds to pour the full price into an unlock pad. */
     padFillSeconds: 1.1,
+    /** Fill time scales with price between these bounds (Kickoff lesson: 0.6-1.5 s). */
+    padFillMin: 0.6,
+    padFillMax: 1.5,
+    stationRadius: 1.05,
+    crateRadius: 1.2,
   },
 } as const
 
@@ -69,8 +95,20 @@ export function milestoneMult(level: number): number {
   return m
 }
 
-export function slotCost(slots: number): number {
-  return Math.ceil(ECONOMY.slots.baseCost * Math.pow(ECONOMY.slots.growth, slots - ECONOMY.slots.start))
+export function stationCost(stationBase: number, built: number): number {
+  return Math.ceil(stationBase * Math.pow(ECONOMY.stationGrowth, built))
+}
+
+/** 1 during the opening, fading to 0 (keyed to total play time, so returning players never see it). */
+export function openingFactor(playSeconds: number): number {
+  const o = ECONOMY.opening
+  if (playSeconds <= o.fullUntil) return 1
+  return Math.max(0, 1 - (playSeconds - o.fullUntil) / o.fadeSeconds)
+}
+
+export function padFillSeconds(price: number): number {
+  const p = ECONOMY.player
+  return Math.min(p.padFillMax, Math.max(p.padFillMin, 0.6 + Math.log10(Math.max(1, price)) * 0.2))
 }
 
 export function speedCost(speedLv: number): number {

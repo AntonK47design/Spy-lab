@@ -1,9 +1,15 @@
 /**
- * Academy rules: training cycles, cash stacks, recruitment, graduation, upgrades,
- * unlock pads, academy XP. Pure functions over GameState (shared with npm run sim).
+ * Academy rules (Kickoff-style loop):
+ *   cadets arrive -> wait at the bakery counter -> the hero (or the clerk) signs them up ->
+ *   they walk to a free station -> each rep consumes one training kit from the station basket
+ *   and pays into the room's cash pile -> after N reps they graduate (keep or loan out).
+ * The hero carries kits from the room crate to the baskets; the kit runner automates that,
+ * the instructor auto-collects the pile. Pure functions over GameState (shared with npm run sim).
  */
-import { ECONOMY, milestoneMult, slotCost, speedCost, upgradeCost, xpToNext } from '../config/economy.ts'
-import { ROOMS, ROOM_ORDER, cadetPath, pathLength, type RoomId } from '../config/rooms.ts'
+import {
+  ECONOMY, milestoneMult, openingFactor, speedCost, stationCost, upgradeCost, xpToNext,
+} from '../config/economy.ts'
+import { LAYOUT, ROOMS, ROOM_ORDER, arrivalPath, cadetPath, pathLength, type RoomId } from '../config/rooms.ts'
 import { AGENTS, AGENT_CODE, AGENT_FIRST, SKILLS } from '../config/agents.ts'
 import type { Agent, CadetState, GameState } from './state.ts'
 
@@ -14,11 +20,17 @@ export function setRng(fn: () => number): void {
 
 export interface SimEvents {
   cycle?(room: RoomId, amount: number, auto: boolean): void
+  served?(cadet: CadetState): void
   arrive?(cadet: CadetState): void
-  recruit?(cadet: CadetState): void
-  graduate?(cadet: CadetState, agent: Agent | null, bonus: number): void
+  graduate?(cadet: CadetState, agent: Agent, fee: number): void
   levelUp?(level: number): void
   unlock?(room: RoomId): void
+  built?(what: string, room: RoomId | null): void
+}
+
+/** Inputs the hero provides this tick (set by the view or the bot). */
+export interface HeroInput {
+  atCounter: boolean
 }
 
 // ---------- derived values ----------
@@ -33,7 +45,7 @@ export function cycleTime(s: GameState, id: RoomId): number {
 }
 
 export function stackCap(s: GameState, id: RoomId): number {
-  return income(s, id) * s.rooms[id].slots * ECONOMY.stackCapCycles
+  return income(s, id) * Math.max(1, s.rooms[id].stations) * ECONOMY.stackCapCycles
 }
 
 /** Cash per second of a room with its current cadets (for offline + UI). */
@@ -52,67 +64,172 @@ export function levelCost(s: GameState, id: RoomId): number {
   return upgradeCost(ROOMS[id].upgradeBaseCost, s.rooms[id].level)
 }
 
+export function nextStationCost(s: GameState, id: RoomId): number | null {
+  const r = s.rooms[id]
+  if (!r.unlocked || ROOMS[id].kind !== 'training' || r.stations >= ECONOMY.slots.max) return null
+  return stationCost(ROOMS[id].stationBase, r.stations)
+}
+
+/** Next staff hire for a room: kit runner first, then the instructor. */
+export function nextStaff(s: GameState, id: RoomId): { kind: 'runner' | 'instructor'; cost: number } | null {
+  const r = s.rooms[id]
+  if (!r.unlocked || ROOMS[id].kind !== 'training' || r.stations === 0) return null
+  if (!r.runner) return { kind: 'runner', cost: ROOMS[id].runnerCost }
+  if (!r.instructor) return { kind: 'instructor', cost: ROOMS[id].instructorCost }
+  return null
+}
+
+export function crateCost(id: RoomId): number {
+  return ROOMS[id].crateCost ?? Math.max(5, Math.round(ROOMS[id].stationBase * ECONOMY.crateShare))
+}
+
 export function trainingRooms(s: GameState): RoomId[] {
   return ROOM_ORDER.filter((id) => ROOMS[id].kind === 'training' && s.rooms[id].unlocked)
 }
 
-/** The next room whose unlock pad is purchasable (lowest cost locked room). */
+/** The next room whose unlock pad is purchasable (lowest locked room). */
 export function nextUnlock(s: GameState): RoomId | null {
   for (const id of ROOM_ORDER) if (!s.rooms[id].unlocked) return id
   return null
 }
 
+function walkSpeed(s: GameState): number {
+  return ECONOMY.recruit.walkSpeed * (1 + (ECONOMY.opening.walkMult - 1) * openingFactor(s.stats.playSeconds))
+}
+
+function serveSeconds(s: GameState, clerk: boolean): number {
+  const base = clerk ? ECONOMY.clerkServeSeconds : ECONOMY.serveSeconds
+  return base * (1 - (1 - ECONOMY.opening.serveMult) * openingFactor(s.stats.playSeconds))
+}
+
+function findFreeStation(s: GameState): { room: RoomId; slot: number } | null {
+  for (const id of trainingRooms(s)) {
+    const r = s.rooms[id]
+    for (let slot = 0; slot < r.stations; slot++) {
+      if (!s.cadets.some((c) => c.room === id && c.slot === slot)) return { room: id, slot }
+    }
+  }
+  return null
+}
+
+export function waitingCount(s: GameState): number {
+  return s.cadets.filter((c) => c.phase === 'queue' || c.phase === 'arrive').length
+}
+
+/** Why the first waiting cadet cannot be signed up right now (for hints), or null. */
+export function serveBlocker(s: GameState): 'counter' | 'station' | 'nobody' | null {
+  if (!s.cadets.some((c) => c.phase === 'queue' && c.queueIndex === 0)) return 'nobody'
+  if (!s.counter) return 'counter'
+  if (!findFreeStation(s)) return 'station'
+  return null
+}
+
 // ---------- tick ----------
-export function tick(s: GameState, dt: number, ev: SimEvents = {}): void {
+export function tick(s: GameState, dt: number, hero: HeroInput, ev: SimEvents = {}): void {
   s.stats.playSeconds += dt
 
-  // Recruitment at the bakery
-  s.recruitTimer -= dt
-  if (s.recruitTimer <= 0) {
-    const free = findFreeSlot(s)
-    if (free) {
-      const path = cadetPath(free.room, free.slot)
+  // arrivals: keep the queue filled
+  s.arrivalTimer -= dt
+  if (s.arrivalTimer <= 0) {
+    s.arrivalTimer = ECONOMY.arrivalSeconds
+    if (waitingCount(s) < ECONOMY.queueMax) {
+      const qi = waitingCount(s)
       const c: CadetState = {
-        id: s.nextId++,
-        room: free.room,
-        slot: free.slot,
-        phase: 'walk',
-        t: 0,
-        walk: pathLength(path) / ECONOMY.recruit.walkSpeed,
-        cycles: 0,
-        need: ECONOMY.graduation.cycles,
+        id: s.nextId++, phase: 'arrive', room: null, slot: -1, t: 0, queueIndex: qi,
+        walk: pathLength(arrivalPath(qi)) / walkSpeed(s), repping: false, cycles: 0, need: ECONOMY.graduation.cycles,
       }
       s.cadets.push(c)
-      ev.recruit?.(c)
-      s.recruitTimer = ECONOMY.recruit.interval
-    } else {
-      s.recruitTimer = 0.5
+      ev.arrive?.(c)
+    }
+  }
+
+  // sign-up at the counter (hero standing behind it, or the clerk)
+  const serving = s.counter && (hero.atCounter || s.clerk) && serveBlocker(s) === null
+  if (serving) {
+    s.serveT += dt
+    if (s.serveT >= serveSeconds(s, !hero.atCounter)) {
+      s.serveT = 0
+      serveFirst(s, ev)
+    }
+  } else s.serveT = Math.max(0, s.serveT - dt * 2)
+
+  // kit runners
+  for (const id of trainingRooms(s)) {
+    const r = s.rooms[id]
+    if (!r.runner) continue
+    r.runnerTimer += dt
+    while (r.runnerTimer >= ECONOMY.supply.runnerSecondsPerKit) {
+      r.runnerTimer -= ECONOMY.supply.runnerSecondsPerKit
+      let best = -1
+      for (let i = 0; i < r.stations; i++) if ((r.supply[i] ?? 0) < ECONOMY.supply.basketMax && (best < 0 || r.supply[i]! < r.supply[best]!)) best = i
+      if (best < 0) {
+        r.runnerTimer = 0
+        break
+      }
+      r.supply[best] = (r.supply[best] ?? 0) + 1
     }
   }
 
   for (let i = s.cadets.length - 1; i >= 0; i--) {
     const c = s.cadets[i] as CadetState
+    if (c.phase === 'queue') continue
     c.t += dt
+    if (c.phase === 'arrive') {
+      if (c.t >= c.walk) {
+        c.phase = 'queue'
+        c.t = 0
+      }
+      continue
+    }
     if (c.phase === 'walk') {
       if (c.t >= c.walk) {
         c.phase = 'train'
         c.t = 0
-        ev.arrive?.(c)
+        c.repping = false
       }
       continue
     }
-    const ct = cycleTime(s, c.room)
-    while (c.t >= ct) {
-      c.t -= ct
-      produce(s, c.room, ev)
+    // training: a rep starts only with a kit in the basket
+    const id = c.room as RoomId
+    const r = s.rooms[id]
+    if (!c.repping) {
+      if ((r.supply[c.slot] ?? 0) <= 0) {
+        c.t = 0
+        continue
+      }
+      r.supply[c.slot]!--
+      c.repping = true
+      c.t = 0
+    }
+    const ct = cycleTime(s, id)
+    if (c.t >= ct) {
+      c.repping = false
+      c.t = 0
+      produce(s, id, ev)
       c.cycles++
       if (c.cycles >= c.need) {
         graduate(s, c, ev)
         s.cadets.splice(i, 1)
-        break
       }
     }
   }
+}
+
+function serveFirst(s: GameState, ev: SimEvents): void {
+  const free = findFreeStation(s)
+  const c = s.cadets.find((x) => x.phase === 'queue' && x.queueIndex === 0)
+  if (!free || !c) return
+  c.phase = 'walk'
+  c.room = free.room
+  c.slot = free.slot
+  c.t = 0
+  c.walk = pathLength(cadetPath(free.room, free.slot)) / walkSpeed(s)
+  s.stats.served++
+  // everybody behind moves up one spot
+  for (const o of s.cadets) {
+    if ((o.phase === 'queue' || o.phase === 'arrive') && o.queueIndex > 0) o.queueIndex--
+  }
+  ev.served?.(c)
 }
 
 function produce(s: GameState, id: RoomId, ev: SimEvents): void {
@@ -128,29 +245,26 @@ function produce(s: GameState, id: RoomId, ev: SimEvents): void {
   }
 }
 
-function findFreeSlot(s: GameState): { room: RoomId; slot: number } | null {
-  for (const id of trainingRooms(s)) {
-    const r = s.rooms[id]
-    for (let slot = 0; slot < r.slots; slot++) {
-      if (!s.cadets.some((c) => c.room === id && c.slot === slot)) return { room: id, slot }
-    }
-  }
-  return null
-}
-
 function graduate(s: GameState, c: CadetState, ev: SimEvents): void {
   s.graduatedTotal++
   addXp(s, ECONOMY.academyXp.graduate, ev)
-  if (s.agents.length < s.rosterLimit) {
-    const agent = createAgent(s, c.room)
-    s.agents.push(agent)
-    ev.graduate?.(c, agent, 0)
-  } else {
-    const bonus = income(s, c.room) * ECONOMY.graduation.overflowBonusCycles
-    s.cash += bonus
-    s.stats.earned += bonus
-    ev.graduate?.(c, null, bonus)
+  const agent = createAgent(s, c.room as RoomId)
+  const fee = Math.round(income(s, c.room as RoomId) * ECONOMY.loanFeeReps * ECONOMY.loanRarity[agent.rarity])
+  s.pending.push({ agent, fee })
+  ev.graduate?.(c, agent, fee)
+}
+
+/** Resolve the oldest graduation card: keep the agent (roster) or loan them out for the fee. */
+export function resolveGraduate(s: GameState, keep: boolean): 'kept' | 'loaned' | null {
+  const p = s.pending.shift()
+  if (!p) return null
+  if (keep && s.agents.length < s.rosterLimit) {
+    s.agents.push(p.agent)
+    return 'kept'
   }
+  s.cash += p.fee
+  s.stats.earned += p.fee
+  return 'loaned'
 }
 
 export function createAgent(s: GameState, room: RoomId): Agent {
@@ -164,7 +278,7 @@ export function createAgent(s: GameState, room: RoomId): Agent {
   return { id: s.nextId++, name, skills, rarity, level: 1, room }
 }
 
-// ---------- player actions ----------
+// ---------- hero actions ----------
 export function collect(s: GameState, id: RoomId): number {
   const r = s.rooms[id]
   const amount = Math.floor(r.stack)
@@ -174,6 +288,39 @@ export function collect(s: GameState, id: RoomId): number {
   s.stats.earned += amount
   s.stats.collects++
   return amount
+}
+
+export function collectWelcome(s: GameState): number {
+  const a = s.welcome
+  if (a <= 0) return 0
+  s.welcome = 0
+  s.cash += a
+  s.stats.collects++
+  return a
+}
+
+/** Take up to `n` kits from a room's crate. Carrying another room's kits swaps them. */
+export function pickKits(s: GameState, id: RoomId, n: number): number {
+  if (!s.rooms[id].unlocked || !s.rooms[id].crate) return 0
+  if (s.carry.room !== id) s.carry = { room: id, n: 0 }
+  const take = Math.min(n, ECONOMY.supply.carryMax - s.carry.n)
+  if (take <= 0) return 0
+  s.carry.n += take
+  return take
+}
+
+/** Drop up to `n` carried kits into a station basket. */
+export function dropKits(s: GameState, id: RoomId, slot: number, n: number): number {
+  const r = s.rooms[id]
+  if (s.carry.room !== id || s.carry.n <= 0 || slot >= r.stations) return 0
+  const space = ECONOMY.supply.basketMax - (r.supply[slot] ?? 0)
+  const put = Math.min(n, space, s.carry.n)
+  if (put <= 0) return 0
+  r.supply[slot] = (r.supply[slot] ?? 0) + put
+  s.carry.n -= put
+  if (s.carry.n === 0) s.carry.room = null
+  s.stats.delivered += put
+  return put
 }
 
 export function addXp(s: GameState, n: number, ev: SimEvents = {}): void {
@@ -189,6 +336,7 @@ export function addXp(s: GameState, n: number, ev: SimEvents = {}): void {
 function spend(s: GameState, cost: number): boolean {
   if (s.cash < cost) return false
   s.cash -= cost
+  s.stats.purchases++
   return true
 }
 
@@ -196,15 +344,6 @@ export function upgradeLevel(s: GameState, id: RoomId, ev: SimEvents = {}): bool
   const r = s.rooms[id]
   if (r.level >= ECONOMY.maxRoomLevel || !spend(s, levelCost(s, id))) return false
   r.level++
-  s.stats.upgrades++
-  addXp(s, ECONOMY.academyXp.upgrade, ev)
-  return true
-}
-
-export function buySlot(s: GameState, id: RoomId, ev: SimEvents = {}): boolean {
-  const r = s.rooms[id]
-  if (r.slots >= ECONOMY.slots.max || !spend(s, slotCost(r.slots))) return false
-  r.slots++
   s.stats.upgrades++
   addXp(s, ECONOMY.academyXp.upgrade, ev)
   return true
@@ -219,39 +358,127 @@ export function buySpeed(s: GameState, id: RoomId, ev: SimEvents = {}): boolean 
   return true
 }
 
-export function hireInstructor(s: GameState, id: RoomId, ev: SimEvents = {}): boolean {
-  const r = s.rooms[id]
-  if (r.instructor || !spend(s, ROOMS[id].instructorCost)) return false
-  r.instructor = true
-  // Whatever lies around gets banked right away.
-  collect(s, id)
-  s.stats.upgrades++
-  addXp(s, ECONOMY.academyXp.upgrade, ev)
-  return true
-}
+// ---------- pads (pour cash in while standing on them) ----------
+export type PadTarget =
+  | { kind: 'unlock'; room: RoomId }
+  | { kind: 'station'; room: RoomId }
+  | { kind: 'staff'; room: RoomId }
+  | { kind: 'crate'; room: RoomId }
+  | { kind: 'counter' }
+  | { kind: 'clerk' }
 
 export function canUnlock(s: GameState, id: RoomId): boolean {
   return !s.rooms[id].unlocked && s.level >= ROOMS[id].unlockLevel && nextUnlock(s) === id
 }
 
-/** Pour up to `amount` cash into a room's unlock pad. Returns cash actually paid. */
-export function payPad(s: GameState, id: RoomId, amount: number, ev: SimEvents = {}): number {
-  const r = s.rooms[id]
-  if (!canUnlock(s, id)) return 0
-  const left = ROOMS[id].unlockCost - r.paid
-  const pay = Math.min(left, amount, Math.floor(s.cash))
+/** Price and amount already paid for a pad, or null if the pad is not active. */
+export function padPrice(s: GameState, t: PadTarget): { cost: number; paid: number } | null {
+  switch (t.kind) {
+    case 'counter':
+      return s.counter ? null : { cost: ECONOMY.counterCost, paid: s.counterPaid }
+    case 'clerk':
+      return !s.counter || s.clerk || s.stats.served < 3 ? null : { cost: ECONOMY.clerkCost, paid: s.clerkPaid }
+    case 'unlock':
+      return canUnlock(s, t.room) ? { cost: ROOMS[t.room].unlockCost, paid: s.rooms[t.room].paid } : null
+    case 'crate': {
+      const r = s.rooms[t.room]
+      if (!r.unlocked || r.crate || ROOMS[t.room].kind !== 'training' || r.stations === 0) return null
+      return { cost: crateCost(t.room), paid: r.cratePaid }
+    }
+    case 'station': {
+      const c = nextStationCost(s, t.room)
+      return c == null ? null : { cost: c, paid: s.rooms[t.room].stationPaid }
+    }
+    case 'staff': {
+      // staff hires show up once the room has two stations (keeps the next 1-2 pads in focus)
+      if (s.rooms[t.room].stations < 2) return null
+      const n = nextStaff(s, t.room)
+      return n ? { cost: n.cost, paid: s.rooms[t.room].staffPaid } : null
+    }
+  }
+}
+
+/** Pour up to `amount` cash into a pad. Completes the purchase when fully paid. Returns cash paid. */
+export function payPad(s: GameState, t: PadTarget, amount: number, ev: SimEvents = {}): number {
+  const price = padPrice(s, t)
+  if (!price) return 0
+  const pay = Math.min(price.cost - price.paid, amount, Math.floor(s.cash))
   if (pay <= 0) return 0
   s.cash -= pay
-  r.paid += pay
-  if (r.paid >= ROOMS[id].unlockCost) {
-    r.unlocked = true
-    addXp(s, ECONOMY.academyXp.unlockRoom, ev)
-    ev.unlock?.(id)
+  const done = price.paid + pay >= price.cost
+  switch (t.kind) {
+    case 'counter':
+      s.counterPaid += pay
+      if (done) {
+        s.counter = true
+        ev.built?.('counter', null)
+      }
+      break
+    case 'clerk':
+      s.clerkPaid += pay
+      if (done) {
+        s.clerk = true
+        ev.built?.('clerk', null)
+      }
+      break
+    case 'unlock': {
+      const r = s.rooms[t.room]
+      r.paid += pay
+      if (done) {
+        r.unlocked = true
+        addXp(s, ECONOMY.academyXp.unlockRoom, ev)
+        ev.unlock?.(t.room)
+      }
+      break
+    }
+    case 'crate': {
+      const r = s.rooms[t.room]
+      r.cratePaid += pay
+      if (done) {
+        r.crate = true
+        ev.built?.('crate', t.room)
+      }
+      break
+    }
+    case 'station': {
+      const r = s.rooms[t.room]
+      r.stationPaid += pay
+      if (done) {
+        r.stationPaid = 0
+        r.stations++
+        // the very first station comes with two kits so the first rep starts right away
+        r.supply.push(s.graduatedTotal === 0 && r.stations === 1 ? 2 : 0)
+        addXp(s, ECONOMY.academyXp.upgrade, ev)
+        ev.built?.('station', t.room)
+      }
+      break
+    }
+    case 'staff': {
+      const r = s.rooms[t.room]
+      const kind = nextStaff(s, t.room)?.kind
+      r.staffPaid += pay
+      if (done && kind) {
+        r.staffPaid = 0
+        if (kind === 'runner') r.runner = true
+        else {
+          r.instructor = true
+          collect(s, t.room)
+        }
+        addXp(s, ECONOMY.academyXp.upgrade, ev)
+        ev.built?.(kind, t.room)
+      }
+      break
+    }
   }
+  if (done) s.stats.purchases++
   return pay
 }
 
-/** Offline earnings for `seconds` away (already clamped by the caller). */
+/** Offline earnings for `seconds` away (already clamped by the caller). Needs automation. */
 export function offlineEarnings(s: GameState, seconds: number): number {
-  return Math.floor(totalRate(s) * seconds * ECONOMY.offline.efficiency)
+  let rate = 0
+  for (const id of trainingRooms(s)) if (s.rooms[id].runner) rate += roomRate(s, id)
+  return Math.floor(rate * seconds * ECONOMY.offline.efficiency)
 }
+
+export const COUNTER_SPOT = LAYOUT.serveSpot

@@ -52,9 +52,15 @@ export const spy = <T = any>(page: Page, fn: string, ...args: unknown[]) =>
 export const state = (page: Page) => page.evaluate(() => (window as any).__spylab.state())
 
 /** Walk-free: put the player on a spot (cash / pad / upgrade desk). */
-export async function goTo(page: Page, kind: 'cash' | 'pad' | 'upgrade', room: string): Promise<void> {
-  const p = await spy<{ x: number; z: number }>(page, 'spot', kind, room)
-  await spy(page, 'teleport', p.x, p.z)
+export async function goTo(
+  page: Page,
+  kind: 'cash' | 'pad' | 'upgrade' | 'crate' | 'station' | 'staff' | 'serve' | 'welcome' | 'clerk',
+  room: string,
+  slot = 0,
+): Promise<void> {
+  const p = await spy<{ x: number; z: number }>(page, 'spot', kind, room, slot)
+  // stations: stand just in front of the basket
+  await spy(page, 'teleport', p.x, kind === 'station' ? p.z - 0.4 : p.z)
 }
 
 /** Neutral spot in the corridor (no pad, no cash). */
@@ -95,4 +101,20 @@ export async function failSafe(page: Page): Promise<void> {
       await page.waitForTimeout(40)
     } else await page.waitForTimeout(10)
   }
+}
+
+/** Playable academy for tests: desk, vault station + crate, kit runner, two cadets training. */
+export async function trainingSetup(page: Page): Promise<void> {
+  await spy(page, 'quickStart')
+  await page.evaluate(() => {
+    const s = (window as any).__spylab.raw()
+    s.rooms.vault.stations = 2
+    s.rooms.vault.supply = [4, 4]
+    s.rooms.vault.runner = true
+  })
+  await goTo(page, 'serve', 'vault')
+  await expect
+    .poll(async () => (await spy<any>(page, 'raw')).cadets.filter((c: any) => c.phase === 'train').length, { timeout: 30_000 })
+    .toBeGreaterThan(1)
+  await park(page)
 }

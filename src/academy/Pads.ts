@@ -1,21 +1,23 @@
 /**
- * Floor pads: unlock (pour cash in by standing on it), missions (Mission Control),
- * upgrade (desk inside each training room). Visual plate + DOM label.
+ * Floor pads (stand on them to pour cash in): sign-up desk, clerk, room unlock, stations,
+ * kit crates, staff hires; plus the Mission Control pad and the upgrade desks.
+ * Visual plate + DOM label. Also the kit indicators above every built station.
  */
 import { BoxGeometry, Group, Mesh, MeshLambertMaterial, RingGeometry, MeshBasicMaterial } from 'three'
-import { ROOMS, ROOM_ORDER, padOf, upgradeSpotOf, type RoomId } from '../config/rooms'
+import { LAYOUT, ROOMS, ROOM_ORDER, crateOf, padOf, slotOf, staffPadOf, upgradeSpotOf, type RoomId } from '../config/rooms'
 import type { GameState } from '../sim/state'
-import { canUnlock, levelCost } from '../sim/academy'
+import { levelCost, nextStaff, nextUnlock, padPrice, trainingRooms, type PadTarget } from '../sim/academy'
 import { formatNumber } from '../core/format'
 import { t, lang } from '../i18n/i18n'
 import type { WorldLabels, WorldLabel } from './WorldLabels'
 import { ECONOMY } from '../config/economy'
 
-export type PadKind = 'unlock' | 'missions' | 'upgrade'
+export type PadKind = PadTarget['kind'] | 'missions' | 'upgrade'
 
 export interface Pad {
   kind: PadKind
-  room: RoomId
+  room: RoomId | null
+  target: PadTarget | null
   x: number
   z: number
   group: Group
@@ -33,105 +35,142 @@ const plateMat = new MeshLambertMaterial({ color: 0x22283a })
 const plateMatDim = new MeshLambertMaterial({ color: 0x4a4f5c })
 const fillMat = new MeshLambertMaterial({ color: 0x5fbf5a, emissive: 0x143d14 })
 const ringMats = {
-  unlock: new MeshBasicMaterial({ color: 0xf2b134 }),
+  buy: new MeshBasicMaterial({ color: 0xf2b134 }),
   missions: new MeshBasicMaterial({ color: 0x46c2cb }),
   upgrade: new MeshBasicMaterial({ color: 0xfff3e0 }),
   dim: new MeshBasicMaterial({ color: 0x8a8f9c }),
 }
 
+function targetPos(tg: PadTarget, s: GameState): { x: number; z: number } {
+  switch (tg.kind) {
+    case 'counter': return LAYOUT.serveSpot
+    case 'clerk': return LAYOUT.clerkPad
+    case 'unlock': return padOf(tg.room)
+    case 'station': return slotOf(tg.room, s.rooms[tg.room].stations)
+    case 'crate': return crateOf(tg.room)
+    case 'staff': return staffPadOf(tg.room)
+  }
+}
+
 export class Pads {
   readonly list: Pad[] = []
-  private t = 0
+  private time = 0
   private lastLang = ''
+  private kitLabels = new Map<string, WorldLabel>()
 
   constructor(
     private parent: Group,
     private labels: WorldLabels,
   ) {}
 
-  private make(kind: PadKind, room: RoomId, x: number, z: number): Pad {
+  private make(kind: PadKind, room: RoomId | null, target: PadTarget | null, x: number, z: number): Pad {
     const group = new Group()
     group.position.set(x, 0.03, z)
     const plate = new Mesh(plateGeo, plateMat)
     const fill = new Mesh(fillGeo, fillMat)
     fill.scale.set(0.001, 1, 1.7)
     fill.position.set(-0.85, 0.01, 0)
-    const ring = new Mesh(ringGeo, ringMats[kind])
+    const ring = new Mesh(ringGeo, kind === 'missions' ? ringMats.missions : kind === 'upgrade' ? ringMats.upgrade : ringMats.buy)
     ring.position.y = 0.05
     group.add(plate, fill, ring)
     this.parent.add(group)
-    const label = this.labels.add(`pad pad-${kind}`, x, kind === 'unlock' ? 0.4 : 0.9, z, `pad-${kind}-${room}`)
-    const p: Pad = { kind, room, x, z, group, fill, ring, label, active: true, key: '' }
+    const label = this.labels.add(`pad pad-${kind}`, x, kind === 'missions' || kind === 'upgrade' ? 0.9 : 0.4, z, `pad-${kind}-${room ?? 'bakery'}`)
+    const p: Pad = { kind, room, target, x, z, group, fill, ring, label, active: true, key: '' }
     this.list.push(p)
     return p
   }
 
+  /** Every pad that should exist now (purchase pads only while purchasable / upcoming). */
+  private wanted(s: GameState): { kind: PadKind; room: RoomId | null; target: PadTarget | null; x: number; z: number }[] {
+    const out: { kind: PadKind; room: RoomId | null; target: PadTarget | null; x: number; z: number }[] = []
+    const push = (tg: PadTarget) => {
+      if (padPrice(s, tg)) out.push({ kind: tg.kind, room: 'room' in tg ? tg.room : null, target: tg, ...targetPos(tg, s) })
+    }
+    push({ kind: 'counter' })
+    push({ kind: 'clerk' })
+    // every locked room shows its pad (dim unless it is next)
+    for (const id of ROOM_ORDER) if (!s.rooms[id].unlocked) out.push({ kind: 'unlock', room: id, target: { kind: 'unlock', room: id }, ...padOf(id) })
+    for (const id of trainingRooms(s)) {
+      push({ kind: 'station', room: id })
+      push({ kind: 'crate', room: id })
+      push({ kind: 'staff', room: id })
+      if (s.rooms[id].stations > 0) out.push({ kind: 'upgrade', room: id, target: null, ...upgradeSpotOf(id) })
+    }
+    if (s.rooms.mission_control.unlocked) out.push({ kind: 'missions', room: 'mission_control', target: null, ...padOf('mission_control') })
+    return out
+  }
+
   /** Create/remove pads to match the state, refresh labels. */
   sync(s: GameState): void {
-    const want: { kind: PadKind; room: RoomId; x: number; z: number }[] = []
-    for (const id of ROOM_ORDER) {
-      const r = s.rooms[id]
-      if (!r.unlocked) {
-        const p = padOf(id)
-        want.push({ kind: 'unlock', room: id, ...p })
-      } else if (id === 'mission_control') {
-        const p = padOf(id)
-        want.push({ kind: 'missions', room: id, ...p })
-      } else if (ROOMS[id].kind === 'training') {
-        const p = upgradeSpotOf(id)
-        want.push({ kind: 'upgrade', room: id, ...p })
-      }
-    }
-    // remove stale
+    const want = this.wanted(s)
+    const same = (p: Pad, w: { kind: PadKind; room: RoomId | null; x: number; z: number }) =>
+      p.kind === w.kind && p.room === w.room && Math.abs(p.x - w.x) < 0.01 && Math.abs(p.z - w.z) < 0.01
     for (let i = this.list.length - 1; i >= 0; i--) {
       const p = this.list[i]!
-      if (!want.some((w) => w.kind === p.kind && w.room === p.room)) {
+      if (!want.some((w) => same(p, w))) {
         this.parent.remove(p.group)
         this.labels.remove(p.label)
         this.list.splice(i, 1)
       }
     }
-    for (const w of want) if (!this.list.some((p) => p.kind === w.kind && p.room === w.room)) this.make(w.kind, w.room, w.x, w.z)
-    const langChanged = this.lastLang !== lang.value
+    for (const w of want) if (!this.list.some((p) => same(p, w))) this.make(w.kind, w.room, w.target, w.x, w.z)
+    const force = this.lastLang !== lang.value
     this.lastLang = lang.value
-    for (const p of this.list) this.refresh(p, s, langChanged)
+    for (const p of this.list) this.refresh(p, s, force)
+    this.syncKits(s, force)
+  }
+
+  private priceHtml(left: number, dim: boolean, icon = 'ico-cash'): string {
+    return `<div class="pad-price ${dim ? 'dim' : ''}"><span class="${icon}"></span>${formatNumber(left, lang.value)}</div>`
   }
 
   private refresh(p: Pad, s: GameState, force: boolean): void {
-    const r = s.rooms[p.room]
-    const name = t(`room.${p.room}`)
+    const room = p.room ? t(`room.${p.room}`) : ''
     let key = ''
     let html = ''
-    if (p.kind === 'unlock') {
-      const cost = ROOMS[p.room].unlockCost
-      const can = canUnlock(s, p.room)
+    const price = p.target ? padPrice(s, p.target) : null
+    const left = price ? price.cost - price.paid : 0
+    if (p.kind === 'unlock' && p.room) {
+      const next = nextUnlock(s) === p.room
       const levelOk = s.level >= ROOMS[p.room].unlockLevel
+      const can = !!price
       p.active = can
-      const left = cost - r.paid
       const rect = ROOMS[p.room].rect
-      p.label.x = can ? p.x : rect.x
-      p.label.z = can ? p.z : rect.z
-      key = `u${can}${levelOk}${left}`
-      if (key !== p.key || force) {
+      p.label.x = next ? p.x : rect.x
+      p.label.z = next ? p.z : rect.z
+      p.group.visible = next
+      key = `u${can}${levelOk}${next}${left}`
+      if (key !== p.key || force)
         html = can
-          ? `<div class="pad-price"><span class="ico-cash"></span>${formatNumber(left, lang.value)}</div><div class="pad-title"><b>${t('pad.unlock')}</b> ${name}</div>`
-          : levelOk
-            ? `<div class="pad-title dim">${name}</div><div class="pad-price dim"><span class="ico-lock"></span>${formatNumber(left, lang.value)}</div>`
-            : `<div class="pad-title dim">${name}</div><div class="pad-price dim"><span class="ico-lock"></span>${t('pad.level', { n: ROOMS[p.room].unlockLevel })}</div>`
-      }
-      p.fill.scale.x = Math.max(0.001, (r.paid / cost) * 1.7)
-      p.fill.position.x = -0.85 + (r.paid / cost) * 0.85
-      ;(p.group.children[0] as Mesh).material = can ? plateMat : plateMatDim
-      p.ring.material = can ? ringMats.unlock : ringMats.dim
+          ? `${this.priceHtml(left, false)}<div class="pad-title"><b>${t('pad.unlock')}</b> ${room}</div>`
+          : `<div class="pad-title dim">${room}</div>${levelOk ? this.priceHtml(ROOMS[p.room].unlockCost - s.rooms[p.room].paid, true, 'ico-lock') : `<div class="pad-price dim"><span class="ico-lock"></span>${t('pad.level', { n: ROOMS[p.room].unlockLevel })}</div>`}`
     } else if (p.kind === 'missions') {
       key = 'm'
       if (key !== p.key || force) html = `<div class="pad-title big"><b>${t('pad.missions')}</b></div>`
-    } else {
+    } else if (p.kind === 'upgrade' && p.room) {
       const cost = levelCost(s, p.room)
       const afford = s.cash >= cost
-      key = `g${r.level}${afford}`
+      key = `g${s.rooms[p.room].level}${afford}`
       if (key !== p.key || force)
-        html = `<div class="pad-title"><b>${name}</b> ${t('upgrade.lv', { n: r.level })}</div><div class="pad-price ${afford ? 'ok' : 'dim'}"><span class="ico-up"></span>${formatNumber(cost, lang.value)}</div>`
+        html = `<div class="pad-title"><b>${t('pad.office')}</b> ${t('upgrade.lv', { n: s.rooms[p.room].level })}</div><div class="pad-price ${afford ? 'ok' : 'dim'}"><span class="ico-up"></span>${formatNumber(cost, lang.value)}</div>`
+    } else if (price) {
+      p.active = true
+      const what =
+        p.kind === 'counter' ? t('pad.counter')
+        : p.kind === 'clerk' ? t('pad.clerk')
+        : p.kind === 'crate' ? t('pad.crate')
+        : p.kind === 'station' ? t(`station.${p.room}`)
+        : t(`staff.${nextStaff(s, p.room as RoomId)?.kind ?? 'runner'}`)
+      const verb = p.kind === 'clerk' || p.kind === 'staff' ? t('pad.hire') : t('pad.build')
+      key = `${p.kind}${left}${what}`
+      if (key !== p.key || force) html = `${this.priceHtml(left, s.cash <= 0)}<div class="pad-title"><b>${verb}</b> ${what}</div>`
+    }
+    if (p.target && price) {
+      const f = price.paid / price.cost
+      p.fill.scale.x = Math.max(0.001, f * 1.7)
+      p.fill.position.x = -0.85 + f * 0.85
+      ;(p.group.children[0] as Mesh).material = p.active ? plateMat : plateMatDim
+      p.ring.material = p.active ? ringMats.buy : ringMats.dim
     }
     if (html) {
       p.label.el.innerHTML = html
@@ -140,10 +179,41 @@ export class Pads {
     p.key = key
   }
 
+  /** "kits x/4" bubbles above every built station; red when a cadet waits for kits. */
+  private syncKits(s: GameState, force: boolean): void {
+    const seen = new Set<string>()
+    for (const id of trainingRooms(s)) {
+      const r = s.rooms[id]
+      for (let i = 0; i < r.stations; i++) {
+        const k = `${id}:${i}`
+        seen.add(k)
+        let l = this.kitLabels.get(k)
+        if (!l) {
+          const p = slotOf(id, i)
+          l = this.labels.add('kits', p.x, 2.1, p.z - 0.8, `kits-${id}-${i}`)
+          this.kitLabels.set(k, l)
+        }
+        const n = r.supply[i] ?? 0
+        const waiting = s.cadets.some((c) => c.room === id && c.slot === i && c.phase === 'train' && !c.repping)
+        const html = `<span class="kit-ico"></span>${n}/${ECONOMY.supply.basketMax}`
+        const cls = `wlabel kits ${waiting ? 'empty' : n === 0 ? 'low' : ''}`
+        if (force || l.el.innerHTML !== html) l.el.innerHTML = html
+        if (l.el.className !== cls) l.el.className = cls
+        l.visible = !r.runner || n === 0
+      }
+    }
+    for (const [k, l] of this.kitLabels) {
+      if (!seen.has(k)) {
+        this.labels.remove(l)
+        this.kitLabels.delete(k)
+      }
+    }
+  }
+
   update(dt: number): void {
-    this.t += dt
+    this.time += dt
     for (const p of this.list) {
-      if (p.kind === 'unlock' && p.active) p.ring.scale.setScalar(1 + Math.sin(this.t * 4) * 0.06)
+      if (p.active && p.kind !== 'missions' && p.kind !== 'upgrade') p.ring.scale.setScalar(1 + Math.sin(this.time * 4) * 0.06)
       else p.ring.scale.setScalar(1)
     }
   }
@@ -151,7 +221,7 @@ export class Pads {
   /** The pad the player stands on (if any). */
   under(x: number, z: number): Pad | null {
     const r = ECONOMY.player.padRadius
-    for (const p of this.list) if ((p.x - x) ** 2 + (p.z - z) ** 2 <= r * r) return p
+    for (const p of this.list) if (p.group.visible && (p.x - x) ** 2 + (p.z - z) ** 2 <= r * r) return p
     return null
   }
 }

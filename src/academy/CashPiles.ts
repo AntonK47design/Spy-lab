@@ -1,6 +1,6 @@
 /** Cash stacks lying in the rooms + bills flying to the player when collected. */
 import { BoxGeometry, InstancedMesh, Mesh, MeshLambertMaterial, Object3D, type Group } from 'three'
-import { ROOMS, cashSpotOf, type RoomId } from '../config/rooms'
+import { LAYOUT, ROOMS, cashSpotOf, type RoomId } from '../config/rooms'
 import { income } from '../sim/academy'
 import type { GameState } from '../sim/state'
 
@@ -25,7 +25,21 @@ export class CashPiles {
 
   constructor(private parent: Group) {}
 
+  private welcome: InstancedMesh | null = null
+  private welcomeN = -1
+
   sync(s: GameState): void {
+    // opening cash pile next to the spawn
+    const wn = s.welcome > 0 ? Math.min(MAX, Math.max(4, Math.ceil(s.welcome / 3))) : 0
+    if (wn !== this.welcomeN) {
+      this.welcomeN = wn
+      if (!this.welcome) {
+        this.welcome = new InstancedMesh(billGeo, billMat, MAX)
+        this.welcome.frustumCulled = false
+        this.parent.add(this.welcome)
+      }
+      this.layout(this.welcome, wn, LAYOUT.welcomeSpot)
+    }
     for (const id of Object.keys(ROOMS) as RoomId[]) {
       const r = s.rooms[id]
       if (!r.unlocked || ROOMS[id].kind !== 'training') continue
@@ -41,19 +55,22 @@ export class CashPiles {
       const n = r.stack >= 1 ? Math.min(MAX, Math.max(1, Math.ceil(r.stack / per))) : 0
       if (n === this.counts.get(id)) continue
       this.counts.set(id, n)
-      const c = cashSpotOf(id)
-      for (let i = 0; i < n; i++) {
-        const col = i % 2
-        const row = Math.floor(i / 2) % 3
-        const layer = Math.floor(i / 6)
-        this.tmp.position.set(c.x - 0.24 + col * 0.48, 0.1 + layer * 0.11, c.z - 0.28 + row * 0.28)
-        this.tmp.rotation.y = (i % 3) * 0.05
-        this.tmp.updateMatrix()
-        mesh.setMatrixAt(i, this.tmp.matrix)
-      }
-      mesh.count = n
-      mesh.instanceMatrix.needsUpdate = true
+      this.layout(mesh, n, cashSpotOf(id))
     }
+  }
+
+  private layout(mesh: InstancedMesh, n: number, c: { x: number; z: number }): void {
+    for (let i = 0; i < n; i++) {
+      const col = i % 2
+      const row = Math.floor(i / 2) % 3
+      const layer = Math.floor(i / 6)
+      this.tmp.position.set(c.x - 0.24 + col * 0.48, 0.1 + layer * 0.11, c.z - 0.28 + row * 0.28)
+      this.tmp.rotation.y = (i % 3) * 0.05
+      this.tmp.updateMatrix()
+      mesh.setMatrixAt(i, this.tmp.matrix)
+    }
+    mesh.count = n
+    mesh.instanceMatrix.needsUpdate = true
   }
 
   /** Spawn a few bills that arc from the pile to (tx, tz). */

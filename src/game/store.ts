@@ -60,10 +60,11 @@ export function persist(scopes: SaveScope[] = ['core', 'meta'], immediate = fals
     if (sc === 'core')
       write(SAVE.keys.core, {
         cash: s.cash, intel: s.intel, badges: s.badges, xp: s.xp, level: s.level, rooms: s.rooms,
-        cadets: s.cadets, recruitTimer: s.recruitTimer, nextId: s.nextId, graduatedTotal: s.graduatedTotal,
-        rosterLimit: s.rosterLimit,
+        cadets: s.cadets, arrivalTimer: s.arrivalTimer, nextId: s.nextId, graduatedTotal: s.graduatedTotal,
+        rosterLimit: s.rosterLimit, counter: s.counter, counterPaid: s.counterPaid, clerk: s.clerk,
+        clerkPaid: s.clerkPaid, carry: s.carry, welcome: s.welcome, serveT: s.serveT,
       }, immediate)
-    else if (sc === 'agents') write(SAVE.keys.agents, { agents: s.agents }, immediate)
+    else if (sc === 'agents') write(SAVE.keys.agents, { agents: s.agents, pending: s.pending }, immediate)
     else if (sc === 'progress') write(SAVE.keys.progress, { missions: s.missions }, immediate)
     else write(SAVE.keys.meta, { flags: s.flags, tutorial: s.tutorial, stats: s.stats, lastSeen: s.lastSeen }, immediate)
   }

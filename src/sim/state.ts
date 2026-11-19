@@ -9,25 +9,41 @@ import type { Rarity } from '../config/agents.ts'
 export interface RoomState {
   unlocked: boolean
   level: number
-  slots: number
+  /** Number of built training stations (0..6). */
+  stations: number
+  /** Training kits in each station's basket. */
+  supply: number[]
   speed: number
   instructor: boolean
+  /** Kit runner hired: keeps the baskets filled. */
+  runner: boolean
+  /** Kit crate built (supply source). */
+  crate: boolean
+  cratePaid: number
   /** Uncollected cash lying in the room. */
   stack: number
   /** Cash already poured into the unlock pad. */
   paid: number
+  /** Cash poured into the next station pad / staff pad. */
+  stationPaid: number
+  staffPaid: number
+  runnerTimer: number
 }
 
 export interface CadetState {
   id: number
-  room: RoomId
+  /** 'arrive': street -> queue, 'queue': waiting at the counter, 'walk': counter -> station, 'train'. */
+  phase: 'arrive' | 'queue' | 'walk' | 'train'
+  room: RoomId | null
   slot: number
-  /** 'walk' -> walking from the street door; 'train' -> at the station. */
-  phase: 'walk' | 'train'
-  /** Seconds in the current phase (walk) / current cycle (train). */
+  /** Seconds in the current phase / current rep. */
   t: number
-  /** Total walk duration (s). */
+  /** Duration of the current walk (s). */
   walk: number
+  /** Waiting spot for arrive/queue. */
+  queueIndex: number
+  /** A rep is in progress (a kit was consumed). */
+  repping: boolean
   cycles: number
   need: number
 }
@@ -39,6 +55,11 @@ export interface Agent {
   rarity: Rarity
   level: number
   room: RoomId
+}
+
+export interface PendingGraduate {
+  agent: Agent
+  fee: number
 }
 
 export interface MissionProgress {
@@ -55,13 +76,26 @@ export interface GameState {
   level: number
   rooms: Record<RoomId, RoomState>
   cadets: CadetState[]
-  recruitTimer: number
+  arrivalTimer: number
+  /** Sign-up desk built (first purchase). */
+  counter: boolean
+  counterPaid: number
+  /** Counter clerk hired (automatic sign-up). */
+  clerk: boolean
+  clerkPaid: number
+  /** Progress of the current sign-up (s). */
+  serveT: number
+  /** Kits the hero carries. */
+  carry: { room: RoomId | null; n: number }
+  /** Cash pile next to the spawn. */
+  welcome: number
   agents: Agent[]
+  pending: PendingGraduate[]
   rosterLimit: number
   missions: Record<string, MissionProgress>
   nextId: number
   graduatedTotal: number
-  stats: { upgrades: number; collects: number; playSeconds: number; earned: number; missionsWon: number }
+  stats: { upgrades: number; collects: number; playSeconds: number; earned: number; missionsWon: number; served: number; delivered: number; purchases: number }
   flags: Record<string, boolean>
   tutorial: number
   lastSeen: number
@@ -71,11 +105,18 @@ export function newRoom(id: RoomId): RoomState {
   return {
     unlocked: ROOMS[id].unlockCost === 0,
     level: 1,
-    slots: ECONOMY.slots.start,
+    stations: 0,
+    supply: [],
     speed: 0,
     instructor: false,
+    runner: false,
+    crate: false,
+    cratePaid: 0,
     stack: 0,
     paid: 0,
+    stationPaid: 0,
+    staffPaid: 0,
+    runnerTimer: 0,
   }
 }
 
@@ -89,15 +130,23 @@ export function newGame(): GameState {
     xp: 0,
     level: 1,
     rooms,
-    // The first cadet already trains in the Vault Workshop when the game becomes interactive.
-    cadets: [{ id: 1, room: 'vault', slot: 0, phase: 'train', t: 2.5, walk: 0, cycles: 0, need: ECONOMY.graduation.firstCycles }],
-    recruitTimer: 1.5,
+    // The first customer is already waiting at the counter (lesson: no long first walk).
+    cadets: [{ id: 1, phase: 'queue', room: null, slot: -1, t: 0, walk: 0, queueIndex: 0, repping: false, cycles: 0, need: ECONOMY.graduation.firstCycles }],
+    arrivalTimer: 2,
+    counter: false,
+    counterPaid: 0,
+    clerk: false,
+    clerkPaid: 0,
+    serveT: 0,
+    carry: { room: null, n: 0 },
+    welcome: ECONOMY.welcomeCash,
     agents: [],
+    pending: [],
     rosterLimit: ECONOMY.graduation.rosterStart,
     missions: {},
     nextId: 2,
     graduatedTotal: 0,
-    stats: { upgrades: 0, collects: 0, playSeconds: 0, earned: 0, missionsWon: 0 },
+    stats: { upgrades: 0, collects: 0, playSeconds: 0, earned: 0, missionsWon: 0, served: 0, delivered: 0, purchases: 0 },
     flags: {},
     tutorial: 0,
     lastSeen: 0,
@@ -110,12 +159,27 @@ export function hydrate(raw: Partial<GameState> | null | undefined): GameState {
   if (!raw || typeof raw !== 'object') return base
   const s: GameState = { ...base, ...raw } as GameState
   s.rooms = { ...base.rooms }
-  for (const id of ROOM_ORDER) s.rooms[id] = { ...base.rooms[id], ...(raw.rooms?.[id] ?? {}) }
+  for (const id of ROOM_ORDER) {
+    const r = { ...base.rooms[id], ...((raw.rooms?.[id] as Partial<RoomState> | undefined) ?? {}) }
+    // migration from the Phase-1 save layout (slots -> stations)
+    const legacy = (raw.rooms?.[id] as { slots?: number } | undefined)?.slots
+    if (r.unlocked && r.stations === 0 && typeof legacy === 'number' && ROOMS[id].kind === 'training') {
+      r.stations = legacy
+      r.crate = true
+    }
+    while (r.supply.length < r.stations) r.supply.push(0)
+    s.rooms[id] = r
+  }
   s.stats = { ...base.stats, ...(raw.stats ?? {}) }
   s.flags = { ...(raw.flags ?? {}) }
   s.missions = { ...(raw.missions ?? {}) }
   s.agents = Array.isArray(raw.agents) ? raw.agents : []
-  s.cadets = Array.isArray(raw.cadets) ? raw.cadets.filter((c) => s.rooms[c.room]?.unlocked) : base.cadets
-  for (const k of ['cash', 'intel', 'badges', 'xp'] as const) if (!(Number(s[k]) >= 0)) s[k] = base[k]
+  s.pending = Array.isArray(raw.pending) ? raw.pending : []
+  s.carry = raw.carry && typeof raw.carry === 'object' ? { room: raw.carry.room ?? null, n: Number(raw.carry.n) || 0 } : base.carry
+  const cadets = Array.isArray(raw.cadets) ? raw.cadets : null
+  s.cadets = cadets
+    ? cadets.filter((c) => c && 'phase' in c && (c.room === null || (s.rooms[c.room]?.unlocked && c.slot < s.rooms[c.room].stations)))
+    : base.cadets
+  for (const k of ['cash', 'intel', 'badges', 'xp', 'welcome'] as const) if (!(Number(s[k]) >= 0)) s[k] = base[k]
   return s
 }

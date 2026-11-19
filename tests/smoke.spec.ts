@@ -22,14 +22,56 @@ test('boots: bridge first, game_ready after first frame, < 5 s, clean console', 
   expectClean(w)
 })
 
-test('first interaction within seconds: the first cash stack can be collected', async ({ page }) => {
+test('opening: cash next to the spawn, first purchases within seconds, first cadet waiting', async ({ page }) => {
   const w = watch(page)
   await boot(page)
-  await expect.poll(async () => (await spy<any>(page, 'raw')).rooms.vault.stack, { timeout: 8000 }).toBeGreaterThan(0)
-  await goTo(page, 'cash', 'vault')
-  await expect.poll(async () => (await state(page)).cash, { timeout: 10_000 }).toBeGreaterThan(0)
-  await expect.poll(async () => (await state(page)).tutorial).toBe(1)
+  const s0 = await spy<any>(page, 'raw')
+  expect(s0.cadets.some((c: any) => c.phase === 'queue')).toBe(true) // first customer already waiting
+  const pl = await spy<any>(page, 'player')
+  const ws = await spy<any>(page, 'spot', 'welcome', 'vault')
+  expect(Math.hypot(pl.x - ws.x, pl.z - ws.z)).toBeLessThan(2) // first cash within 2 m
+  await goTo(page, 'welcome', 'vault')
+  await expect.poll(async () => (await state(page)).cash).toBe(30)
+  await goTo(page, 'serve', 'vault')
+  await expect.poll(async () => (await spy<any>(page, 'raw')).counter).toBe(true)
+  await goTo(page, 'station', 'vault')
+  await expect.poll(async () => (await spy<any>(page, 'raw')).rooms.vault.stations).toBe(1)
+  await goTo(page, 'crate', 'vault')
+  await expect.poll(async () => (await spy<any>(page, 'raw')).rooms.vault.crate).toBe(true)
+  await expect.poll(async () => (await state(page)).purchases).toBeGreaterThanOrEqual(3)
+  await expect.poll(async () => (await state(page)).tutorial).toBeGreaterThanOrEqual(4)
   expectClean(w)
+})
+
+test('core loop: sign up a cadet, carry kits, station pays into the cash pile', async ({ page }) => {
+  await boot(page)
+  await spy(page, 'quickStart')
+  await page.evaluate(() => ((window as any).__spylab.raw().rooms.vault.supply = [0]))
+  await goTo(page, 'serve', 'vault')
+  await expect.poll(async () => (await state(page)).served, { timeout: 10_000 }).toBe(1)
+  await goTo(page, 'crate', 'vault')
+  await expect.poll(async () => (await state(page)).carry.n).toBe(5)
+  await expect.poll(async () => (await spy<any>(page, 'raw')).cadets.some((c: any) => c.phase === 'train'), { timeout: 15_000 }).toBe(true)
+  await goTo(page, 'station', 'vault')
+  await expect.poll(async () => (await spy<any>(page, 'raw')).rooms.vault.supply[0]).toBeGreaterThan(0)
+  await expect.poll(async () => (await spy<any>(page, 'raw')).rooms.vault.stack, { timeout: 15_000 }).toBeGreaterThan(0)
+  await goTo(page, 'cash', 'vault')
+  await expect.poll(async () => (await state(page)).cash).toBeGreaterThan(0)
+})
+
+test('tap to explain shows a card without pausing', async ({ page }) => {
+  await boot(page)
+  await spy(page, 'quickStart')
+  await page.waitForTimeout(300)
+  const pos = await page.evaluate(() => {
+    const g = (window as any).__spylab
+    return g.screenOf ? g.screenOf('crate', 'vault') : null
+  })
+  if (pos) {
+    await page.mouse.click(pos.x, pos.y)
+    await expect(page.getByTestId('info-card')).toBeVisible()
+    expect((await state(page)).running).toBe(true)
+  }
 })
 
 test('keyboard (WASD) moves the director, colliding with walls', async ({ page }) => {
@@ -62,9 +104,10 @@ test('touch-style drag joystick moves the director', async ({ page }) => {
   expect(b.z).toBeLessThan(a.z - 0.5)
 })
 
-test('stepping on the upgrade desk opens the room panel; buying works', async ({ page }) => {
+test('stepping on the office desk opens the room panel; buying works', async ({ page }) => {
   const w = watch(page)
   await boot(page)
+  await spy(page, 'quickStart')
   await spy(page, 'addCurrency', 'cash', 100)
   await goTo(page, 'upgrade', 'vault')
   const panel = page.getByTestId('panel-upgrade')
@@ -81,7 +124,7 @@ test('unlock pad: standing on it pours cash in and builds the room', async ({ pa
   await spy(page, 'addCurrency', 'cash', 500)
   await goTo(page, 'pad', 'laser')
   await expect.poll(async () => (await state(page)).rooms.laser.unlocked, { timeout: 5000 }).toBe(true)
-  expect((await state(page)).cash).toBe(500 - 160)
+  expect((await state(page)).cash).toBe(500 - 90)
 })
 
 test('settings popup has an X, pause via P, Esc is ignored', async ({ page }) => {

@@ -11,6 +11,7 @@ export type Panel =
   | { kind: 'welcome'; amount: number; seconds: number }
   | { kind: 'levelup'; level: number }
   | { kind: 'agent'; agentId: number }
+  | { kind: 'graduate' }
 
 export const panel = signal<Panel | null>(null)
 /** Celebration popups wait here while another panel is open. */
@@ -32,6 +33,11 @@ export function showToast(key: string): void {
   toastTimer = setTimeout(() => (toast.value = null), 2200)
 }
 
+/** "Tap to explain" card (5 s, non-blocking). */
+export const infoCard = signal<{ key: string; room: RoomId | null } | null>(null)
+/** First-seconds movement hint: 'hint.drag' (touch), 'hint.keys', 'hint.click' (no keyboard focus). */
+export const moveHint = signal<string | null>(null)
+
 /** Tutorial bubble (Agent Marmalade) — i18n key or null. */
 export const coachLine = signal<string | null>(null)
 
@@ -40,6 +46,7 @@ export function openPanel(p: Panel): void {
 }
 
 export function queuePopup(p: Panel): void {
+  if (p.kind === 'graduate' && (panel.value?.kind === 'graduate' || popupQueue.value.some((q) => q.kind === 'graduate'))) return
   if (!panel.value && !missionUi.value) panel.value = p
   else popupQueue.value = [...popupQueue.value, p]
 }

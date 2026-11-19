@@ -12,7 +12,7 @@ import { flatMat } from '../render/materials'
 import { propGeometry } from '../render/assets'
 import { MODELS, type ModelId } from '../config/models'
 import {
-  CORRIDOR, LAYOUT, ROOMS, ROOM_ORDER, TEASER_ROW_Z, slotOf, upgradeSpotOf, cashSpotOf, type RoomId,
+  CORRIDOR, LAYOUT, ROOMS, ROOM_ORDER, TEASER_ROW_Z, slotOf, upgradeSpotOf, cashSpotOf, crateOf, type RoomId,
 } from '../config/rooms'
 import type { GameState } from '../sim/state'
 
@@ -91,6 +91,27 @@ export class World {
     this.scene.add(base)
   }
 
+  private counterMesh: Mesh | null = null
+
+  /** Sign-up desk in the bakery: appears once the first pad is bought. */
+  syncCounter(built: boolean): void {
+    if (!built || this.counterMesh) return
+    const P = this.p
+    const b = new StaticBatch()
+    const c = LAYOUT.counter
+    for (let i = 0; i < 3; i++) b.prop(P.kitchenDrawers, c.x - 1.02 + i * 1.02, c.z, Math.PI)
+    b.box(3.2, 0.08, 1.2, c.x, 0.84, c.z, 0xfff3e0)
+    b.box(3.2, 0.12, 0.12, c.x, 0.9, c.z + 0.6, 0xf2665c)
+    b.prop(P.croissant, c.x - 1.1, c.z + 0.2, 0.4, 1, 0.88)
+    b.prop(P.cupcake, c.x + 1.1, c.z + 0.1, 0, 1, 0.88)
+    b.prop(P.computer, c.x, c.z - 0.1, Math.PI, 0.55, 0.88)
+    this.counterMesh = new Mesh(b.build(), flatMat)
+    this.counterMesh.castShadow = true
+    this.counterMesh.receiveShadow = true
+    this.scene.add(this.counterMesh)
+    this.colliders.push({ minX: c.x - 1.6, maxX: c.x + 1.6, minZ: c.z - 0.6, maxZ: c.z + 0.6, id: 'counter' })
+  }
+
   /** Keep the shadow frustum centered on the player. */
   followShadow(x: number, z: number): void {
     this.sun.position.set(x - 7, 16, z + 10)
@@ -141,31 +162,28 @@ export class World {
     b.box(5.4, 0.9, 0.2, 0, 2.95, front + 0.1, 0x7a3e2b)
     b.box(5.0, 0.6, 0.06, 0, 2.95, front + 0.22, 0xfff3e0)
 
-    // counter with pastries (kitchen drawers + cabinet row)
-    const cz = bk.z - 0.2
-    for (let i = 0; i < 4; i++) b.prop(P.kitchenDrawers, -8.4 + i * 1.02, cz, Math.PI)
-    b.box(4.2, 0.08, 1.15, -6.87, 0.84, cz, 0xfff3e0)
-    const pastries: ModelId[] = ['croissant', 'cupcake', 'donut1', 'donut2', 'bread', 'donut3', 'croissant', 'cupcake']
-    pastries.forEach((id, i) => b.prop(P[id], -8.6 + i * 0.52, cz + (i % 2 ? 0.15 : -0.15), i * 0.7, 1, 0.88))
-    this.colliders.push({ minX: -9, maxX: -4.8, minZ: cz - 0.6, maxZ: cz + 0.6 })
-    b.prop(P.kitchenCabinet, -9.3, back + 0.6)
-    b.prop(P.fridge, -8.2, back + 0.7)
-    this.colliders.push({ minX: -9.9, maxX: -7.5, minZ: back, maxZ: back + 1.3 })
+    // pastry display shelves along the left back wall (the cover business)
+    for (let i = 0; i < 3; i++) b.prop(P.kitchenDrawers, -8.9 + i * 1.02, back + 0.62)
+    b.box(3.2, 0.08, 1.15, -7.88, 0.84, back + 0.62, 0xfff3e0)
+    const pastries: ModelId[] = ['croissant', 'cupcake', 'donut1', 'bread', 'donut2', 'cupcake']
+    pastries.forEach((id, i) => b.prop(P[id], -9.1 + i * 0.52, back + 0.62 + (i % 2 ? 0.15 : -0.15), i * 0.7, 1, 0.88))
+    b.prop(P.fridge, -6.0, back + 0.7)
+    this.colliders.push({ minX: -9.5, maxX: -5.3, minZ: back, maxZ: back + 1.3 })
     // the secret oven (cadets "disappear" behind it)
-    b.prop(P.oven, 3.2, back + 0.65, 0, 1.15)
-    this.colliders.push({ minX: 2.5, maxX: 3.9, minZ: back, maxZ: back + 1.3 })
-    // cafe tables + stools
-    for (const [tx, tz] of [[6.2, bk.z + 1.4], [8.4, bk.z - 0.6], [-6.5, bk.z + 2.0]] as const) {
+    b.prop(P.oven, 2.6, back + 0.65, 0, 1.15)
+    this.colliders.push({ minX: 1.9, maxX: 3.3, minZ: back, maxZ: back + 1.3 })
+    // cafe tables + stools on the left
+    for (const [tx, tz] of [[-6.4, bk.z + 1.6], [-3.6, bk.z + 0.2], [-8.6, bk.z - 0.4]] as const) {
       b.prop(P.tableRound, tx, tz, 0, 0.75)
       b.prop(P.stool, tx + 0.95, tz, Math.PI / 2, 0.75)
       b.prop(P.stool, tx - 0.95, tz, -Math.PI / 2, 0.75)
       this.colliders.push({ minX: tx - 1.3, maxX: tx + 1.3, minZ: tz - 0.6, maxZ: tz + 0.6 })
     }
-    b.prop(P.carpetRound, 7.2, bk.z + 0.4, 0, 1.1, 0.01)
-    for (const [px, pz, id] of [[-9.4, front - 0.6, 'plant7'], [9.4, front - 0.6, 'plant7'], [9.4, back + 0.6, 'plant4'], [1.9, back + 0.5, 'plant4']] as const) {
+    b.prop(P.carpetRound, -6.0, bk.z + 0.6, 0, 1.1, 0.01)
+    for (const [px, pz, id] of [[-9.4, front - 0.6, 'plant7'], [9.4, front - 0.6, 'plant7'], [9.4, back + 0.6, 'plant4'], [-4.8, back + 0.5, 'plant4']] as const) {
       b.prop(P[id as ModelId], px, pz)
     }
-    b.prop(P.floorLamp, 5.6, back + 0.5)
+    b.prop(P.floorLamp, -2.6, back + 0.5)
 
     // ---- secret corridor: tiles + side trims + lights
     const cw = LAYOUT.corridorWidth
@@ -237,7 +255,7 @@ export class World {
   syncRooms(s: GameState): void {
     for (const id of ROOM_ORDER) {
       const r = s.rooms[id]
-      const key = `${r.unlocked}|${r.slots}|${r.instructor}`
+      const key = `${r.unlocked}|${r.stations}|${r.crate}`
       const mesh = this.roomMeshes.get(id)
       if (mesh && mesh.userData.key === key) continue
       if (mesh) {
@@ -245,7 +263,7 @@ export class World {
         mesh.geometry.dispose()
       }
       for (let i = this.colliders.length - 1; i >= 0; i--) if (this.colliders[i]!.id?.startsWith(`room:${id}`)) this.colliders.splice(i, 1)
-      const m = new Mesh(this.buildRoom(id, r.unlocked, r.slots), flatMat)
+      const m = new Mesh(this.buildRoom(id, r.unlocked, r.stations, r.crate), flatMat)
       m.castShadow = true
       m.receiveShadow = true
       m.userData = { key }
@@ -254,7 +272,7 @@ export class World {
     }
   }
 
-  private buildRoom(id: RoomId, unlocked: boolean, slots: number): BufferGeometry {
+  private buildRoom(id: RoomId, unlocked: boolean, slots: number, crate: boolean): BufferGeometry {
     const def = ROOMS[id]
     const { x, z, w, d } = def.rect
     const side = def.side
@@ -282,13 +300,13 @@ export class World {
       this.colliders.push({ minX: inner - 0.25, maxX: inner + 0.25, minZ: z - doorHalf, maxZ: z + doorHalf, id: `${tag}:barrier` })
       this.construction(b, x, z, side)
     } else {
-      this.furnish(b, id, slots, tag)
+      this.furnish(b, id, slots, tag, crate)
     }
     for (let i = n; i < this.colliders.length; i++) this.colliders[i]!.id ??= tag
     return b.build()
   }
 
-  private furnish(b: StaticBatch, id: RoomId, slots: number, tag: string) {
+  private furnish(b: StaticBatch, id: RoomId, slots: number, tag: string, crate = false) {
     const P = this.p
     const def = ROOMS[id]
     const { x, z, w, d } = def.rect
@@ -339,10 +357,17 @@ export class World {
     // cash table near the door
     const cs = cashSpotOf(id)
     b.box(1.3, 0.06, 1.1, cs.x, 0.04, cs.z, 0x2f6b3a)
+    // kit crate (supply source) just inside the door
+    if (crate) {
+      const k = crateOf(id)
+      b.prop(P.lootbox, k.x, k.z, 0.2, 1.5)
+      b.box(0.9, 0.05, 0.9, k.x, 0.03, k.z, def.accent)
+      col(k.x - 0.45, k.x + 0.45, k.z - 0.45, k.z + 0.45)
+    }
     // decoration on the outer wall
-    b.prop(P.bookcase, outer - side * 0.45, z + 1.6, side > 0 ? -Math.PI / 2 : Math.PI / 2, 0.75)
-    b.prop(P.plant1, outer - side * 0.55, top + 0.55)
-    col(Math.min(outer, outer - side * 0.8), Math.max(outer, outer - side * 0.8), z + 0.8, z + 2.4)
+    b.prop(P.bookcase, outer - side * 0.45, top + 1.0, side > 0 ? -Math.PI / 2 : Math.PI / 2, 0.75)
+    b.prop(P.plant1, outer - side * 0.55, z + d / 2 - 0.5)
+    col(Math.min(outer, outer - side * 0.8), Math.max(outer, outer - side * 0.8), top + 0.2, top + 1.8)
     // one training station per slot
     for (let i = 0; i < slots; i++) {
       const p = slotOf(id, i)

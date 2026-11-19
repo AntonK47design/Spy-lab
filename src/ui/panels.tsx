@@ -8,7 +8,7 @@ import { state, rev } from '../game/store'
 import { game } from '../game/actions'
 import { ROOMS, type RoomId } from '../config/rooms'
 import { MISSIONS, missionById } from '../config/missions'
-import { ECONOMY, slotCost, speedCost } from '../config/economy'
+import { ECONOMY, speedCost } from '../config/economy'
 import { cycleTime, income, levelCost } from '../sim/academy'
 import { bestAgent, missionLock, missionReward } from '../sim/missions'
 import { panel, type Panel } from './uiState'
@@ -126,23 +126,62 @@ export function UpgradePanel(props: { room: RoomId }) {
   const ct = cycleTime(state, id)
   const nextInc = (inc / r.level) * (r.level + 1) * (ECONOMY.milestones.includes((r.level + 1) as never) ? 2 : 1)
   return (
-    <Folder title={t(`room.${id}`)} testid="panel-upgrade" onClose={closePanel}>
+    <Folder title={t(`room.${id}`)} testid="panel-upgrade" onClose={closePanel} tab={t('pad.office')}>
       <div class="room-sub">
         <span class={`skill-chip skill-${def.skill}`}>{t(`skill.${def.skill}`)}</span>
         <span>{t('upgrade.lv', { n: r.level })}</span>
-        <span class="muted">{t('upgrade.perSec', { n: fmt((inc * r.slots) / ct) })}</span>
+        <span class="muted">{t('upgrade.stations', { n: r.stations, max: ECONOMY.slots.max })}</span>
       </div>
       <UpRow icon={<IconUp />} label={t('upgrade.income')} value={fmt(inc)} next={fmt(nextInc)}
         cost={r.level < ECONOMY.maxRoomLevel ? levelCost(state, id) : null} testid="buy-level" onBuy={() => g.upgrade(id, 'level')} />
-      <UpRow icon={<IconPeople />} label={t('upgrade.slots')} value={`${r.slots}`} next={r.slots < ECONOMY.slots.max ? `${r.slots + 1}` : undefined}
-        cost={r.slots < ECONOMY.slots.max ? slotCost(r.slots) : null} testid="buy-slot" onBuy={() => g.upgrade(id, 'slot')} />
       <UpRow icon={<IconSpeed />} label={t('upgrade.speed')} value={`${ct.toFixed(1)}s`}
         next={r.speed < ECONOMY.speed.max ? `${(ct * ECONOMY.speed.factorPerLevel).toFixed(1)}s` : undefined}
         cost={r.speed < ECONOMY.speed.max ? speedCost(r.speed) : null} testid="buy-speed" onBuy={() => g.upgrade(id, 'speed')} />
-      <UpRow icon={<IconWhistle />} label={t('upgrade.instructor')} value={r.instructor ? t('upgrade.hired') : t('upgrade.instructorHint')}
-        cost={r.instructor ? null : def.instructorCost} testid="buy-instructor" onBuy={() => g.upgrade(id, 'instructor')} />
+      <div class="staff-row">
+        <span class={`staff-chip ${r.runner ? 'on' : ''}`}><IconPeople /> {t('staff.runner')}</span>
+        <span class={`staff-chip ${r.instructor ? 'on' : ''}`}><IconWhistle /> {t('staff.instructor')}</span>
+      </div>
+      <div class="muted small">{t('upgrade.staffHint')}</div>
     </Folder>
   )
+}
+
+/** Graduation payoff: keep the new agent (roster) or loan them out for a fee. */
+export function GraduatePanel() {
+  void rev.value
+  const p = state.pending[0]
+  if (!p) return null
+  const a = p.agent
+  const full = state.agents.length >= state.rosterLimit
+  const g = game()
+  const done = (keep: boolean) => {
+    g.resolveGraduate(keep)
+    if (state.pending.length) bumpPanel()
+    else closePanel()
+  }
+  return (
+    <Folder title={t('agent.graduated')} testid="panel-graduate" onClose={() => done(!full)} tab={t('stamp.new')}>
+      <div class={`agent-card big reveal rarity-${a.rarity}`}>
+        <div class="ac-rarity typewriter">{t(`rarity.${a.rarity}`)}</div>
+        <IconAgent class="ac-icon" />
+        <div class="ac-name">{a.name}</div>
+        <div class="ac-skills">
+          {(Object.entries(a.skills) as [string, number][]).map(([k, v]) => (
+            <div class="ac-sk"><span class="fit">{t(`skill.${k}`)}</span><b>{v}</b></div>
+          ))}
+        </div>
+      </div>
+      <div class="choice-row">
+        <Btn testid="btn-keep" onClick={() => done(true)} disabled={full}>{full ? t('grad.full') : t('grad.keep')}</Btn>
+        <Btn testid="btn-loan" kind="buy" onClick={() => done(false)}>{t('grad.loan', { fee: fmt(p.fee) })}</Btn>
+      </div>
+      <div class="muted small center">{t('agents.roster', { n: state.agents.length, max: state.rosterLimit })}</div>
+    </Folder>
+  )
+}
+
+function bumpPanel(): void {
+  panel.value = { kind: 'graduate' }
 }
 
 // ---------------------------------------------------------------- missions
@@ -286,6 +325,7 @@ export function PanelHost() {
     case 'briefing': return <BriefingPanel mission={p.mission} />
     case 'agents': return <AgentsPanel />
     case 'agent': return <AgentReveal agentId={p.agentId} />
+    case 'graduate': return <GraduatePanel />
     case 'levelup': return <LevelUpPanel level={p.level} />
     case 'welcome': return <WelcomePanel amount={p.amount} seconds={p.seconds} />
   }

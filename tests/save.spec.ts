@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { boot, expectClean, goTo, park, reload, solveSafe, spy, startFirstMission, state, watch } from './helpers'
+import { boot, expectClean, goTo, park, reload, solveSafe, spy, startFirstMission, state, trainingSetup, watch } from './helpers'
 
 test('progress, rooms, agents, tutorial and settings survive reload', async ({ page }) => {
   test.setTimeout(150_000)
@@ -71,7 +71,7 @@ test('writes are batched and throttled, flushed when the tab hides', async ({ pa
 test('offline earnings: hidden for 2 minutes -> welcome back popup', async ({ page }) => {
   await boot(page)
   await spy(page, 'skipTutorial')
-  await expect.poll(async () => (await spy<any>(page, 'raw')).cadets.filter((c: any) => c.phase === 'train').length, { timeout: 15_000 }).toBeGreaterThan(1)
+  await trainingSetup(page)
   const setHidden = (h: boolean) =>
     page.evaluate((hidden) => {
       Object.defineProperty(document, 'hidden', { configurable: true, get: () => hidden })
@@ -90,7 +90,7 @@ test('offline earnings: hidden for 2 minutes -> welcome back popup', async ({ pa
 test('offline earnings on boot use the saved lastSeen', async ({ page }) => {
   await boot(page)
   await spy(page, 'skipTutorial')
-  await expect.poll(async () => (await spy<any>(page, 'raw')).cadets.filter((c: any) => c.phase === 'train').length, { timeout: 15_000 }).toBeGreaterThan(1)
+  await trainingSetup(page)
   await spy(page, 'flushSave')
   // pretend the session ended an hour ago (debug-only override; pagehide always writes lastSeen = now)
   await page.addInitScript(() => ((window as any).__spylabAwayOverride = 3600))

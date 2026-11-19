@@ -19,7 +19,7 @@ import { missingKeys, lang } from '../i18n/i18n'
 import { panel, missionUi, type Panel } from '../ui/uiState'
 import { TUTORIAL } from '../game/tutorial'
 import { blockInterstitials } from '../platform/ads'
-import { cashSpotOf, padOf, upgradeSpotOf, type RoomId } from '../config/rooms'
+import { LAYOUT, cashSpotOf, crateOf, padOf, slotOf, staffPadOf, upgradeSpotOf, type RoomId } from '../config/rooms'
 import type { SafeCracker } from '../minigames/safe/SafeCracker'
 
 export function installDebugHooks(g: { renderer: ReturnType<typeof createRenderer>; game: Game }): void {
@@ -59,9 +59,36 @@ export function installDebugHooks(g: { renderer: ReturnType<typeof createRendere
       return flush()
     },
     teleport: (x: number, z: number) => game.teleport(x, z),
-    spot: (kind: 'cash' | 'pad' | 'upgrade', room: RoomId) =>
-      kind === 'cash' ? cashSpotOf(room) : kind === 'pad' ? padOf(room) : upgradeSpotOf(room),
+    spot: (kind: 'cash' | 'pad' | 'upgrade' | 'crate' | 'station' | 'staff' | 'serve' | 'welcome' | 'clerk', room: RoomId, slot = 0) => {
+      switch (kind) {
+        case 'cash': return cashSpotOf(room)
+        case 'pad': return padOf(room)
+        case 'upgrade': return upgradeSpotOf(room)
+        case 'crate': return crateOf(room)
+        case 'station': return slotOf(room, slot)
+        case 'staff': return staffPadOf(room)
+        case 'serve': return LAYOUT.serveSpot
+        case 'welcome': return LAYOUT.welcomeSpot
+        case 'clerk': return LAYOUT.clerkPad
+      }
+    },
+    /** Set up a playable academy instantly (for tests): desk, crate, one station, cash. */
+    quickStart: () => {
+      state.welcome = 0
+      state.counter = true
+      state.rooms.vault.stations = Math.max(1, state.rooms.vault.stations)
+      while (state.rooms.vault.supply.length < state.rooms.vault.stations) state.rooms.vault.supply.push(4)
+      state.rooms.vault.crate = true
+      game.world.syncCounter(true)
+      game.world.syncRooms(state)
+      persist(['core'])
+    },
     player: () => ({ x: game.player.x, z: game.player.z }),
+    /** Screen position (CSS px) of a world spot, e.g. to tap it. */
+    screenOf: (kind: 'crate' | 'cash' | 'upgrade', room: RoomId) => {
+      const p = kind === 'crate' ? crateOf(room) : kind === 'cash' ? cashSpotOf(room) : upgradeSpotOf(room)
+      return game.cam.project(p.x, 0.3, p.z, g.renderer.width, g.renderer.height)
+    },
     mgAction: () => game.minigameAction(),
     mgZoneOffset: () => (game.minigame as SafeCracker | null)?.debugZoneOffset() ?? null,
     stats: () => {
@@ -86,6 +113,10 @@ export function installDebugHooks(g: { renderer: ReturnType<typeof createRendere
       tutorial: state.tutorial,
       agents: state.agents.length,
       cadets: state.cadets.length,
+      carry: { ...state.carry },
+      pending: state.pending.length,
+      served: state.stats.served,
+      purchases: state.stats.purchases,
       rooms: Object.fromEntries(Object.entries(state.rooms).map(([k, r]) => [k, { ...r }])),
       missions: state.missions,
       flags: state.flags,
