@@ -26,6 +26,14 @@ class AudioManagerImpl {
     const AC: typeof AudioContext | undefined =
       window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
     if (!AC) return
+    // iOS/iPadOS: play like media, so the hardware/Control Center silent mode does not swallow
+    // Web Audio (Safari 16.4+; ignored elsewhere). The player can still mute in the game.
+    try {
+      const session = (navigator as unknown as { audioSession?: { type: string } }).audioSession
+      if (session) session.type = 'playback'
+    } catch {
+      /* not supported */
+    }
     this.ctx = new AC()
     this.master = this.ctx.createGain()
     this.musicGain = this.ctx.createGain()
@@ -41,11 +49,25 @@ class AudioManagerImpl {
 
     const unlock = () => {
       this.unlocked = true
+      // Safari only lets audio start inside a user gesture: resume right here, synchronously,
+      // then let the central state decide (it suspends again while muted/paused/in an ad).
+      const ctx = this.ctx
+      const done = () => {
+        window.removeEventListener('pointerdown', unlock, true)
+        window.removeEventListener('touchend', unlock, true)
+        window.removeEventListener('keydown', unlock, true)
+      }
+      if (ctx && ctx.state !== 'running') {
+        // keep listening until a gesture really starts the context (iOS may refuse the first one)
+        void ctx.resume().then(() => {
+          if (ctx.state === 'running') done()
+          this.applyMaster(isAudible.value)
+        }, () => {})
+      } else done()
       this.applyMaster(isAudible.value)
-      window.removeEventListener('pointerdown', unlock, true)
-      window.removeEventListener('keydown', unlock, true)
     }
     window.addEventListener('pointerdown', unlock, true)
+    window.addEventListener('touchend', unlock, true)
     window.addEventListener('keydown', unlock, true)
   }
 
