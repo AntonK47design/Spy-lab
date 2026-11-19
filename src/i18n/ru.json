@@ -198,5 +198,17 @@
   "mole.shirt.blue": "Синяя куртка",
   "mole.shirt.green": "Зелёная куртка",
   "mole.shirt.yellow": "Жёлтая куртка",
-  "mole.shirt.white": "Белая куртка"
+  "mole.shirt.white": "Белая куртка",
+  "region.snowpeak": "Снежный пик",
+  "lock.region": "Пройди прошлый регион",
+  "target.snowpeak_01": "Ледяной сапфир",
+  "target.snowpeak_02": "Книга подъёмника",
+  "target.snowpeak_03": "Ледяная корона",
+  "target.snowpeak_04": "Карта лавин",
+  "target.snowpeak_05": "Ключ ледника",
+  "target.snowpeak_06": "Рецепт какао",
+  "target.snowpeak_07": "Золотая снежинка",
+  "target.snowpeak_08": "Код канатной дороги",
+  "target.snowpeak_09": "Статуя полярной совы",
+  "target.snowpeak_10": "Колокол вершины"
 }

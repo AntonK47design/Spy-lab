@@ -7,7 +7,8 @@ import { showInterstitial } from '../platform/ads'
 import { state, rev } from '../game/store'
 import { game } from '../game/actions'
 import { ROOMS, type RoomId } from '../config/rooms'
-import { MISSIONS, missionById } from '../config/missions'
+import { MISSIONS, REGIONS, missionById, type RegionId } from '../config/missions'
+import { signal } from '@preact/signals'
 import { ECONOMY, speedCost } from '../config/economy'
 import { agentPower, cycleTime, income, levelCost, weakestAgent } from '../sim/academy'
 import { bestAgent, missionLock, missionReward } from '../sim/missions'
@@ -235,12 +236,32 @@ function bumpPanel(): void {
 }
 
 // ---------------------------------------------------------------- missions
+/** Region tab of the missions folder (defaults to the region of the next mission to win). */
+const missionRegion = signal<RegionId | null>(null)
+
+function currentRegion(): RegionId {
+  const next = MISSIONS.find((m) => !((state.missions[m.id]?.wins ?? 0) > 0))
+  return next?.region ?? REGIONS[REGIONS.length - 1]!
+}
+
 export function MissionsPanel() {
   void rev.value
+  const region = missionRegion.value ?? currentRegion()
+  const list = MISSIONS.filter((m) => m.region === region)
   return (
-    <Folder title={t('missions.title')} testid="panel-missions" onClose={closePanel} tab={t('region.harbor')} wide>
+    <Folder title={t('missions.title')} testid="panel-missions" onClose={() => { missionRegion.value = null; closePanel() }} tab={t(`region.${region}`)} wide>
+      <div class="region-tabs" role="tablist">
+        {REGIONS.map((r) => (
+          <button
+            role="tab" aria-selected={r === region} class={`region-tab ${r === region ? 'on' : ''}`} data-testid={`tab-region-${r}`}
+            onClick={() => { click(); missionRegion.value = r }}
+          >
+            {t(`region.${r}`)}
+          </button>
+        ))}
+      </div>
       <div class="mission-list">
-        {MISSIONS.map((m) => {
+        {list.map((m) => {
           const lock = missionLock(state, m)
           const p = state.missions[m.id]
           return (

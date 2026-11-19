@@ -1188,3 +1188,33 @@ button {
   box-shadow: 0 4px 0 var(--line-c), inset 0 -4px 0 var(--mustard-d); font-family: var(--font-display); font-weight: 600;
 }
 .mg-hint-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--line-c); }
+
+/* ---------- missions: region tabs ---------- */
+.region-tabs { display: flex; gap: 0.4em; flex-wrap: wrap; margin-bottom: calc(var(--gap) * .6); }
+.region-tab {
+  min-height: 44px; padding: 0 1em; border-radius: 12px; border: var(--line) solid var(--line-c);
+  background: var(--cream-d); color: var(--line-c); font-family: var(--font-display); font-weight: 600;
+}
+.region-tab.on { background: var(--mustard); box-shadow: 0 3px 0 var(--line-c); }
+
+/* ---------- Scooter Pursuit: catch-up bar + lane buttons ---------- */
+.mg-chase {
+  position: absolute; top: calc(var(--sa-top) + var(--gap) * 3 + var(--tap) * 1.45); left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 0.5em; width: min(86vw, 480px);
+}
+.chase-bar { flex: 1; height: 18px; border-radius: 99px; background: #0d1830; border: 3px solid #fff3e0; overflow: hidden; }
+.chase-fill { height: 100%; background: linear-gradient(90deg, #2f6bff, #5ad1ff); transition: width 0.15s linear; }
+.chase-me { width: 18px; height: 18px; border-radius: 50%; background: #2f6bff; border: 3px solid #fff3e0; }
+.chase-thief { position: relative; width: 26px; height: 22px; border-radius: 50% 50% 45% 45%; background: #1b1b24; border: 3px solid #fff3e0; }
+.chase-thief span { position: absolute; top: -9px; width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 9px solid #fff3e0; }
+.chase-thief span:first-child { left: 1px; }
+.chase-thief span:last-child { right: 1px; }
+.chase-chips { display: flex; align-items: center; gap: 0.2em; color: #5ad1ff; font-family: var(--font-display); font-weight: 600; font-size: 1.1em; }
+.mg-lane {
+  position: absolute; bottom: calc(var(--sa-bottom) + var(--gap) * 2); width: max(64px, calc(var(--tap) * 1.5)); height: max(64px, calc(var(--tap) * 1.5));
+  border-radius: 50%; display: grid; place-items: center; color: #fff3e0;
+  background: rgba(13, 24, 48, 0.55); border: 3px solid rgba(255, 243, 224, 0.85);
+}
+.mg-lane.left { left: calc(var(--sa-left) + var(--gap) * 1.5); }
+.mg-lane.right { right: calc(var(--sa-right) + var(--gap) * 1.5); }
+.mg-lane:active { background: rgba(242, 177, 52, 0.75); }

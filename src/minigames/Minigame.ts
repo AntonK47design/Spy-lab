@@ -58,6 +58,10 @@ export interface MinigameHud {
   hint?: { free: number }
   /** No big tap button: the player taps the play field. */
   noTap?: boolean
+  /** Scooter Pursuit: catch-up bar 0..1, left/right lane buttons, intel chips picked up. */
+  chase?: number
+  lanes?: boolean
+  chips?: number
 }
 
 /** Spot the Mole: one clue chip (hidden until revealed). */

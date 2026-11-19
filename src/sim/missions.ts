@@ -4,11 +4,12 @@ import { ROOMS } from '../config/rooms.ts'
 import { addXp, type SimEvents } from './academy.ts'
 import type { Agent, GameState } from './state.ts'
 
-export type MissionLock = 'ok' | 'agent' | 'room' | 'previous' | 'soon'
+export type MissionLock = 'ok' | 'agent' | 'room' | 'previous' | 'region' | 'soon'
 
 export function missionLock(s: GameState, m: MissionDef): MissionLock {
-  const prev = MISSIONS[m.index - 1]
-  if (prev && prev.region === m.region && !((s.missions[prev.id]?.wins ?? 0) > 0)) return 'previous'
+  // the mission before (in a new region: the last mission of the previous region)
+  const prev = MISSIONS[MISSIONS.indexOf(m) - 1]
+  if (prev && !((s.missions[prev.id]?.wins ?? 0) > 0)) return prev.region === m.region ? 'previous' : 'region'
   if (!s.rooms[m.room].unlocked) return 'room'
   if (!PLAYABLE_MINIGAMES.includes(m.minigame)) return 'soon'
   if (s.agents.length === 0) return 'agent'

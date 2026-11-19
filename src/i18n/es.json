@@ -198,5 +198,17 @@
   "mole.shirt.blue": "Chaqueta azul",
   "mole.shirt.green": "Chaqueta verde",
   "mole.shirt.yellow": "Chaqueta amarilla",
-  "mole.shirt.white": "Chaqueta blanca"
+  "mole.shirt.white": "Chaqueta blanca",
+  "region.snowpeak": "Snowpeak",
+  "lock.region": "Completa la región anterior",
+  "target.snowpeak_01": "El zafiro helado",
+  "target.snowpeak_02": "El libro del telesquí",
+  "target.snowpeak_03": "La corona de hielo",
+  "target.snowpeak_04": "El mapa de aludes",
+  "target.snowpeak_05": "La llave del glaciar",
+  "target.snowpeak_06": "La receta del cacao",
+  "target.snowpeak_07": "El copo de nieve dorado",
+  "target.snowpeak_08": "El código del teleférico",
+  "target.snowpeak_09": "La estatua del búho nival",
+  "target.snowpeak_10": "La campana de la cumbre"
 }

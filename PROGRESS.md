@@ -138,3 +138,10 @@ Plan: https://claude.ai/artifact/3VK5u4uetgNAqxG6wv9qhA (Fähre, Dead Drops, Sei
 - Stufen: Reisende, Hinweisanzahl 2→4, längere Abstände, Tempo, Ähnlichkeit (Doppelgänger); Charm-Skill verkürzt die Abstände (max −35 %). Erzeugung garantiert: genau eine Person passt auf alle Hinweise.
 - Missionen 7 und 10 spielbar. Tests: Mission 7 komplett (falscher Tipp, Tipp-Knopf, Maulwurf); alle 10 Stufen lösbar.
 - Code-Breaker-Löser im Test verbessert (Minimax statt „erste passende Kombination"): 10/10 Stufen.
+
+## Phase 2 · Minispiel 5: Scooter Pursuit + Region Snowpeak — 2026-11-19
+- Verfolgung auf 3 Spuren durch eine verschneite Straße (Kenney-Stadthäuser, Laternen, Schneewälle; 6 recycelte Segmente). Hindernisse: Fässer, Kisten, Mülltonnen, Autos (ab Stufe 4 wechseln Autos die Spur). Boost-Pads (×1,6 für 1,8 s), Intel-Chips (+1 Intel je Chip).
+- Aufhol-Leiste (eigener Punkt → Dieb mit Katzenohren) füllt sich, solange du schneller bist als der Dieb; Crash = Stillstand + Anfahren; 3 Crashes = Alarm. Sterne: 0 Crashes = 3, 1 = 2.
+- Steuerung: Pfeile/A-D, Wischen, Bildschirmhälfte antippen oder große Pfeil-Knöpfe. Geisterhand beim ersten Mal zeigt die Ausweichrichtung. Agility-Skill: bis +15 % Tempo. Revive: Crashes −1, +12 s.
+- Neue Region **Snowpeak** (10 Missionen: Scooter ×4, Circuit ×2, Safe, Laser, Code, Mole; Belohnungen wachsen weiter), Reiter im Missions-Ordner; freigeschaltet nach Harbor Bay. Circuit Hack folgt.
+- Tests: Snowpeak 1 komplett (Knöpfe, Tasten); alle 10 Stufen vom Planer ohne Fail gewonnen.

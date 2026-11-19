@@ -198,5 +198,17 @@
   "mole.shirt.blue": "Blaue Jacke",
   "mole.shirt.green": "Grüne Jacke",
   "mole.shirt.yellow": "Gelbe Jacke",
-  "mole.shirt.white": "Weiße Jacke"
+  "mole.shirt.white": "Weiße Jacke",
+  "region.snowpeak": "Snowpeak",
+  "lock.region": "Schließe die vorige Region ab",
+  "target.snowpeak_01": "Der gefrorene Saphir",
+  "target.snowpeak_02": "Das Skilift-Kassenbuch",
+  "target.snowpeak_03": "Die Eiskrone",
+  "target.snowpeak_04": "Die Lawinenkarte",
+  "target.snowpeak_05": "Der Gletscherschlüssel",
+  "target.snowpeak_06": "Das Kakao-Rezept",
+  "target.snowpeak_07": "Die goldene Schneeflocke",
+  "target.snowpeak_08": "Der Seilbahn-Code",
+  "target.snowpeak_09": "Die Schneeeulen-Statue",
+  "target.snowpeak_10": "Die Gipfelglocke"
 }

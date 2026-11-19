@@ -16,7 +16,7 @@ export interface MissionDef {
 }
 
 /** Minigames playable in the current build (others show "coming soon"). */
-export const PLAYABLE_MINIGAMES: MinigameId[] = ['safe', 'laser', 'code', 'mole']
+export const PLAYABLE_MINIGAMES: MinigameId[] = ['safe', 'laser', 'code', 'mole', 'scooter']
 
 const H: [MinigameId, RoomId, number][] = [
   ['safe', 'vault', 1],
@@ -31,16 +31,43 @@ const H: [MinigameId, RoomId, number][] = [
   ['mole', 'disguise', 2],
 ]
 
-export const MISSIONS: MissionDef[] = H.map(([minigame, room, tier], i) => ({
-  id: `harbor_${String(i + 1).padStart(2, '0')}`,
-  region: 'harbor' as RegionId,
-  index: i,
-  minigame,
-  tier,
-  room,
-  cash: Math.round(50 * Math.pow(1.75, i)),
-  intel: 3 + i * 2,
-}))
+/** Snowpeak: introduces Scooter Pursuit (Driving Simulator) and Circuit Hack (Hack Lab). */
+const S: [MinigameId, RoomId, number][] = [
+  ['scooter', 'driving', 1],
+  ['safe', 'vault', 5],
+  ['scooter', 'driving', 2],
+  ['laser', 'laser', 3],
+  ['circuit', 'hack', 1],
+  ['code', 'cipher', 3],
+  ['scooter', 'driving', 3],
+  ['mole', 'disguise', 3],
+  ['circuit', 'hack', 2],
+  ['scooter', 'driving', 4],
+]
+
+const REGION_LISTS: [RegionId, [MinigameId, RoomId, number][]][] = [
+  ['harbor', H],
+  ['snowpeak', S],
+]
+
+/** Regions with missions in this build, in order. */
+export const REGIONS: RegionId[] = REGION_LISTS.map(([r]) => r)
+
+export const MISSIONS: MissionDef[] = REGION_LISTS.flatMap(([region, list], ri) =>
+  list.map(([minigame, room, tier], i) => {
+    const n = ri * 10 + i // global ordinal: rewards keep growing across regions
+    return {
+      id: `${region}_${String(i + 1).padStart(2, '0')}`,
+      region,
+      index: i,
+      minigame,
+      tier,
+      room,
+      cash: Math.round(50 * Math.pow(1.75, n)),
+      intel: 3 + n * 2,
+    }
+  }),
+)
 
 export const MISSION_REWARDS = {
   /** Replaying an already won mission pays this share. */

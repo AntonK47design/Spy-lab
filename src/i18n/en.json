@@ -198,5 +198,17 @@
   "mole.shirt.blue": "Blue coat",
   "mole.shirt.green": "Green coat",
   "mole.shirt.yellow": "Yellow coat",
-  "mole.shirt.white": "White coat"
+  "mole.shirt.white": "White coat",
+  "region.snowpeak": "Snowpeak",
+  "lock.region": "Clear the previous region",
+  "target.snowpeak_01": "The Frozen Sapphire",
+  "target.snowpeak_02": "The Ski Lift Ledger",
+  "target.snowpeak_03": "The Ice Crown",
+  "target.snowpeak_04": "The Avalanche Map",
+  "target.snowpeak_05": "The Glacier Key",
+  "target.snowpeak_06": "The Cocoa Recipe",
+  "target.snowpeak_07": "The Golden Snowflake",
+  "target.snowpeak_08": "The Cable Car Code",
+  "target.snowpeak_09": "The Snow Owl Statue",
+  "target.snowpeak_10": "The Summit Bell"
 }

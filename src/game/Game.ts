@@ -38,6 +38,7 @@ import { track } from '../analytics/telemetry'
 import { SafeCracker } from '../minigames/safe/SafeCracker'
 import { LaserHall } from '../minigames/laser/LaserHall'
 import { SpotTheMole } from '../minigames/mole/SpotTheMole'
+import { ScooterPursuit } from '../minigames/scooter/ScooterPursuit'
 import { CodeBreaker } from '../minigames/code/CodeBreaker'
 import type { Minigame, MinigameResult } from '../minigames/Minigame'
 import { coachLine, infoCard, missionUi, moveHint, nextPopup, panel, queuePopup, showToast, type Panel } from '../ui/uiState'
@@ -644,7 +645,7 @@ export class Game {
     if (!m) return
     this.mg?.dispose()
     const mg: Minigame =
-      m.minigame === 'laser' ? new LaserHall() : m.minigame === 'code' ? new CodeBreaker() : m.minigame === 'mole' ? new SpotTheMole() : new SafeCracker()
+      m.minigame === 'laser' ? new LaserHall() : m.minigame === 'code' ? new CodeBreaker() : m.minigame === 'mole' ? new SpotTheMole() : m.minigame === 'scooter' ? new ScooterPursuit() : new SafeCracker()
     const skill = ROOMS[m.room].skill ?? 'finesse'
     const firstKey = `played_${m.minigame}`
     await mg.init(
@@ -668,6 +669,11 @@ export class Game {
 
   minigameAction(): void {
     if (this.canPlay()) this.mg?.action()
+  }
+
+  /** On-screen lane buttons (Scooter Pursuit). */
+  minigameMove(dir: 'left' | 'right'): void {
+    if (this.canPlay()) this.mg?.move?.(dir)
   }
 
   /** On-screen keypad (Code Breaker). */

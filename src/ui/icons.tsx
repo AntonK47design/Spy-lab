@@ -298,3 +298,13 @@ export const IconEye = (p: P) => (
     <circle cx="12" cy="12" r="3" />
   </Svg>
 )
+export const IconArrowLeft = (p: P) => (
+  <Svg {...p}>
+    <path d="M15 5l-7 7 7 7" />
+  </Svg>
+)
+export const IconArrowRight = (p: P) => (
+  <Svg {...p}>
+    <path d="M9 5l7 7-7 7" />
+  </Svg>
+)

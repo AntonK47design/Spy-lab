@@ -6,7 +6,7 @@ import { mgHud } from '../minigames/Minigame'
 import { missionUi } from './uiState'
 import { AdButton, Btn, Stars } from './common'
 import { openPause } from './panels'
-import { IconAd, IconBag, IconBolt, IconCash, IconCoat, IconEye, IconGlasses, IconHand, IconHat, IconHome, IconIntel, IconPause, IconRetry, IconTimer } from './icons'
+import { IconAd, IconArrowLeft, IconArrowRight, IconBag, IconBolt, IconCash, IconCoat, IconEye, IconGlasses, IconHand, IconHat, IconHome, IconIntel, IconPause, IconRetry, IconTimer } from './icons'
 import type { MoleClue } from '../minigames/Minigame'
 import { missionById } from '../config/missions'
 import { CODE } from '../config/minigames'
@@ -120,6 +120,24 @@ function PlayingHud() {
         </div>
       )}
       {h.clues && <Clues clues={h.clues} />}
+      {h.chase !== undefined && (
+        <div class="mg-chase" data-testid="mg-chase" aria-label={`${Math.round(h.chase * 100)}%`}>
+          <span class="chase-me" />
+          <div class="chase-bar"><div class="chase-fill" style={{ width: `${Math.max(0, Math.min(1, h.chase)) * 100}%` }} /></div>
+          <span class="chase-thief" aria-hidden="true"><span /><span /></span>
+          {h.chips !== undefined && <span class="chase-chips"><IconIntel /> {h.chips}</span>}
+        </div>
+      )}
+      {h.lanes && (
+        <>
+          <button class="mg-lane left" data-testid="btn-lane-left" aria-label="left" onPointerDown={(e) => { e.stopPropagation(); game().minigameMove('left') }}>
+            <IconArrowLeft size="1.6em" />
+          </button>
+          <button class="mg-lane right" data-testid="btn-lane-right" aria-label="right" onPointerDown={(e) => { e.stopPropagation(); game().minigameMove('right') }}>
+            <IconArrowRight size="1.6em" />
+          </button>
+        </>
+      )}
       {h.hint && (
         <button class="mg-hint-btn" data-testid="btn-mg-hint" onPointerDown={(e) => { e.stopPropagation(); void game().minigameHint() }}>
           {t('code.hint')} {h.hint.free > 0 ? <b>{t('code.free')}</b> : <IconAd />}
@@ -147,7 +165,7 @@ function Result() {
   return (
     <div class="modal-backdrop">
       <section class="folder result" data-testid="panel-result" role="dialog" aria-label={t('result.title')}>
-        <div class="folder-tab typewriter">{t('region.harbor')}</div>
+        <div class="folder-tab typewriter">{t(`region.${missionById(ui.mission)?.region ?? 'harbor'}`)}</div>
         <div class="stamp-big typewriter">{t('result.title')}</div>
         <Stars n={ui.stars} size="2.6em" stamp />
         <div class="reward-row big">

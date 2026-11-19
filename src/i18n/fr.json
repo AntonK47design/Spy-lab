@@ -198,5 +198,17 @@
   "mole.shirt.blue": "Veste bleue",
   "mole.shirt.green": "Veste verte",
   "mole.shirt.yellow": "Veste jaune",
-  "mole.shirt.white": "Veste blanche"
+  "mole.shirt.white": "Veste blanche",
+  "region.snowpeak": "Snowpeak",
+  "lock.region": "Termine la région précédente",
+  "target.snowpeak_01": "Le saphir gelé",
+  "target.snowpeak_02": "Le registre du téléski",
+  "target.snowpeak_03": "La couronne de glace",
+  "target.snowpeak_04": "La carte des avalanches",
+  "target.snowpeak_05": "La clé du glacier",
+  "target.snowpeak_06": "La recette du cacao",
+  "target.snowpeak_07": "Le flocon d'or",
+  "target.snowpeak_08": "Le code du téléphérique",
+  "target.snowpeak_09": "La statue du harfang",
+  "target.snowpeak_10": "La cloche du sommet"
 }

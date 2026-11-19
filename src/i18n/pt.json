@@ -198,5 +198,17 @@
   "mole.shirt.blue": "Casaco azul",
   "mole.shirt.green": "Casaco verde",
   "mole.shirt.yellow": "Casaco amarelo",
-  "mole.shirt.white": "Casaco branco"
+  "mole.shirt.white": "Casaco branco",
+  "region.snowpeak": "Snowpeak",
+  "lock.region": "Conclua a região anterior",
+  "target.snowpeak_01": "A safira congelada",
+  "target.snowpeak_02": "O livro do teleski",
+  "target.snowpeak_03": "A coroa de gelo",
+  "target.snowpeak_04": "O mapa de avalanches",
+  "target.snowpeak_05": "A chave da geleira",
+  "target.snowpeak_06": "A receita de cacau",
+  "target.snowpeak_07": "O floco de neve dourado",
+  "target.snowpeak_08": "O código do teleférico",
+  "target.snowpeak_09": "A estátua da coruja-das-neves",
+  "target.snowpeak_10": "O sino do cume"
 }

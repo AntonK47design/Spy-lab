@@ -183,3 +183,57 @@ export const MOLE = {
   shirts: [0xd9503a, 0x2f6fb0, 0x4c9b5a, 0xe8c23a, 0xf2f2f2] as number[],
   shirtNames: ['red', 'blue', 'green', 'yellow', 'white'] as const,
 } as const
+
+// ---------------------------------------------------------------- Scooter Pursuit (Agility)
+export interface ScooterTier {
+  /** Own cruising speed (m/s). */
+  speed: number
+  /** Head start of the thief (m) - the catch-up bar is full when it is closed. */
+  gap: number
+  /** Thief speed as a share of the own speed. */
+  thiefShare: number
+  /** Metres between obstacle rows. */
+  rowSpacing: number
+  /** Chance that a row blocks two lanes. */
+  doubleChance: number
+  /** Chance that a car in a row drifts into the next lane. */
+  driftChance: number
+  timeLimit: number
+}
+
+export const SCOOTER_TIERS: ScooterTier[] = [
+  { speed: 10, gap: 45, thiefShare: 0.72, rowSpacing: 22, doubleChance: 0, driftChance: 0, timeLimit: 40 },
+  { speed: 10.5, gap: 50, thiefShare: 0.72, rowSpacing: 20, doubleChance: 0.1, driftChance: 0, timeLimit: 40 },
+  { speed: 11, gap: 55, thiefShare: 0.74, rowSpacing: 19, doubleChance: 0.2, driftChance: 0, timeLimit: 42 },
+  { speed: 11.5, gap: 60, thiefShare: 0.75, rowSpacing: 18, doubleChance: 0.3, driftChance: 0.1, timeLimit: 44 },
+  { speed: 12, gap: 64, thiefShare: 0.76, rowSpacing: 17, doubleChance: 0.35, driftChance: 0.15, timeLimit: 45 },
+  { speed: 13, gap: 68, thiefShare: 0.77, rowSpacing: 17, doubleChance: 0.4, driftChance: 0.2, timeLimit: 46 },
+  { speed: 14, gap: 72, thiefShare: 0.78, rowSpacing: 17, doubleChance: 0.45, driftChance: 0.25, timeLimit: 48 },
+  { speed: 15, gap: 76, thiefShare: 0.79, rowSpacing: 17, doubleChance: 0.5, driftChance: 0.3, timeLimit: 50 },
+  { speed: 16, gap: 80, thiefShare: 0.8, rowSpacing: 17.5, doubleChance: 0.55, driftChance: 0.3, timeLimit: 52 },
+  { speed: 17, gap: 85, thiefShare: 0.8, rowSpacing: 18, doubleChance: 0.6, driftChance: 0.35, timeLimit: 55 },
+]
+
+export const SCOOTER = {
+  lanes: 3,
+  laneWidth: 2.2,
+  /** Seconds for one lane change. */
+  laneChangeSeconds: 0.16,
+  /** Agility skill: +speed share per point (max below). */
+  skillSpeedPerPoint: 0.004,
+  maxSkillSpeed: 0.15,
+  maxCrashes: 3,
+  /** After a crash: standstill + slow restart, then invulnerable (blinking). */
+  crashStopSeconds: 0.7,
+  invulnerableSeconds: 1.6,
+  /** Boost pad: speed multiplier for a while. */
+  boostMult: 1.6,
+  boostSeconds: 1.8,
+  /** Chance per row of a boost pad in a free lane, and of an intel chip. */
+  boostChance: 0.3,
+  chipChance: 0.35,
+  intelPerChip: 1,
+  /** Revive: crashes back to max-1, + seconds. */
+  reviveSeconds: 12,
+  /** Stars: 0 crashes = 3, 1 crash = 2, else 1. */
+} as const

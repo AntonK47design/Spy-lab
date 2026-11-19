@@ -198,5 +198,17 @@
   "mole.shirt.blue": "Mavi ceket",
   "mole.shirt.green": "Yeşil ceket",
   "mole.shirt.yellow": "Sarı ceket",
-  "mole.shirt.white": "Beyaz ceket"
+  "mole.shirt.white": "Beyaz ceket",
+  "region.snowpeak": "Snowpeak",
+  "lock.region": "Önceki bölgeyi bitir",
+  "target.snowpeak_01": "Donmuş Safir",
+  "target.snowpeak_02": "Telesiyej Defteri",
+  "target.snowpeak_03": "Buz Tacı",
+  "target.snowpeak_04": "Çığ Haritası",
+  "target.snowpeak_05": "Buzul Anahtarı",
+  "target.snowpeak_06": "Kakao Tarifi",
+  "target.snowpeak_07": "Altın Kar Tanesi",
+  "target.snowpeak_08": "Teleferik Kodu",
+  "target.snowpeak_09": "Kar Baykuşu Heykeli",
+  "target.snowpeak_10": "Zirve Çanı"
 }
