@@ -176,5 +176,7 @@
   "office.hire": "Recruter",
   "office.swap": "Remplacer le plus faible",
   "office.weaker": "Plus faible que l'équipe",
-  "office.sellAll": "Tout vendre +{fee}"
+  "office.sellAll": "Tout vendre +{fee}",
+  "pad.hire": "ENGAGER",
+  "pad.officeClerk": "SECRÉTAIRE"
 }

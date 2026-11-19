@@ -104,3 +104,10 @@ Plan: https://claude.ai/artifact/3VK5u4uetgNAqxG6wv9qhA (Fähre, Dead Drops, Sei
 - Laptop auf dem Schreibtisch öffnet das Büro-Menü: pro Absolvent Verkaufen (+Gebühr) / Einstellen, bei vollem Team „Gegen Schwächsten tauschen“; „Alle verkaufen“.
 - Auto-Schalter: bei vollem Team werden Absolventen, die nicht stärker als dein schwächster Agent sind, sofort verkauft (Stärke = Summe aller Skills).
 - Tutorial-Schritt „hire“ am Laptop. Sim: Beat Sheet OK; „Nichts bezahlbar“ jetzt 66 s (Ziel 60) und Erste Automatisierung 4:45 (Ziel 3:20) → Phase-3-Balancing.
+
+## Büro-Angestellter — 2026-11-19
+- Kaufbares Feld im Büro (450, ab dem ersten Absolventen). Der Angestellte steht hinter dem Schreibtisch.
+- Verkauft gewöhnliche Absolventen automatisch, sobald sie ~6 s im Büro warten; seltene und bessere warten weiter am Laptop.
+- Leert alle 8 s die Geldstapel aller Räume (Pop-up „+Betrag" über jedem Raum).
+- Bug behoben: Beim Umbau zum Laptop war der Text „EINSTELLEN" (pad.hire) für Laufbursche/Angestellte verloren gegangen; jetzt prüft ein Skript-Durchlauf, dass alle statischen Text-Keys in allen 7 Sprachen existieren.
+- Tests: 32/32 (inkl. neuem Angestellten-Test). Sim: Beat Sheet OK; die Kennzahlen „Nichts bezahlbar" (66 s) und „Erste Automatisierung" (4:45) bleiben Phase-3-Themen.

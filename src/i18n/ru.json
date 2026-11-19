@@ -176,5 +176,7 @@
   "office.hire": "Нанять",
   "office.swap": "Заменить слабейшего",
   "office.weaker": "Слабее команды",
-  "office.sellAll": "Продать всех +{fee}"
+  "office.sellAll": "Продать всех +{fee}",
+  "pad.hire": "НАНЯТЬ",
+  "pad.officeClerk": "СЕКРЕТАРЬ"
 }

@@ -115,6 +115,9 @@ export class Game {
         this.pads.sync(state)
         persist(['core', 'agents', 'meta'])
       },
+      clerkCollect: (room, cash) => {
+        if (this.mode === 'academy') this.popText(cashSpotOf(room), `+${formatNumber(cash, lang.value)}`, 'auto')
+      },
       autoSold: (cash) => {
         if (this.mode === 'academy') this.popText(OFFICE.laptopPad, `+${formatNumber(cash, lang.value)}`, 'auto')
         this.pads.sync(state)

@@ -51,6 +51,8 @@ export class CadetViews {
   private instructors = new Map<RoomId, Character>()
   private runners = new Map<RoomId, { ch: Character; t: number; x: number; z: number }>()
   private clerk: Character | null = null
+  private officeClerk: Character | null = null
+  private officeClerkLod = { far: 0 }
   /** Graduates walking to / waiting in the agency office, by agent id. */
   private office = new Map<number, View & { t: number; seat: number }>()
   /** cadet id -> graduate info, set by the graduate event right before the cadet leaves the sim. */
@@ -230,6 +232,18 @@ export class CadetViews {
     if (this.clerk) {
       this.clerk.activity = s.cadets.some((c) => c.phase === 'queue') ? 'train' : 'idle'
       this.clerk.update(dt)
+    }
+    // agency office clerk behind the desk, facing the hero side
+    if (s.officeClerk && !this.officeClerk) {
+      this.officeClerk = new Character({ model: 'agentM', tint: { shirt: 0x3b4f7a, pants: 0x1f2a44 }, scale: 0.95 })
+      this.officeClerk.root.position.set(OFFICE.clerkSpot.x, 0, OFFICE.clerkSpot.z)
+      this.officeClerk.root.rotation.y = Math.PI / 2
+      this.officeClerk.cheer(2)
+      this.parent.add(this.officeClerk.root)
+    }
+    if (this.officeClerk) {
+      this.officeClerk.activity = s.pending.length ? 'train' : 'idle'
+      this.animate(this.officeClerk, this.officeClerkLod, dt, OFFICE.clerkSpot.x, OFFICE.clerkSpot.z)
     }
     for (const id of Object.keys(s.rooms) as RoomId[]) {
       const r = s.rooms[id]

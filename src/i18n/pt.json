@@ -176,5 +176,7 @@
   "office.hire": "Contratar",
   "office.swap": "Trocar pelo mais fraco",
   "office.weaker": "Mais fraco que a equipe",
-  "office.sellAll": "Vender todos +{fee}"
+  "office.sellAll": "Vender todos +{fee}",
+  "pad.hire": "CONTRATAR",
+  "pad.officeClerk": "SECRETÁRIO"
 }

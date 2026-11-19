@@ -176,5 +176,7 @@
   "office.hire": "Hire",
   "office.swap": "Swap for weakest",
   "office.weaker": "Weaker than team",
-  "office.sellAll": "Sell all +{fee}"
+  "office.sellAll": "Sell all +{fee}",
+  "pad.hire": "HIRE",
+  "pad.officeClerk": "OFFICE CLERK"
 }

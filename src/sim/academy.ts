@@ -23,8 +23,10 @@ export interface SimEvents {
   served?(cadet: CadetState): void
   arrive?(cadet: CadetState): void
   graduate?(cadet: CadetState, agent: Agent, fee: number): void
-  /** Auto mode loaned out weak graduates for this much cash. */
+  /** Auto mode / office clerk loaned out graduates for this much cash. */
   autoSold?(cash: number): void
+  /** The office clerk collected a room's cash pile. */
+  clerkCollect?(room: RoomId, cash: number): void
   levelUp?(level: number): void
   unlock?(room: RoomId): void
   built?(what: string, room: RoomId | null): void
@@ -156,10 +158,32 @@ export function tick(s: GameState, dt: number, hero: HeroInput, ev: SimEvents = 
     }
   } else s.serveT = Math.max(0, s.serveT - dt * 2)
 
-  // agency office auto mode (laptop switch)
+  // agency office: waiting time, the office clerk, the auto mode (laptop switch)
   if (s.pending.length) {
-    const auto = autoSellWeak(s)
+    let auto = autoSellWeak(s)
+    for (const p of s.pending) p.age = (p.age ?? 0) + dt
+    if (s.officeClerk) {
+      for (let i = s.pending.length - 1; i >= 0; i--) {
+        const p = s.pending[i]!
+        if (p.agent.rarity !== 'common' || (p.age ?? 0) < ECONOMY.officeClerk.sellDelay) continue
+        s.pending.splice(i, 1)
+        s.cash += p.fee
+        s.stats.earned += p.fee
+        auto += p.fee
+      }
+    }
     if (auto > 0) ev.autoSold?.(auto)
+  }
+  // the office clerk empties every room's cash pile on a fixed round
+  if (s.officeClerk) {
+    s.officeTimer += dt
+    if (s.officeTimer >= ECONOMY.officeClerk.collectSeconds) {
+      s.officeTimer = 0
+      for (const id of trainingRooms(s)) {
+        const amount = collect(s, id)
+        if (amount > 0) ev.clerkCollect?.(id, amount)
+      }
+    }
   }
 
   // kit runners
@@ -444,6 +468,7 @@ export type PadTarget =
   | { kind: 'gate'; area: AreaId }
   | { kind: 'counter' }
   | { kind: 'clerk' }
+  | { kind: 'officeClerk' }
 
 export function canUnlock(s: GameState, id: RoomId): boolean {
   return !s.rooms[id].unlocked && s.areas[ROOM_AREA[id]] && s.level >= ROOMS[id].unlockLevel && nextUnlock(s) === id
@@ -472,6 +497,8 @@ export function padPrice(s: GameState, t: PadTarget): { cost: number; paid: numb
       return s.counter ? null : { cost: ECONOMY.counterCost, paid: s.counterPaid }
     case 'clerk':
       return !s.counter || s.clerk || s.stats.served < 3 ? null : { cost: ECONOMY.clerkCost, paid: s.clerkPaid }
+    case 'officeClerk':
+      return s.officeClerk || s.graduatedTotal < 1 ? null : { cost: ECONOMY.officeClerk.cost, paid: s.officeClerkPaid }
     case 'unlock':
       return canUnlock(s, t.room) ? { cost: ROOMS[t.room].unlockCost, paid: s.rooms[t.room].paid } : null
     case 'gate':
@@ -508,6 +535,14 @@ export function payPad(s: GameState, t: PadTarget, amount: number, ev: SimEvents
       if (done) {
         s.counter = true
         ev.built?.('counter', null)
+      }
+      break
+    case 'officeClerk':
+      s.officeClerkPaid += pay
+      if (done) {
+        s.officeClerk = true
+        s.stats.purchases++
+        ev.built?.('officeClerk', null)
       }
       break
     case 'clerk':

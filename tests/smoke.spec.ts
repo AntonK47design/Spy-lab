@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { boot, expectClean, goTo, spy, state, watch } from './helpers'
+import { boot, expectClean, goTo, park, spy, state, watch } from './helpers'
 
 test('boots: bridge first, game_ready after first frame, < 5 s, clean console', async ({ page }) => {
   const w = watch(page)
@@ -193,4 +193,29 @@ test('agency office laptop: sell, hire and auto-sell the weakest', async ({ page
     return s.pending.map((p: any) => pw(p.agent)).filter((p: number) => p <= floor).length
   })
   expect(left).toBe(0) // only stronger ones remain; they can be swapped in
+})
+
+test('office clerk: sells common graduates and collects every room pile on his round', async ({ page }) => {
+  test.setTimeout(90_000)
+  await boot(page)
+  await spy(page, 'quickStart')
+  await spy(page, 'skipTutorial')
+  await park(page)
+  await page.evaluate(() => {
+    const s = (window as any).__spylab.raw()
+    s.officeClerk = true
+    s.graduatedTotal = 1
+    s.rooms.vault.stack = 60
+  })
+  await spy(page, 'addGraduates', 2)
+  await page.evaluate(() => {
+    const s = (window as any).__spylab.raw()
+    s.pending[0].agent.rarity = 'common'
+    s.pending[1].agent.rarity = 'epic' // waits for the player
+  })
+  const cash0 = (await state(page)).cash
+  await expect.poll(async () => (await spy<any>(page, 'raw')).pending.length, { timeout: 20_000 }).toBe(1)
+  expect((await spy<any>(page, 'raw')).pending[0].agent.rarity).toBe('epic')
+  await expect.poll(async () => (await spy<any>(page, 'raw')).rooms.vault.stack, { timeout: 20_000 }).toBeLessThan(1)
+  expect((await state(page)).cash).toBeGreaterThan(cash0 + 60)
 })

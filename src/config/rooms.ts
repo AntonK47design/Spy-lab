@@ -189,6 +189,9 @@ export const OFFICE = {
   desk: { x: OFF_DOOR_X - 4.0, z: OFF_Z },
   /** Stand here at the laptop on the desk: opens the office menu (sell / hire / swap, auto mode). */
   laptopPad: { x: OFF_DOOR_X - 2.1, z: OFF_Z },
+  /** Build pad to hire the office clerk, and where the clerk then stands (behind the desk). */
+  clerkPad: { x: OFF_DOOR_X - 2.1, z: OFF_Z - 2.6 },
+  clerkSpot: { x: OFF_DOOR_X - 5.0, z: OFF_Z - 0.9 },
   /** Waiting bench seats behind the desk (graduates face the hero across the desk). */
   seats: [0, 1, 2, 3, 4, 5].map((i) => ({ x: -cx - W / 2 + 1.3, z: OFF_Z - 2.9 + i * 1.16 })),
 } as const

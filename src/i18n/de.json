@@ -176,5 +176,7 @@
   "office.hire": "Einstellen",
   "office.swap": "Gegen Schwächsten tauschen",
   "office.weaker": "Schwächer als Team",
-  "office.sellAll": "Alle verkaufen +{fee}"
+  "office.sellAll": "Alle verkaufen +{fee}",
+  "pad.hire": "EINSTELLEN",
+  "pad.officeClerk": "BÜROKRAFT"
 }

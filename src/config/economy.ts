@@ -9,6 +9,11 @@ export const ECONOMY = {
   /** Price of the cadet sign-up desk (first purchase, ~0:02). */
   counterCost: 10,
   clerkCost: 240,
+  /**
+   * Agency office clerk: sells common graduates after they waited sellDelay seconds (rare+ wait
+   * for the player) and empties every room's cash pile every collectSeconds.
+   */
+  officeClerk: { cost: 450, sellDelay: 6, collectSeconds: 8 },
   stationGrowth: 1.8,
   /** Training kits: hero carry capacity, basket size per station, pick/drop speed (s per kit). */
   supply: { carryMax: 5, basketMax: 4, pickSeconds: 0.12, dropSeconds: 0.12, runnerSecondsPerKit: 2.2 },

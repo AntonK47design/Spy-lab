@@ -102,6 +102,7 @@ function targetPos(tg: PadTarget, s: GameState): { x: number; z: number } {
   switch (tg.kind) {
     case 'counter': return LAYOUT.serveSpot
     case 'clerk': return LAYOUT.clerkPad
+    case 'officeClerk': return OFFICE.clerkPad
     case 'unlock': return padOf(tg.room)
     case 'station': return slotOf(tg.room, s.rooms[tg.room].stations)
     case 'crate': return crateOf(tg.room)
@@ -145,6 +146,7 @@ export class Pads {
     }
     push({ kind: 'counter' })
     push({ kind: 'clerk' })
+    push({ kind: 'officeClerk' })
     // the gate of the next closed area (dim until its requirements are met)
     for (const a of AREA_ORDER) if (!s.areas[a] && (nextArea(s) === a || AREA_ORDER.indexOf(a) === AREA_ORDER.findIndex((x) => !s.areas[x]))) {
       out.push({ kind: 'gate', room: null, target: { kind: 'gate', area: a }, ...gateOf(a) })
@@ -240,10 +242,11 @@ export class Pads {
       const what =
         p.kind === 'counter' ? t('pad.counter')
         : p.kind === 'clerk' ? t('pad.clerk')
+        : p.kind === 'officeClerk' ? t('pad.officeClerk')
         : p.kind === 'crate' ? t('pad.crate')
         : p.kind === 'station' ? t(`station.${p.room}`)
         : t(`staff.${nextStaff(s, p.room as RoomId)?.kind ?? 'runner'}`)
-      const verb = p.kind === 'clerk' || p.kind === 'staff' ? t('pad.hire') : t('pad.build')
+      const verb = p.kind === 'clerk' || p.kind === 'staff' || p.kind === 'officeClerk' ? t('pad.hire') : t('pad.build')
       key = `${p.kind}${left}${what}`
       if (key !== p.key || force) html = `${this.priceHtml(left, s.cash <= 0)}<div class="pad-title"><b>${verb}</b> ${what}</div>`
     }

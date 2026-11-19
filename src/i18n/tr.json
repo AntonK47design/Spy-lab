@@ -176,5 +176,7 @@
   "office.hire": "İşe al",
   "office.swap": "En zayıfla değiştir",
   "office.weaker": "Takımdan zayıf",
-  "office.sellAll": "Hepsini sat +{fee}"
+  "office.sellAll": "Hepsini sat +{fee}",
+  "pad.hire": "İŞE AL",
+  "pad.officeClerk": "SEKRETER"
 }

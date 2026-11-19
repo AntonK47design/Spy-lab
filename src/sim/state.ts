@@ -60,6 +60,8 @@ export interface Agent {
 export interface PendingGraduate {
   agent: Agent
   fee: number
+  /** Seconds spent waiting in the office (the office clerk sells common ones after a delay). */
+  age?: number
 }
 
 export interface MissionProgress {
@@ -86,6 +88,10 @@ export interface GameState {
   /** Counter clerk hired (automatic sign-up). */
   clerk: boolean
   clerkPaid: number
+  /** Agency office clerk hired (auto-sells common graduates, collects all room cash). */
+  officeClerk: boolean
+  officeClerkPaid: number
+  officeTimer: number
   /** Progress of the current sign-up (s). */
   serveT: number
   /** Kits the hero carries. */
@@ -142,6 +148,9 @@ export function newGame(): GameState {
     counterPaid: 0,
     clerk: false,
     clerkPaid: 0,
+    officeClerk: false,
+    officeClerkPaid: 0,
+    officeTimer: 0,
     serveT: 0,
     carry: { room: null, n: 0 },
     welcome: ECONOMY.welcomeCash,

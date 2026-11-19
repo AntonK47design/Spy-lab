@@ -32,6 +32,7 @@ function padPos(t: PadTarget, s: GameState): P {
   switch (t.kind) {
     case 'counter': return LAYOUT.serveSpot
     case 'clerk': return LAYOUT.clerkPad
+    case 'officeClerk': return OFFICE.clerkPad
     case 'unlock': return padOf(t.room)
     case 'station': return slotOf(t.room, s.rooms[t.room].stations)
     case 'staff': return staffPadOf(t.room)
@@ -41,7 +42,7 @@ function padPos(t: PadTarget, s: GameState): P {
 }
 
 function allPads(s: GameState): PadTarget[] {
-  const out: PadTarget[] = [{ kind: 'counter' }, { kind: 'clerk' }]
+  const out: PadTarget[] = [{ kind: 'counter' }, { kind: 'clerk' }, { kind: 'officeClerk' }]
   const nu = nextUnlock(s)
   if (nu) out.push({ kind: 'unlock', room: nu })
   const na = nextArea(s)
@@ -84,7 +85,7 @@ function runBot(seed: number, efficiency: number, seconds: number): Run {
     served: () => mark('first_served'),
     area: (a: string) => mark(`area_${a}`),
     built: (what: string) => {
-      if ((what === 'runner' || what === 'clerk' || what === 'instructor') && firstAutomation == null) firstAutomation = t()
+      if ((what === 'runner' || what === 'clerk' || what === 'instructor' || what === 'officeClerk') && firstAutomation == null) firstAutomation = t()
     },
   }
   const step = (sec: number) => {
@@ -122,7 +123,8 @@ function runBot(seed: number, efficiency: number, seconds: number): Run {
       continue
     }
     // 1a. graduates wait in the agency office: walk there, hire the first few, sell the rest
-    if (s.pending.length) {
+    // with the office clerk, common graduates are sold for the bot; only rare+ need a visit
+    if (s.pending.length && (!s.officeClerk || s.pending.some((p) => p.agent.rarity !== 'common') || s.agents.length < 1)) {
       walkTo(OFFICE.laptopPad)
       while (s.pending.length) {
         resolveGraduate(s, s.agents.length < 3)
