@@ -263,38 +263,102 @@ async function buildCharacter(id: CharacterId, tint?: Record<string, number>): P
   master.bones.forEach((b, i) => boneIndex.set(b.name, i))
 
   const parts: BufferGeometry[] = []
+  // skin colour = most common colour of the head mesh (used to protect skin from outfit tints)
+  let skin: Color | null = null
   for (const sm of skinned) {
     const mats = Array.isArray(sm.material) ? sm.material : [sm.material]
     const src = sm.geometry
     const remap = sm.skeleton.bones.map((b) => boneIndex.get(b.name) ?? 0)
     const groups = src.groups.length ? src.groups : [{ start: 0, count: src.index ? src.index.count : src.getAttribute('position').count, materialIndex: 0 }]
+    const isHead = /head/i.test(sm.name) || /head/i.test(sm.parent?.name ?? '')
     for (const g of groups) {
-      const mat = mats[g.materialIndex ?? 0] as Material & { color?: Color; name: string }
+      const mat = mats[g.materialIndex ?? 0] as Material & { color?: Color; name: string; map?: Texture | null }
       const base = new BufferGeometry()
       base.setAttribute('position', toFloat(src.getAttribute('position') as BufferAttribute, 3))
       base.setAttribute('normal', toFloat(src.getAttribute('normal') as BufferAttribute, 3))
       base.setAttribute('skinIndex', toFloat(src.getAttribute('skinIndex') as BufferAttribute, 4))
       base.setAttribute('skinWeight', toFloat(src.getAttribute('skinWeight') as BufferAttribute, 4))
+      const pixels = mat.map ? texturePixels(mat.map) : null
+      const uvSrc = src.getAttribute('uv') as BufferAttribute | undefined
+      if (pixels && uvSrc) base.setAttribute('uv', toFloat(uvSrc, 2))
       if (src.index) base.setIndex(src.index.clone())
       const geo = sliceGroup(base, g.start, g.count)
       base.dispose()
-      // bake this part's bind transform (incl. quantization scale/offset); merged mesh binds with identity
+      // bake this part's bind transform; merged mesh binds with identity
       geo.applyMatrix4(sm.bindMatrix)
       const si = geo.getAttribute('skinIndex') as BufferAttribute
+      const sw = geo.getAttribute('skinWeight') as BufferAttribute
       for (let i = 0; i < si.array.length; i++) (si.array as Float32Array)[i] = remap[si.array[i] as number] ?? 0
+      const baseCol = new Color()
       const c = tint?.[mat.name]
-      if (c !== undefined) tmpColor.setHex(c)
-      else if (mat.color) tmpColor.copy(mat.color)
-      else tmpColor.setRGB(0.8, 0.8, 0.8)
+      if (c !== undefined) baseCol.setHex(c)
+      else if (mat.color) baseCol.copy(mat.color)
+      else baseCol.setRGB(0.8, 0.8, 0.8)
       const n = geo.getAttribute('position').count
       const col = new Float32Array(n * 3)
+      const uv = geo.getAttribute('uv') as BufferAttribute | undefined
+      const counts = new Map<number, number>()
       for (let i = 0; i < n; i++) {
+        tmpColor.copy(baseCol)
+        if (pixels && uv) {
+          const u = uv.getX(i) - Math.floor(uv.getX(i))
+          const v = uv.getY(i) - Math.floor(uv.getY(i))
+          const px = Math.min(pixels.w - 1, Math.max(0, Math.floor(u * pixels.w)))
+          const py = Math.min(pixels.h - 1, Math.max(0, Math.floor(v * pixels.h)))
+          const o = (py * pixels.w + px) * 4
+          texel.setRGB(pixels.d[o]! / 255, pixels.d[o + 1]! / 255, pixels.d[o + 2]! / 255, SRGBColorSpace)
+          tmpColor.multiply(texel)
+          if (isHead) {
+            const key = (pixels.d[o]! << 16) | (pixels.d[o + 1]! << 8) | pixels.d[o + 2]!
+            counts.set(key, (counts.get(key) ?? 0) + 1)
+          }
+        }
         col[i * 3] = tmpColor.r
         col[i * 3 + 1] = tmpColor.g
         col[i * 3 + 2] = tmpColor.b
       }
+      if (isHead && counts.size) {
+        const top = [...counts.entries()].sort((a, b2) => b2[1] - a[1])[0]![0]
+        skin = new Color().setRGB(((top >> 16) & 255) / 255, ((top >> 8) & 255) / 255, (top & 255) / 255, SRGBColorSpace)
+      }
+      if (uv) geo.deleteAttribute('uv')
       geo.setAttribute('color', new Float32BufferAttribute(col, 3))
+      geo.userData = { head: isHead, sw }
       parts.push(geo)
+    }
+  }
+  // outfit tint by body region (Kenney rig): shirt = torso + arms, pants = legs; skin + shoes untouched
+  if (tint && (tint.shirt !== undefined || tint.pants !== undefined)) {
+    const names = master.bones.map((b) => b.name)
+    for (const geo of parts) {
+      if (geo.userData.head) continue
+      const pos = geo.getAttribute('position') as BufferAttribute
+      const col = geo.getAttribute('color') as BufferAttribute
+      const si = geo.getAttribute('skinIndex') as BufferAttribute
+      const swt = geo.getAttribute('skinWeight') as BufferAttribute
+      let minY = Infinity
+      let maxY = -Infinity
+      for (let i = 0; i < pos.count; i++) {
+        minY = Math.min(minY, pos.getY(i))
+        maxY = Math.max(maxY, pos.getY(i))
+      }
+      const footY = minY + (maxY - minY) * 0.12
+      const shirt = tint.shirt !== undefined ? new Color().setHex(tint.shirt) : null
+      const pants = tint.pants !== undefined ? new Color().setHex(tint.pants) : null
+      for (let i = 0; i < pos.count; i++) {
+        let best = 0
+        for (let k = 1; k < 4; k++) if (swt.getComponent(i, k) > swt.getComponent(i, best)) best = k
+        const bone = names[si.getComponent(i, best)] ?? ''
+        tmpColor.setRGB(col.getX(i), col.getY(i), col.getZ(i))
+        if (skin && Math.abs(tmpColor.r - skin.r) + Math.abs(tmpColor.g - skin.g) + Math.abs(tmpColor.b - skin.b) < 0.08) continue
+        const lum = tmpColor.r * 0.3 + tmpColor.g * 0.59 + tmpColor.b * 0.11
+        const shade = Math.min(1.15, 0.75 + lum * 0.8)
+        let target: Color | null = null
+        if (/torso|arm|chest|spine/i.test(bone)) target = shirt
+        else if (/leg/i.test(bone) && pos.getY(i) > footY) target = pants
+        if (!target) continue
+        col.setXYZ(i, target.r * shade, target.g * shade, target.b * shade)
+      }
     }
   }
   const { mergeGeometries } = await import('three/examples/jsm/utils/BufferGeometryUtils.js')

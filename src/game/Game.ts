@@ -274,6 +274,10 @@ export class Game {
     this.pads.update(dt)
     this.player.setCarry(state.carry.n, ROOM_KIT_COLOR[state.carry.room ?? 'vault'] ?? 0xf2b134)
     this.interact(dt)
+    if (state.welcome <= 0 && this.welcomeLabel) {
+      this.labels.remove(this.welcomeLabel)
+      this.welcomeLabel = null
+    }
     this.updateServe()
     this.updateGuide(dt)
     this.labels.update(this.cam, this.w, this.h)

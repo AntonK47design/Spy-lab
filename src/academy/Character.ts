@@ -5,7 +5,8 @@
 import { AnimationMixer, CircleGeometry, Group, Mesh, LoopOnce, LoopRepeat, type AnimationAction } from 'three'
 import { characterProto, instantiate } from '../render/assets'
 import { shadowMat } from '../render/materials'
-import type { CharacterId } from '../config/models'
+import { CLIPS, type CharacterId } from '../config/models'
+import { AnimationClip } from 'three'
 
 export interface Look {
   model: CharacterId
@@ -16,7 +17,16 @@ export interface Look {
 
 let shadowGeo: CircleGeometry | null = null
 
-type Clip = 'Idle' | 'Walk' | 'Run' | 'Wave' | 'Interact'
+type Clip = 'Idle' | 'Walk' | 'Run' | 'Wave' | 'Interact' | 'IdleLegs' | 'WalkLegs' | 'RunLegs'
+const ARM = /arm|hand/i
+
+/** Clip variant without arm tracks (legs/torso), so a carry pose can drive the arms. */
+function withoutArms(c: AnimationClip, name: string): AnimationClip {
+  return new AnimationClip(name, c.duration, c.tracks.filter((t) => !ARM.test(t.name.split('.')[0] ?? '')))
+}
+function onlyArms(c: AnimationClip, name: string): AnimationClip {
+  return new AnimationClip(name, c.duration, c.tracks.filter((t) => ARM.test(t.name.split('.')[0] ?? '')))
+}
 
 export class Character {
   /** Blob shadows (low tier) instead of real shadow maps. */
@@ -31,6 +41,9 @@ export class Character {
   walking = 0
   /** Running instead of walking when moving. */
   runner = false
+  /** Arms forward holding a stack (kits). */
+  carrying = false
+  private carryAction: AnimationAction | null = null
   activity: 'idle' | 'train' | 'cheer' = 'idle'
   ready = false
 
@@ -48,9 +61,19 @@ export class Character {
       const inst = instantiate(proto)
       this.root.add(inst)
       this.mixer = new AnimationMixer(inst)
-      for (const name of ['Idle', 'Walk', 'Run', 'Wave', 'Interact'] as Clip[]) {
-        const clip = proto.clips.find((c) => c.name === name)
-        if (clip) this.actions.set(name, this.mixer.clipAction(clip))
+      const find = (names: readonly string[]) => names.map((n) => proto.clips.find((c) => c.name === n)).find(Boolean)
+      for (const name of ['Idle', 'Walk', 'Run', 'Wave', 'Interact'] as const) {
+        const clip = find(CLIPS[name])
+        if (!clip) continue
+        this.actions.set(name, this.mixer.clipAction(clip))
+        if (name === 'Idle' || name === 'Walk' || name === 'Run') {
+          this.actions.set(`${name}Legs` as Clip, this.mixer.clipAction(withoutArms(clip, `${name}Legs`)))
+        }
+      }
+      const carry = find(CLIPS.Carry)
+      if (carry) {
+        this.carryAction = this.mixer.clipAction(onlyArms(carry, 'CarryArms'))
+        this.carryAction.setLoop(LoopRepeat, Infinity)
       }
       this.mixer.timeScale = 1
       this.ready = true
@@ -85,13 +108,20 @@ export class Character {
     if (!this.mixer) return
     if (this.oneShot > 0) this.oneShot -= dt
     let want: Clip
-    if (this.walking > 0.15) want = this.runner && this.walking > 0.6 ? 'Run' : 'Walk'
+    const carry = this.carrying && !!this.carryAction
+    if (this.walking > 0.15) want = this.runner && this.walking > 0.6 ? (carry ? 'RunLegs' : 'Run') : carry ? 'WalkLegs' : 'Walk'
+    else if (carry) want = 'IdleLegs'
     else if (this.oneShot > 0 || this.activity === 'cheer') want = 'Wave'
     else if (this.activity === 'train') want = 'Interact'
     else want = 'Idle'
     this.play(want)
+    if (this.carryAction) {
+      if (carry && !this.carryAction.isRunning()) this.carryAction.reset().fadeIn(0.15).play()
+      else if (!carry && this.carryAction.isRunning() && this.carryAction.getEffectiveWeight() > 0.99) this.carryAction.fadeOut(0.15)
+      if (!carry && this.carryAction.getEffectiveWeight() < 0.01) this.carryAction.stop()
+    }
     const a = this.current ? this.actions.get(this.current) : undefined
-    if (a && (this.current === 'Walk' || this.current === 'Run')) a.timeScale = 0.6 + this.walking * 0.6
+    if (a && /Walk|Run/.test(this.current ?? '')) a.timeScale = 0.6 + this.walking * 0.6
     this.mixer.update(dt)
   }
 

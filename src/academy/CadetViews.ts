@@ -12,7 +12,6 @@ import type { CadetState, GameState } from '../sim/state'
 const OUTFITS: Partial<Record<RoomId, number>> = {
   vault: 0x1f8a9a, laser: 0xd0453a, cipher: 0x3f9a5a, disguise: 0xd86aa0, driving: 0xf2b134, hack: 0x5a6ad8,
 }
-const CIVIL = [0x8a6ad8, 0x4f9ad8, 0xd8a04f, 0x6ab87a]
 
 interface View {
   ch: Character
@@ -58,11 +57,11 @@ export class CadetViews {
   constructor(private parent: Group) {}
 
   private look(c: CadetState): Look {
-    const outfit = c.room ? (OUTFITS[c.room] ?? 0x1f8a9a) : (CIVIL[c.id % CIVIL.length] as number)
-    const female = c.id % 2 === 0
-    return female
-      ? { model: 'cadetCasualW' as const, tint: { Orange: outfit, Grey: 0x2b3245 }, scale: 0.92 }
-      : { model: 'cadetHoodie' as const, tint: { Purple: outfit, LightBlue: 0x2b3245 }, scale: 0.92 }
+    const models = ['cadetM1', 'cadetF1', 'cadetM2', 'cadetF2', 'cadetM3', 'cadetF3'] as const
+    const model = models[c.id % models.length]!
+    // civilians keep their own clothes; assigned cadets wear the room's tracksuit (brand trousers)
+    if (!c.room) return { model, scale: 0.9 }
+    return { model, tint: { shirt: OUTFITS[c.room] ?? 0x2f6bff, pants: 0x2b3a7a }, scale: 0.9 }
   }
 
   private pathFor(c: CadetState): { x: number; z: number }[] {
@@ -158,7 +157,7 @@ export class CadetViews {
   /** Clerk at the counter, kit runners, instructors. */
   syncStaff(s: GameState, dt: number): void {
     if (s.clerk && !this.clerk) {
-      this.clerk = new Character({ model: 'formalW', tint: { Red: 0xf2665c }, scale: 0.95 })
+      this.clerk = new Character({ model: 'clerk', tint: { shirt: 0xff6b5e }, scale: 0.95 })
       this.clerk.root.position.set(LAYOUT.serveSpot.x + 1.2, 0, LAYOUT.serveSpot.z)
       this.clerk.root.rotation.y = 0
       this.clerk.cheer(2)
@@ -173,7 +172,7 @@ export class CadetViews {
       // instructor at the desk
       let ins = this.instructors.get(id)
       if (r.instructor && r.unlocked && !ins) {
-        ins = new Character({ model: 'instructorW', scale: 0.95 })
+        ins = new Character({ model: 'instructor', scale: 0.95 })
         const u = upgradeSpotOf(id)
         ins.root.position.set(u.x + ROOMS[id].side * 0.2, 0, u.z - 1.3)
         ins.root.rotation.y = Math.PI
@@ -186,7 +185,7 @@ export class CadetViews {
       // kit runner: shuttles between the crate and the stations
       let run = this.runners.get(id)
       if (r.runner && r.unlocked && !run) {
-        const ch = new Character({ model: 'instructorM', scale: 0.92 })
+        const ch = new Character({ model: 'runner', tint: { shirt: 0xff7a2e }, scale: 0.92 })
         const k = crateOf(id)
         ch.root.position.set(k.x, 0, k.z)
         ch.runner = false
@@ -211,6 +210,7 @@ export class CadetViews {
           run.ch.face(dx, dz, dt)
         }
         run.ch.walking = d > 0.05 ? 0.8 : 0
+        run.ch.carrying = leg % 2 === 1
         run.ch.activity = 'idle'
         run.ch.root.position.set(run.x, 0, run.z)
         this.animate(run.ch, null, dt, run.x, run.z)

@@ -95,7 +95,11 @@ for (const group of ['music', 'sfx']) {
 // ---------- models ----------
 // .gltf/.glb as is, .obj(+.mtl) via obj2gltf. Characters keep only the whitelisted animations
 // (no weapon / combat clips — content rule). Everything: prune, dedup, weld, quantize, meshopt.
-const KEEP_ANIMS = ['Idle', 'Idle_Neutral', 'Walk', 'Run', 'Wave', 'Interact']
+const KEEP_ANIMS = [
+  'Idle', 'Idle_Neutral', 'Walk', 'Run', 'Wave', 'Interact',
+  // Kenney Mini Characters (no shoot / attack / die clips — content rule)
+  'idle', 'walk', 'sprint', 'sit', 'pick-up', 'emote-yes', 'holding-both', 'interact-right',
+]
 /** Content rule: no weapons. Nodes with these names are removed from every model. */
 const WEAPON = /pistol|gun|rifle|sword|knife|blade|bow|grenade/i
 // Only build models the game references (src/config/models.ts) — packs contain hundreds.

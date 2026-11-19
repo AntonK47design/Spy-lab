@@ -86,27 +86,43 @@ export type ModelId = keyof typeof MODELS
 
 export interface CharacterDef {
   file: string
-  anims: 'men' | 'women'
+  anims: 'kenney'
   core: boolean
 }
 
+const ken = (n: string, core = true): CharacterDef => ({ file: `characters_kenney_character-${n}.glb`, anims: 'kenney', core })
+
+/** Kenney Mini Characters (CC0) — chunky, big heads (Kickoff look). Roles read by outfit. */
 export const CHARACTERS = {
-  director: { file: 'characters_men_Suit.glb', anims: 'men', core: true },
-  cadetHoodie: { file: 'characters_men_Casual_Hoodie.glb', anims: 'men', core: true },
-  cadetCasualW: { file: 'characters_women_Casual.glb', anims: 'women', core: true },
-  cadetCasual2: { file: 'characters_men_Casual_2.glb', anims: 'men', core: false },
-  cadetAdventurer: { file: 'characters_women_Adventurer.glb', anims: 'women', core: false },
-  agentSuitW: { file: 'characters_women_Suit.glb', anims: 'women', core: false },
-  formalW: { file: 'characters_women_Formal.glb', anims: 'women', core: false },
-  instructorM: { file: 'characters_men_Worker.glb', anims: 'men', core: false },
-  instructorW: { file: 'characters_women_Worker.glb', anims: 'women', core: false },
+  director: ken('male-d'), // black suit, red tie
+  cadetM1: ken('male-a'),
+  cadetF1: ken('female-a'),
+  cadetM2: ken('male-f'),
+  cadetF2: ken('female-d'),
+  cadetM3: ken('female-c', false),
+  cadetF3: ken('female-e', false),
+  clerk: ken('female-b', false), // gets the coral bakery apron colour
+  runner: ken('male-b', false), // orange runner shirt
+  instructor: ken('male-e', false), // white coat + glasses
+  agentM: ken('male-c', false),
+  agentF: ken('female-f', false),
 } as const satisfies Record<string, CharacterDef>
 
 export type CharacterId = keyof typeof CHARACTERS
 
 export const ANIM_LIBS = {
-  men: 'anims_characters_men.glb',
-  women: 'anims_characters_women.glb',
+  kenney: 'anims_characters_kenney.glb',
 } as const
 
-export const CHARACTER_HEIGHT = 1.75
+export const CHARACTER_HEIGHT = 1.7
+
+/** Clip names per role in the shared library (first match wins). */
+export const CLIPS = {
+  Idle: ['idle', 'Idle'],
+  Walk: ['walk', 'Walk'],
+  Run: ['sprint', 'Run'],
+  Wave: ['emote-yes', 'Wave'],
+  Interact: ['interact-right', 'Interact'],
+  Carry: ['holding-both'],
+  Sit: ['sit'],
+} as const

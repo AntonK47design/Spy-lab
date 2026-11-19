@@ -1,0 +1,15 @@
+<!doctype html><html><head><base href="/"></head><body style="margin:0"><script type="module">
+import * as THREE from 'three'
+import { Character } from '/src/academy/Character.ts'
+import { CHARACTERS } from '/src/config/models.ts'
+const r = new THREE.WebGLRenderer({ antialias: true }); r.setSize(1200, 420); document.body.appendChild(r.domElement)
+r.toneMapping = THREE.ACESFilmicToneMapping
+const s = new THREE.Scene(); s.background = new THREE.Color(0x1e1a33)
+s.add(new THREE.HemisphereLight(0xeef4ff, 0x4a3d66, 1.45)); const d = new THREE.DirectionalLight(0xfff0d6, 2.4); d.position.set(-3, 6, 5); s.add(d)
+const cam = new THREE.PerspectiveCamera(30, 1200 / 420, 0.1, 100); cam.position.set(0, 2.2, 11); cam.lookAt(0, 0.9, 0)
+const ids = Object.keys(CHARACTERS); const chars = []
+ids.forEach((id, i) => { const c = new Character({ model: id, tint: id.startsWith('cadet') ? { shirt: 0x1f8a9a, pants: 0x2b3a7a } : undefined }); c.root.position.x = (i - (ids.length - 1) / 2) * 1.25; s.add(c.root); chars.push(c) })
+const clock = new THREE.Clock()
+function f() { const dt = clock.getDelta(); for (const c of chars) c.update(dt); r.render(s, cam); requestAnimationFrame(f) } f()
+setTimeout(() => window.done = true, 2500)
+</script></body></html>

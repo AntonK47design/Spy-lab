@@ -8,7 +8,7 @@ const R = 0.36
 
 /** The director: walks with the joystick / keys, collides with walls and furniture. */
 export class Player {
-  readonly char = new Character({ model: 'director', tint: { Suit: 0x1e2a48, Tie: 0xf2665c }, scale: 1.05 })
+  readonly char = new Character({ model: 'director', scale: 1.05 })
   x: number = LAYOUT.playerSpawn.x
   z: number = LAYOUT.playerSpawn.z
   speed: number = ECONOMY.player.speed
@@ -31,7 +31,7 @@ export class Player {
       m.visible = false
       this.stack.add(m)
     }
-    this.stack.position.set(0, 1.0, 0.38)
+    this.stack.position.set(0, 0.62, 0.42)
     this.char.root.add(this.stack)
   }
 
@@ -51,6 +51,7 @@ export class Player {
   }
 
   setCarry(n: number, color: number): void {
+    this.char.carrying = n > 0
     this.stack.children.forEach((m, i) => (m.visible = i < n))
     this.kitMat.color.setHex(color)
   }

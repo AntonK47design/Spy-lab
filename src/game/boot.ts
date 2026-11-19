@@ -52,7 +52,7 @@ export async function start(progress: (p: number) => void): Promise<void> {
   await audio
   const world = new World()
   await world.init()
-  await Promise.all([characterProto('director', { Suit: 0x1e2a48, Tie: 0xf2665c })])
+  await Promise.all([characterProto('director')])
   await timeSync
 
   // 4. Renderer + world + UI.
