@@ -78,3 +78,12 @@
 - Cash als Bündel mit Banderole. Kein Pause-Button in der Akademie (nur in Missionen).
 - Stationen, Kisten und Anmeldetisch bauen sich mit Animation auf (Fall, Stauchen, Staub, Funken, ~0,9 s); Spielwerte unverändert.
 - Tests: 30 Funktionstests + Layout-Matrix 45/45 grün. Debug: `fxSlow(k)`, `buildStation(room)`.
+
+## Map 2.0 · Schritt 1: Innenhof (HQ) — 2026-11-19
+Plan: https://claude.ai/artifact/3VK5u4uetgNAqxG6wv9qhA (Fähre, Dead Drops, Seilrutsche entschieden).
+- Flur → 12 m breiter Innenhof hinter der Bäckerei. Mission Control ist kein Raum mehr, sondern das Wahrzeichen in der Hofmitte (Rundweg, Rasen, Holo-Kartentisch mit drehendem Hologramm, Konsolen, Satellitenschüssel).
+- Laser Gym (links) und Vault (rechts) direkt hinter der Bäckerei; hintere Reihe: zwei Lounges, in der Mitte das Hafen-Tor.
+- Geheimtür: Die Bäckerei-Rückwand ist ein Brotregal, das beim Bau des Anmeldetischs auseinanderfährt (für Rückkehrer offen). Küche in die linke Ecke verlegt.
+- Werte unverändert. Sim: Beat Sheet erste 3 Min OK; Hafen 8:13 (Ziel 10:00); „Erste Automatisierung" 4:24 (Ziel 3:20, war schon vorher spät → Phase 3).
+- Tests: 31/31 Funktionstests grün (inkl. echtem Laufweg durch die Regaltür). Draw Calls ~29.
+- Nächster Schritt laut Plan: Hafen-Docks (Garagentor, Rampe, Kran).

@@ -136,6 +136,8 @@ export class Game {
         if (what === 'counter') {
           this.world.syncCounter(true)
           this.world.playBuild(state, 'counter', null)
+          // the bread shelves slide apart and reveal the secret courtyard
+          this.world.syncSecretDoor(true, true)
           // the desk now stands where the hero was: put the hero behind it, ready to serve
           this.player.x = LAYOUT.serveSpot.x
           this.player.z = LAYOUT.serveSpot.z
@@ -179,6 +181,7 @@ export class Game {
     this.world.syncAreas(state)
     this.world.syncRooms(state)
     this.world.syncCounter(state.counter)
+    this.world.syncSecretDoor(state.counter, false)
     this.pads.sync(state)
     if (state.welcome > 0) {
       this.welcomeLabel = this.labels.add('pop-static', LAYOUT.welcomeSpot.x, 0.9, LAYOUT.welcomeSpot.z, 'welcome-cash')

@@ -171,15 +171,14 @@ export class World {
     b.rbox(2.3, 0.03, 1.1, 0, 0.02, front + 0.7, PAL.coral, 0.02)
     b.rbox(2.0, 0.035, 0.85, 0, 0.025, front + 0.7, 0x9c3b2f, 0.02)
 
-    // back wall: pastry kitchen + the secret oven (left of the corridor)
-    b.prop(P.shelfPaper, -8.4, back + 0.35, 0, 1, 1.2)
-    b.prop(P.stove, -6.4, back + 1.05)
-    b.prop(P.fridge, -8.6, back + 1.05)
-    b.prop(P.counterDeco, -4.6, back + 1.0)
-    this.colliders.push({ minX: -9.6, maxX: -3.7, minZ: back, maxZ: back + 2 })
-    // secret oven left of the back door (keeps the lane behind the counter free)
-    b.prop(P.oven, -2.9, back + 1.0, 0, 0.75)
-    this.colliders.push({ minX: -3.7, maxX: -2.1, minZ: back, maxZ: back + 1.9 })
+    // back wall: pastry kitchen in the left corner; the middle of the wall is the hidden
+    // passage into the courtyard (bread shelves slide aside, see syncSecretDoor)
+    const pw2 = LAYOUT.corridorWidth / 2
+    b.prop(P.fridge, -11.7, back + 1.05)
+    b.prop(P.shelfPaper, -10.5, back + 0.35, 0, 1, 1.2)
+    b.prop(P.stove, -9.2, back + 1.05)
+    b.prop(P.oven, -7.5, back + 1.0, 0, 0.75)
+    this.colliders.push({ minX: -12.4, maxX: -6.6, minZ: back, maxZ: back + 2 })
     // crates of buns by the door, menu sign
     b.prop(P.crateBuns, -3.4, front - 0.9, 0.3, 0.45)
     b.prop(P.crateBuns, -3.4, front - 0.9, 0.1, 0.45, 0.34)
@@ -194,8 +193,11 @@ export class World {
     b.prop(P.cactus, -9.4, front - 0.6)
     b.prop(P.cactus, 9.4, front - 0.6)
     b.prop(P.lamp, 9.3, back + 0.6)
-    b.prop(P.pillar, -2.25, back + 0.15, 0, 0.6)
-    b.prop(P.pillar, 2.25, back + 0.15, 0, 0.6)
+    // posts framing the passage
+    for (const sx of [-1, 1]) {
+      b.rbox(0.5, BACK_WALL + 0.3, 0.5, sx * (pw2 + 0.05), (BACK_WALL + 0.3) / 2, back, 0x7a3e2b, 0.06)
+      b.rbox(0.62, 0.16, 0.62, sx * (pw2 + 0.05), BACK_WALL + 0.36, back, PAL.bakeryTrim, 0.04)
+    }
 
     return b.build()
   }
@@ -434,6 +436,7 @@ export class World {
   }
 
   private buildRoom(id: RoomId, unlocked: boolean, slots: number, crate: boolean): { solid: BufferGeometry; ghost: BufferGeometry | null } {
+    if (id === 'mission_control') return { solid: this.buildHub(), ghost: null }
     const def = ROOMS[id]
     const { x, z, w, d } = def.rect
     const side = def.side
@@ -489,22 +492,6 @@ export class World {
     b.rbox(2.4, 0.56, 0.08, x, 1.9, top + 0.22, PAL.white, 0.04)
     b.rbox(2.2, 0.4, 0.04, x, 1.9, top + 0.27, def.accent, 0.02)
 
-    if (id === 'mission_control') {
-      b.prop(P.frameLarge, x - 1.4, top + 0.28, 0, 1.2, 1.3)
-      b.prop(P.frameLargeB, x + 1.4, top + 0.28, 0, 1.2, 1.3)
-      b.prop(P.deskLong, x - 1.8, top + 1.2)
-      b.prop(P.deskLong, x + 1.8, top + 1.2)
-      b.prop(P.lampTable, x - 2.6, top + 1.0, 0, 1, 0.85)
-      b.prop(P.books, x + 2.4, top + 1.1, 0, 1, 0.85)
-      b.prop(P.officeChair, x - 1.8, top + 2.2, Math.PI)
-      b.prop(P.officeChair, x + 1.8, top + 2.2, Math.PI)
-      col(x - 3.2, x + 3.2, top, top + 2.0)
-      b.prop(P.rugStripes, x + side * 0.5, z + 1.4, 0, 0.9, 0.01)
-      b.prop(P.cabinet, outer - side * 0.55, z + 1.6, face)
-      col(Math.min(outer, outer - side * 1.0), Math.max(outer, outer - side * 1.0), z + 0.7, z + 2.5)
-      b.prop(P.cactus, outer - side * 0.55, top + 0.5)
-      return
-    }
     // office desk (upgrades)
     const u = upgradeSpotOf(id)
     const dx = u.x + side * 0.9
@@ -532,6 +519,156 @@ export class World {
       const p = slotOf(id, i)
       this.station(b, id, p.x, p.z - 0.85, def.accent)
     }
+  }
+
+  // ---------------------------------------------------------------- courtyard hub
+  /** Mission Control as an open-air landmark: paved ring path, holo map table, satellite dish. */
+  private buildHub(): BufferGeometry {
+    const P = this.p
+    const b = new StaticBatch()
+    const r = ROOMS.mission_control.rect
+    const hx = r.x
+    const hz = r.z
+    const tag = 'room:mission_control'
+    const col = (minX: number, maxX: number, minZ: number, maxZ: number) => this.colliders.push({ minX, maxX, minZ, maxZ, id: tag })
+    // ring path (the courtyard loop) with a curb on both sides
+    const N = 28
+    for (let i = 0; i < N; i++) {
+      const a0 = (i / N) * Math.PI * 2
+      const am = a0 + Math.PI / N
+      const rr = 4.6
+      b.box(1.12, 0.06, 1.3, hx + Math.cos(am) * rr, 0.06, hz + Math.sin(am) * rr, i % 2 ? PAL.pavingA : PAL.pavingB, -am + Math.PI / 2)
+      b.box(1.1, 0.12, 0.12, hx + Math.cos(am) * (rr + 0.72), 0.08, hz + Math.sin(am) * (rr + 0.72), PAL.curbTop, -am + Math.PI / 2)
+      b.box(0.95, 0.12, 0.12, hx + Math.cos(am) * (rr - 0.72), 0.08, hz + Math.sin(am) * (rr - 0.72), PAL.curbTop, -am + Math.PI / 2)
+    }
+    // lawn inside the ring
+    b.cyl(3.85, 3.85, 0.06, hx, 0.05, hz, 0x6fbf5e, 28)
+    // planters on the diagonals
+    for (const [dx, dz] of [[-2.6, -2.6], [2.6, -2.6], [-2.6, 2.6], [2.6, 2.6]] as const) {
+      b.rbox(0.9, 0.45, 0.9, hx + dx, 0.24, hz + dz, PAL.wood, 0.08)
+      b.prop(P.bush, hx + dx, hz + dz, (dx + dz) * 0.3, 0.8, 0.42)
+    }
+    // dais + holo table
+    b.cyl(1.7, 1.85, 0.22, hx, 0.13, hz, PAL.steelDark, 20)
+    b.cyl(1.15, 1.25, 0.78, hx, 0.62, hz, PAL.steel, 20)
+    b.cyl(1.2, 1.2, 0.08, hx, 1.04, hz, PAL.dark, 20)
+    b.cyl(1.02, 1.02, 0.03, hx, 1.09, hz, 0x46c2cb, 20)
+    col(hx - 1.5, hx + 1.5, hz - 1.5, hz + 1.5)
+    // two operator consoles facing the table
+    for (const sx of [-1, 1]) {
+      b.rbox(0.9, 0.85, 0.55, hx + sx * 2.3, 0.43, hz - 0.6, PAL.steelDark, 0.08)
+      b.rbox(0.8, 0.5, 0.08, hx + sx * 2.3, 1.05, hz - 0.85, 0x2a7a87, 0.04)
+      b.rbox(0.66, 0.36, 0.06, hx + sx * 2.3, 1.06, hz - 0.8, 0x7cd6e0, 0.03)
+      col(hx + sx * 2.3 - 0.5, hx + sx * 2.3 + 0.5, hz - 0.9, hz - 0.3)
+    }
+    // satellite dish behind the table
+    const dz = hz - 2.4
+    b.cyl(0.12, 0.16, 2.2, hx, 1.1, dz, PAL.steelDark, 8)
+    b.cyl(0.95, 0.35, 0.28, hx, 2.35, dz + 0.1, 0xe8edf4, 18, -0.75)
+    b.cyl(0.05, 0.05, 0.8, hx, 2.6, dz + 0.45, PAL.steelDark, 6, -0.75)
+    b.sphere(0.1, hx, 2.86, dz + 0.72, PAL.coral)
+    col(hx - 0.3, hx + 0.3, dz - 0.3, dz + 0.3)
+    // lamp posts on the ring
+    for (const [dx, dz2] of [[-4.6, 0], [4.6, 0]] as const) {
+      b.prop(P.streetlight, hx + dx, hz + dz2, dx > 0 ? Math.PI : 0, 0.85)
+      col(hx + dx - 0.2, hx + dx + 0.2, hz + dz2 - 0.2, hz + dz2 + 0.2)
+    }
+    return b.build()
+  }
+
+  private holo: Mesh | null = null
+
+  /** Rotating hologram of the world map above the hub table (one extra draw call). */
+  private ensureHolo(): void {
+    if (this.holo) return
+    const r = ROOMS.mission_control.rect
+    const g = new StaticBatch()
+    g.cyl(0.9, 0.9, 0.02, 0, 0, 0, 0x7cd6e0, 24)
+    for (let i = 0; i < 5; i++) g.rbox(0.3 + (i % 3) * 0.12, 0.05, 0.2 + (i % 2) * 0.14, Math.cos(i * 1.3) * 0.45, 0.04, Math.sin(i * 1.3) * 0.45, 0xf2b134, 0.02)
+    g.sphere(0.07, 0.3, 0.12, -0.2, PAL.coral)
+    this.holo = new Mesh(g.build(), new MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.75, depthWrite: false }))
+    this.holo.position.set(r.x, 1.45, r.z)
+    this.scene.add(this.holo)
+  }
+
+  // ---------------------------------------------------------------- secret door
+  private secret: { l: Mesh; r: Mesh; t: number; open: boolean } | null = null
+
+  private shelfHalf(): BufferGeometry {
+    const P = this.p
+    const b = new StaticBatch()
+    const w = LAYOUT.corridorWidth / 2 - 0.1
+    b.rbox(w, 2.35, 0.5, 0, 1.18, 0, 0x7a3e2b, 0.05)
+    b.rbox(w - 0.2, 2.1, 0.06, 0, 1.18, 0.2, 0xfff3e0, 0.02)
+    for (const y of [0.55, 1.2, 1.85]) {
+      b.rbox(w - 0.2, 0.06, 0.4, 0, y, 0.02, 0x9b5a3c, 0.02)
+      // chunky loaves, baguettes and jars so the wall reads as a bakery shelf from far away
+      const n = 6
+      for (let i = 0; i < n; i++) {
+        const x = -w / 2 + 0.55 + i * ((w - 1.1) / (n - 1))
+        const k = (i + Math.round(y * 10)) % 4
+        if (k === 0) b.prop(P.jarA, x, 0.05, 0, 0.55, y + 0.03)
+        else if (k === 1) {
+          b.rbox(0.62, 0.16, 0.22, x, y + 0.11, 0.05, 0xc9853f, 0.08, 0.15)
+          b.rbox(0.5, 0.05, 0.12, x, y + 0.2, 0.05, 0xe8b46a, 0.025, 0.15)
+        } else {
+          b.rbox(0.42, 0.26, 0.3, x, y + 0.16, 0.04, 0xb8702f, 0.12)
+          b.rbox(0.3, 0.06, 0.2, x, y + 0.3, 0.04, 0xe0a55c, 0.03)
+        }
+      }
+    }
+    return b.build()
+  }
+
+  /** The bread-shelf wall that hides the courtyard; slides apart once the sign-up desk exists. */
+  syncSecretDoor(open: boolean, animate: boolean): void {
+    const back = LAYOUT.bakery.z - LAYOUT.bakery.d / 2
+    if (!this.secret) {
+      const g = this.shelfHalf()
+      const l = new Mesh(g, flatMat)
+      const r = new Mesh(g, flatMat)
+      for (const m of [l, r]) {
+        m.castShadow = true
+        m.receiveShadow = true
+        m.position.z = back - 0.32
+        this.scene.add(m)
+      }
+      this.secret = { l, r, t: open ? 1 : 0, open }
+      this.ensureHolo()
+    }
+    const sd = this.secret
+    sd.open = open
+    if (!animate) sd.t = open ? 1 : 0
+    this.placeSecret()
+    for (let i = this.colliders.length - 1; i >= 0; i--) if (this.colliders[i]!.id === 'secret_door') this.colliders.splice(i, 1)
+    const half = LAYOUT.corridorWidth / 2
+    if (!open) this.colliders.push({ minX: -half, maxX: half, minZ: back - 0.65, maxZ: back + 0.1, id: 'secret_door' })
+    else
+      for (const sx of [-1, 1])
+        this.colliders.push({ minX: sx > 0 ? half : -half * 2 - 0.2, maxX: sx > 0 ? half * 2 + 0.2 : -half, minZ: back - 0.65, maxZ: back, id: 'secret_door' })
+  }
+
+  private placeSecret(): void {
+    const sd = this.secret
+    if (!sd) return
+    const half = LAYOUT.corridorWidth / 2
+    const k = sd.t
+    // ease out with a small overshoot
+    const e = k >= 1 ? 1 : 1 - Math.pow(1 - k, 3) + Math.sin(k * Math.PI) * 0.04
+    const off = (half - 0.05) / 2 + e * half
+    sd.l.position.x = -off
+    sd.r.position.x = off
+  }
+
+  private updateSecret(dt: number): void {
+    const sd = this.secret
+    if (!sd) return
+    const want = sd.open ? 1 : 0
+    if (sd.t !== want) {
+      sd.t = want > sd.t ? Math.min(1, sd.t + dt / 1.3) : Math.max(0, sd.t - dt / 1.3)
+      this.placeSecret()
+    }
+    if (this.holo) this.holo.rotation.y += dt * 0.6
   }
 
   // ---------------------------------------------------------------- build animation
@@ -597,6 +734,7 @@ export class World {
 
   /** Advance build animations; finished items are baked back into their room. */
   updateFx(dt: number, s: GameState): void {
+    this.updateSecret(dt)
     for (let i = this.fx.length - 1; i >= 0; i--) {
       const f = this.fx[i]!
       f.t += dt / this.fxScale

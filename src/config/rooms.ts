@@ -2,8 +2,9 @@
  * Academy layout (one big walkable area, see docs/DESIGN_DECISIONS.md) and room economy.
  * Pure data: imported by the game AND by scripts/sim-economy.ts (no DOM, no three).
  *
- * World axes: x right, z toward the camera/street. The bakery faces the street at the front,
- * the secret academy grows backwards (negative z) along a central corridor.
+ * World axes: x right, z toward the camera/street. The bakery faces the street at the front;
+ * behind it a secret courtyard (HQ) with the Mission Control hub in the middle, the later
+ * areas grow backwards (negative z).
  */
 
 export type RoomId =
@@ -52,7 +53,8 @@ export interface RoomDef {
 }
 
 export const LAYOUT = {
-  corridorWidth: 5,
+  /** Width of the central walkway; in the HQ it is the open courtyard behind the bakery. */
+  corridorWidth: 12,
   roomW: 10,
   roomD: 8,
   /** Walkway between two room rows (small plazas). */
@@ -133,6 +135,7 @@ export function gateOf(id: AreaId): { x: number; z: number } {
 /** Plazas (decorated open squares) on the free row slots. */
 export const PLAZAS: { x: number; z: number; area: AreaId }[] = [
   { x: cx, z: rowZ(1, 0), area: 'hq' },
+  { x: -cx, z: rowZ(1, 0), area: 'hq' },
   { x: -cx, z: rowZ(3, 1), area: 'harbor' },
 ]
 
@@ -140,7 +143,8 @@ export const ROOMS: Record<RoomId, RoomDef> = {
   mission_control: {
     id: 'mission_control', kind: 'support', unlockCost: 0, unlockLevel: 1,
     baseIncome: 0, upgradeBaseCost: 0, cycleSeconds: 0, instructorCost: 0, stationBase: 0, runnerCost: 0,
-    rect: { x: -cx, z: rowZ(0, 0), w: W, d: D }, side: -1, floor: 0x2c4a6e, accent: 0x46c2cb,
+    // open-air hub in the middle of the HQ courtyard (no walls): holo map table + satellite dish
+    rect: { x: 0, z: (rowZ(0, 0) + rowZ(1, 0)) / 2, w: 6, d: 6 }, side: -1, floor: 0x2c4a6e, accent: 0x46c2cb,
   },
   vault: {
     id: 'vault', kind: 'training', skill: 'finesse', minigame: 'safe', unlockCost: 0, unlockLevel: 1,
@@ -150,7 +154,7 @@ export const ROOMS: Record<RoomId, RoomDef> = {
   laser: {
     id: 'laser', kind: 'training', skill: 'stealth', minigame: 'laser', unlockCost: 90, unlockLevel: 1,
     baseIncome: 14, upgradeBaseCost: 70, cycleSeconds: 6, instructorCost: 1600, stationBase: 70, runnerCost: 700,
-    rect: { x: -cx, z: rowZ(1, 0), w: W, d: D }, side: -1, floor: 0x5a3d7a, accent: 0xf2665c,
+    rect: { x: -cx, z: rowZ(0, 0), w: W, d: D }, side: -1, floor: 0x5a3d7a, accent: 0xf2665c,
   },
   cipher: {
     id: 'cipher', kind: 'training', skill: 'brains', minigame: 'code', unlockCost: 2500, unlockLevel: 2,
@@ -194,6 +198,8 @@ export function doorOf(id: RoomId): { x: number; z: number } {
 
 /** Where the unlock / mission / upgrade pad sits (in the corridor, in front of the door). */
 export function padOf(id: RoomId): { x: number; z: number } {
+  // the courtyard hub: missions pad in front of the holo table, facing the bakery
+  if (id === 'mission_control') return { x: ROOMS[id].rect.x, z: ROOMS[id].rect.z + 2.7 }
   const d = doorOf(id)
   return { x: d.x - ROOMS[id].side * 1.1, z: d.z }
 }

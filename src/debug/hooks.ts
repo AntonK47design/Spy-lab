@@ -80,6 +80,7 @@ export function installDebugHooks(g: { renderer: ReturnType<typeof createRendere
       while (state.rooms.vault.supply.length < state.rooms.vault.stations) state.rooms.vault.supply.push(4)
       state.rooms.vault.crate = true
       game.world.syncCounter(true)
+      game.world.syncSecretDoor(true, false)
       game.world.syncRooms(state)
       persist(['core'])
     },
