@@ -96,6 +96,7 @@ for (const lang of ['en', 'de', 'ru']) {
       await shot(page, lang, name, 'settings', w, h)
       await page.getByTestId('btn-close').click()
 
+      await spy(page, 'quickStart') // the office desk exists once a station is built
       await spy(page, 'addCurrency', 'cash', 50)
       await goTo(page, 'upgrade', 'vault')
       await expect(page.getByTestId('panel-upgrade')).toBeVisible()
