@@ -45,6 +45,16 @@
 - `npm run sim`: Headless-Spieler ohne Ads. Pacing bis 3:00 erfüllt (siehe unten).
 - Alle Texte in EN/DE/ES/PT/FR/RU/TR (122 Keys).
 
+**Grafik (Update nach Antons Feedback „deutlich besser")**
+- Echte CC0-Modelle von Quaternius (mit Antons OK heruntergeladen, Lizenzen in `assets-src/LICENSES.md`):
+  animierte Figuren (Direktor im Anzug, Kadetten in Raumfarben, Ausbilder), Bäckerei mit Theke, Gebäck,
+  Ofen, Kühlschrank und Café-Tischen, Labore mit Schreibtischen, Computern und Bücherregalen, Straße mit Laternen,
+  Baustellen mit Zäunen, Warnschildern und Kisten.
+- Pipeline: OBJ→glTF, Waffen-Teile entfernt, nur Idle/Walk/Run/Wave/Interact, eine Animationsbibliothek pro Skelett.
+- Laufzeit: Requisiten pro Raum zu einem Mesh gebacken, jede Figur ein einziger Draw Call.
+- Weiche Schatten (Shadow Map) auf mittlerer/hoher Stufe, Blob-Schatten auf niedriger Stufe.
+- Noch Platzhalter: Audio (stille Dateien), Schrift (System-Font), Tresor/Laser-Stationen aus Grundformen.
+
 **`npm run sim` (ohne Ads, 70 % Missionserfolg)**
 | Ereignis | Ziel | Sim |
 |---|---|---|
