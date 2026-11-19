@@ -16,7 +16,7 @@ export interface MissionDef {
 }
 
 /** Minigames playable in the current build (others show "coming soon"). */
-export const PLAYABLE_MINIGAMES: MinigameId[] = ['safe', 'laser']
+export const PLAYABLE_MINIGAMES: MinigameId[] = ['safe', 'laser', 'code']
 
 const H: [MinigameId, RoomId, number][] = [
   ['safe', 'vault', 1],

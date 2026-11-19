@@ -178,5 +178,10 @@
   "office.weaker": "Schwächer als Team",
   "office.sellAll": "Alle verkaufen +{fee}",
   "pad.hire": "EINSTELLEN",
-  "pad.officeClerk": "BÜROKRAFT"
+  "pad.officeClerk": "BÜROKRAFT",
+  "code.hint": "Tipp",
+  "code.free": "gratis",
+  "code.attempts": "noch {n} Versuche",
+  "code.delete": "Löschen",
+  "code.ok": "Prüfen"
 }

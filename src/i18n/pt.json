@@ -178,5 +178,10 @@
   "office.weaker": "Mais fraco que a equipe",
   "office.sellAll": "Vender todos +{fee}",
   "pad.hire": "CONTRATAR",
-  "pad.officeClerk": "SECRETÁRIO"
+  "pad.officeClerk": "SECRETÁRIO",
+  "code.hint": "Dica",
+  "code.free": "grátis",
+  "code.attempts": "{n} tentativas restantes",
+  "code.delete": "Apagar",
+  "code.ok": "Testar"
 }

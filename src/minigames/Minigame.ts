@@ -39,6 +39,19 @@ export interface MinigameHud {
   flash: 'hit' | 'miss' | null
   /** What the progress icons stand for (safe: bolts, laser: intel chips). */
   icon?: 'bolt' | 'chip'
+  /** Code Breaker keypad state (shown as on-screen keypad when present). */
+  keypad?: {
+    symbols: number
+    /** Current input row: symbol index or -1 per slot; locked = revealed by a hint. */
+    input: number[]
+    locked: boolean[]
+    canSubmit: boolean
+    /** Hints left for free in this attempt (else via rewarded ad). */
+    freeHints: number
+    attemptsLeft: number
+    /** Tutorial: key to press next (symbol index, -1 = delete, -2 = confirm). */
+    suggest?: number
+  }
 }
 
 export const mgHud = signal<MinigameHud | null>(null)
@@ -62,6 +75,10 @@ export interface Minigame {
   move?(dir: 'fwd' | 'back' | 'left' | 'right'): void
   /** Tap / click on the play field at screen coordinates (CSS px). */
   pointer?(x: number, y: number): void
+  /** Keypad input (Code Breaker): a symbol, delete, or submit. */
+  input?(cmd: 'sym' | 'del' | 'ok', arg?: number): void
+  /** Free hints left (Code Breaker); the game shows an ad for more. */
+  freeHints?(): number
   resize(w: number, h: number): void
   dispose(): void
   onResult: (r: MinigameResult) => void

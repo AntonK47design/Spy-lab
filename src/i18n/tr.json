@@ -178,5 +178,10 @@
   "office.weaker": "Takımdan zayıf",
   "office.sellAll": "Hepsini sat +{fee}",
   "pad.hire": "İŞE AL",
-  "pad.officeClerk": "SEKRETER"
+  "pad.officeClerk": "SEKRETER",
+  "code.hint": "İpucu",
+  "code.free": "ücretsiz",
+  "code.attempts": "{n} deneme kaldı",
+  "code.delete": "Sil",
+  "code.ok": "Dene"
 }

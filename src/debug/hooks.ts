@@ -118,6 +118,9 @@ export function installDebugHooks(g: { renderer: ReturnType<typeof createRendere
     /** Laser Hall: the planner's suggested next move ('fwd' | 'left' | 'right' | 'back' | 'wait'). */
     mgNext: () => (game.minigame as unknown as { debugNextMove?: () => string } | null)?.debugNextMove?.() ?? null,
     mgMove: (d: 'fwd' | 'back' | 'left' | 'right') => game.minigame?.move?.(d),
+    /** Code Breaker: next press of a consistent-guess player (symbol, -1 delete, 'ok') and keypad input. */
+    mgSuggest: () => (game.minigame as unknown as { debugSuggest?: () => number | 'ok' | null } | null)?.debugSuggest?.() ?? null,
+    mgInput: (cmd: 'sym' | 'del' | 'ok', arg?: number) => game.minigameInput(cmd, arg),
     /** Laser Hall internals for QA (row/col/mistakes/time and the hazard kind of each row). */
     mgInfo: () => {
       const m = game.minigame as unknown as { row: number; col: number; mistakes: number; time: number; rows: number; hazards: { kind: string; row: number }[] } | null

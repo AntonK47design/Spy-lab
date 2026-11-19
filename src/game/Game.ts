@@ -37,6 +37,7 @@ import { beginFlow, blockInterstitials, rewardedSupported, showInterstitial, sho
 import { track } from '../analytics/telemetry'
 import { SafeCracker } from '../minigames/safe/SafeCracker'
 import { LaserHall } from '../minigames/laser/LaserHall'
+import { CodeBreaker } from '../minigames/code/CodeBreaker'
 import type { Minigame, MinigameResult } from '../minigames/Minigame'
 import { coachLine, infoCard, missionUi, moveHint, nextPopup, panel, queuePopup, showToast, type Panel } from '../ui/uiState'
 import { formatNumber } from '../core/format'
@@ -176,6 +177,16 @@ export class Game {
       } else if (KEY_DIR[e.code] && this.mg?.move && this.canPlay()) {
         e.preventDefault()
         this.mg.move(KEY_DIR[e.code]!)
+      } else if (this.mg?.input && this.canPlay()) {
+        // Code Breaker keypad: 1-7 (row or numpad), Backspace
+        const m = /^(?:Digit|Numpad)([1-9])$/.exec(e.code)
+        if (m) {
+          e.preventDefault()
+          this.mg.input('sym', Number(m[1]) - 1)
+        } else if (e.code === 'Backspace') {
+          e.preventDefault()
+          this.mg.input('del')
+        }
       }
     })
     // minigames with a figure (Laser Hall): tap toward a direction or swipe; others: tap = action
@@ -183,7 +194,7 @@ export class Game {
     canvas.addEventListener('pointerdown', (e) => {
       if (this.mode === 'minigame' && e.isPrimary) {
         if (this.mg?.pointer) downAt = { x: e.clientX, y: e.clientY }
-        else this.minigameAction()
+        else if (!this.mg?.input) this.minigameAction() // keypad minigames: only the keypad submits
       }
       window.focus()
       if (moveHint.value === 'hint.click') moveHint.value = 'hint.keys'
@@ -629,7 +640,7 @@ export class Game {
     const m = this.mission
     if (!m) return
     this.mg?.dispose()
-    const mg: Minigame = m.minigame === 'laser' ? new LaserHall() : new SafeCracker()
+    const mg: Minigame = m.minigame === 'laser' ? new LaserHall() : m.minigame === 'code' ? new CodeBreaker() : new SafeCracker()
     const skill = ROOMS[m.room].skill ?? 'finesse'
     const firstKey = `played_${m.minigame}`
     await mg.init(
@@ -653,6 +664,24 @@ export class Game {
 
   minigameAction(): void {
     if (this.canPlay()) this.mg?.action()
+  }
+
+  /** On-screen keypad (Code Breaker). */
+  minigameInput(cmd: 'sym' | 'del' | 'ok', arg?: number): void {
+    if (this.canPlay()) this.mg?.input?.(cmd, arg)
+  }
+
+  /** Hint button: free hints first, then a rewarded ad (placement minigame_hint). */
+  async minigameHint(): Promise<void> {
+    const mg = this.mg
+    if (!mg || !this.canPlay()) return
+    if ((mg.freeHints?.() ?? 0) > 0) {
+      mg.useHint()
+      return
+    }
+    const res = await showRewarded('minigame_hint')
+    if (res === 'rewarded') mg.useHint()
+    else if (res === 'failed') showToast('toast.noAd')
   }
 
   private onResult(r: MinigameResult): void {

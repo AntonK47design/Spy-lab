@@ -178,5 +178,10 @@
   "office.weaker": "Weaker than team",
   "office.sellAll": "Sell all +{fee}",
   "pad.hire": "HIRE",
-  "pad.officeClerk": "OFFICE CLERK"
+  "pad.officeClerk": "OFFICE CLERK",
+  "code.hint": "Hint",
+  "code.free": "free",
+  "code.attempts": "{n} attempts left",
+  "code.delete": "Delete",
+  "code.ok": "Enter"
 }

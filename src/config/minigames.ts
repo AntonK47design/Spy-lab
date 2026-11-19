@@ -90,3 +90,48 @@ export const LASER = {
   /** Intel per collected chip (added to the mission reward). */
   intelPerChip: 2,
 } as const
+
+/**
+ * Code Breaker (Brains): Mastermind on a keypad. Guess the code; each slot lights green (right
+ * symbol, right place), yellow (in the code, elsewhere) or grey (not in the code).
+ */
+export interface CodeTier {
+  /** Different symbols on the keypad (5-7). */
+  symbols: number
+  length: number
+  attempts: number
+  /** Seconds; 0 = no time limit (tiers 1-4). */
+  timeLimit: number
+  /** The code may repeat a symbol. */
+  duplicates: boolean
+}
+
+export const CODE_TIERS: CodeTier[] = [
+  { symbols: 5, length: 4, attempts: 8, timeLimit: 0, duplicates: false },
+  { symbols: 5, length: 4, attempts: 8, timeLimit: 0, duplicates: false },
+  { symbols: 6, length: 4, attempts: 7, timeLimit: 0, duplicates: false },
+  { symbols: 6, length: 4, attempts: 7, timeLimit: 0, duplicates: true },
+  { symbols: 6, length: 4, attempts: 7, timeLimit: 90, duplicates: true },
+  { symbols: 7, length: 4, attempts: 7, timeLimit: 85, duplicates: true },
+  { symbols: 7, length: 4, attempts: 6, timeLimit: 80, duplicates: true },
+  { symbols: 7, length: 4, attempts: 6, timeLimit: 75, duplicates: true },
+  { symbols: 7, length: 4, attempts: 6, timeLimit: 70, duplicates: true },
+  { symbols: 7, length: 4, attempts: 6, timeLimit: 65, duplicates: true },
+]
+
+export const CODE = {
+  /** +1 attempt per this many points of the agent's brains skill (max +2). */
+  skillPerAttempt: 12,
+  maxSkillAttempts: 2,
+  /** Free hints per attempt; more cost a rewarded ad. */
+  freeHints: 1,
+  /** Revive: extra attempts (and seconds if timed). */
+  reviveAttempts: 2,
+  reviveSeconds: 20,
+  /** Stars by share of attempts left after solving: >= 3-star share -> 3, >= 2-star share -> 2. */
+  threeStarLeftShare: 0.5,
+  twoStarLeftShare: 0.25,
+  /** Symbol shapes and colours (index = key 1..7). */
+  shapes: ['circle', 'triangle', 'square', 'star', 'diamond', 'hexagon', 'cross'] as const,
+  colors: [0xf2665c, 0xf2b134, 0x46c2cb, 0x8f6bd8, 0x5fbf5a, 0xff8fb0, 0xfff3e0],
+} as const

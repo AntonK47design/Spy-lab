@@ -178,5 +178,10 @@
   "office.weaker": "Слабее команды",
   "office.sellAll": "Продать всех +{fee}",
   "pad.hire": "НАНЯТЬ",
-  "pad.officeClerk": "СЕКРЕТАРЬ"
+  "pad.officeClerk": "СЕКРЕТАРЬ",
+  "code.hint": "Подсказка",
+  "code.free": "бесплатно",
+  "code.attempts": "осталось попыток: {n}",
+  "code.delete": "Стереть",
+  "code.ok": "Ввод"
 }
