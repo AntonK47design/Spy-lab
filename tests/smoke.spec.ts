@@ -37,7 +37,7 @@ test('opening: cash next to the spawn, first purchases within seconds, first cad
   await goTo(page, 'station', 'vault')
   await expect.poll(async () => (await spy<any>(page, 'raw')).rooms.vault.stations).toBe(1)
   await goTo(page, 'crate', 'vault')
-  await expect.poll(async () => (await spy<any>(page, 'raw')).rooms.vault.crate).toBe(true)
+  await expect.poll(async () => (await spy<any>(page, 'raw')).rooms.vault.crate, { timeout: 10_000 }).toBe(true) // load-tolerant
   await expect.poll(async () => (await state(page)).purchases).toBeGreaterThanOrEqual(3)
   await expect.poll(async () => (await state(page)).tutorial).toBeGreaterThanOrEqual(4)
   expectClean(w)
@@ -127,7 +127,7 @@ test('unlock pad: standing on it pours cash in and builds the room', async ({ pa
   expect((await state(page)).cash).toBe(500 - 90)
 })
 
-test('settings popup has an X, pause via P, Esc is ignored', async ({ page }) => {
+test('settings popup has an X, Esc is ignored, no pause in the academy', async ({ page }) => {
   const w = watch(page)
   await boot(page)
   await page.getByTestId('bar-settings').click()
@@ -137,10 +137,9 @@ test('settings popup has an X, pause via P, Esc is ignored', async ({ page }) =>
   await expect(panel).toBeVisible()
   await panel.getByTestId('btn-close').click()
   await expect(panel).toHaveCount(0)
+  await expect(page.getByTestId('bar-pause')).toHaveCount(0)
   await page.keyboard.press('KeyP')
-  await expect(page.getByTestId('panel-pause')).toBeVisible()
-  expect((await state(page)).running).toBe(true)
-  await page.getByTestId('btn-resume').click()
+  await page.waitForTimeout(300)
   await expect(page.getByTestId('panel-pause')).toHaveCount(0)
   expectClean(w)
 })

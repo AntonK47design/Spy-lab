@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { boot, expectClean, spy, state, watch } from './helpers'
+import { boot, expectClean, spy, startFirstMission, state, watch } from './helpers'
 
 test('rewarded: reward only on `rewarded`, game paused + muted while open', async ({ page }) => {
   const w = watch(page)
@@ -48,15 +48,16 @@ test('interstitial: forwarded at a pause, skipped right after a rewarded in the 
   expect(log.map((l: any) => l.kind)).toEqual(['interstitial', 'rewarded'])
 })
 
-test('pause menu resume is an interstitial point', async ({ page }) => {
+test('pause in a mission: resume never shows an interstitial (gameplay blocker)', async ({ page }) => {
   await boot(page)
-  await spy(page, 'skipTutorial')
+  await startFirstMission(page)
   await spy(page, 'simulateAd', 'closed', 200)
-  await page.keyboard.press('KeyP')
-  expect((await state(page)).running).toBe(true) // render loop keeps running, gameplay paused
+  await page.getByTestId('btn-mg-pause').click()
+  await expect(page.getByTestId('panel-pause')).toBeVisible()
   await page.getByTestId('btn-resume').click()
+  await expect(page.getByTestId('panel-pause')).toHaveCount(0)
   const log = await page.evaluate(() => (window as any).__spylab.adLog)
-  expect(log.at(-1)).toMatchObject({ kind: 'interstitial', placement: 'pause_resume' })
+  expect(log.filter((l: any) => l.placement === 'pause_resume')).toEqual([])
 })
 
 test('no ad support: rewarded resolves failed, nothing breaks', async ({ page }) => {

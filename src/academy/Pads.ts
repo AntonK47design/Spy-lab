@@ -3,7 +3,8 @@
  * kit crates, staff hires; plus the Mission Control pad and the upgrade desks.
  * Visual plate + DOM label. Also the kit indicators above every built station.
  */
-import { BoxGeometry, Group, Mesh, MeshLambertMaterial, RingGeometry, MeshBasicMaterial } from 'three'
+import { BoxGeometry, BufferGeometry, Group, Mesh, MeshLambertMaterial, MeshBasicMaterial, Shape, ShapeGeometry } from 'three'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { AREAS, AREA_ORDER, LAYOUT, ROOMS, ROOM_AREA, ROOM_ORDER, crateOf, gateOf, padOf, slotOf, staffPadOf, upgradeSpotOf, type RoomId } from '../config/rooms'
 import type { GameState } from '../sim/state'
 import { levelCost, nextArea, nextStaff, nextUnlock, padPrice, trainingRooms, type PadTarget } from '../sim/academy'
@@ -29,14 +30,69 @@ export interface Pad {
 }
 
 const ROOM_AREA_OF = (id: RoomId) => ROOM_AREA[id]
-const plateGeo = new BoxGeometry(1.9, 0.06, 1.9)
-const fillGeo = new BoxGeometry(1, 0.07, 1)
-const ringGeo = new RingGeometry(1.05, 1.22, 32).rotateX(-Math.PI / 2)
+const PAD = 2.0
+const PAD_R = 0.38
+
+/** Rounded square outline (flat, XZ) as points along the perimeter, inset by `inset`. */
+function roundedPath(size: number, r: number, inset: number, step: number): { x: number; z: number; a: number }[] {
+  const h = size / 2 - inset
+  const rr = Math.max(0.05, r - inset)
+  const out: { x: number; z: number; a: number }[] = []
+  const straight = 2 * (h - rr)
+  const per = 4 * straight + 2 * Math.PI * rr
+  const n = Math.round(per / step)
+  for (let i = 0; i < n; i++) {
+    let d = (i / n) * per
+    // walk: 4 x (straight edge + quarter arc), starting top-left after the corner
+    for (let side = 0; side < 4; side++) {
+      const ang0 = side * (Math.PI / 2)
+      const dir = { x: Math.cos(ang0), z: Math.sin(ang0) }
+      const start = [{ x: -h + rr, z: -h }, { x: h, z: -h + rr }, { x: h - rr, z: h }, { x: -h, z: h - rr }][side]!
+      if (d <= straight) {
+        out.push({ x: start.x + dir.x * d, z: start.z + dir.z * d, a: ang0 })
+        break
+      }
+      d -= straight
+      const arc = (Math.PI / 2) * rr
+      if (d <= arc) {
+        const c = [{ x: h - rr, z: -h + rr }, { x: h - rr, z: h - rr }, { x: -h + rr, z: h - rr }, { x: -h + rr, z: -h + rr }][side]!
+        const t = ang0 - Math.PI / 2 + d / rr
+        out.push({ x: c.x + Math.cos(t) * rr, z: c.z + Math.sin(t) * rr, a: t + Math.PI / 2 })
+        break
+      }
+      d -= arc
+    }
+  }
+  return out
+}
+
+function roundedPlate(size: number, r: number, y: number): BufferGeometry {
+  const h = size / 2
+  const sh = new Shape()
+  sh.moveTo(-h + r, -h)
+  sh.lineTo(h - r, -h)
+  sh.quadraticCurveTo(h, -h, h, -h + r)
+  sh.lineTo(h, h - r)
+  sh.quadraticCurveTo(h, h, h - r, h)
+  sh.lineTo(-h + r, h)
+  sh.quadraticCurveTo(-h, h, -h, h - r)
+  sh.lineTo(-h, -h + r)
+  sh.quadraticCurveTo(-h, -h, -h + r, -h)
+  return new ShapeGeometry(sh, 6).rotateX(-Math.PI / 2).translate(0, y, 0)
+}
+
+/** Kickoff-style build field: dark rounded plate, dashed light border. */
+const plateGeo = roundedPlate(PAD, PAD_R, 0.04)
+const fillGeo = new BoxGeometry(1, 0.02, 1)
+const ringGeo = mergeGeometries(
+  roundedPath(PAD, PAD_R, 0.14, 0.3).map((p) => new BoxGeometry(0.17, 0.02, 0.075).rotateY(-p.a).translate(p.x, 0.065, p.z)),
+  false,
+)!
 const plateMat = new MeshLambertMaterial({ color: 0x22283a })
 const plateMatDim = new MeshLambertMaterial({ color: 0x4a4f5c })
 const fillMat = new MeshLambertMaterial({ color: 0x5fbf5a, emissive: 0x143d14 })
 const ringMats = {
-  buy: new MeshBasicMaterial({ color: 0xf2b134 }),
+  buy: new MeshBasicMaterial({ color: 0xfff3e0 }),
   missions: new MeshBasicMaterial({ color: 0x46c2cb }),
   upgrade: new MeshBasicMaterial({ color: 0xfff3e0 }),
   dim: new MeshBasicMaterial({ color: 0x8a8f9c }),
@@ -70,10 +126,9 @@ export class Pads {
     group.position.set(x, 0.03, z)
     const plate = new Mesh(plateGeo, plateMat)
     const fill = new Mesh(fillGeo, fillMat)
-    fill.scale.set(0.001, 1, 1.7)
-    fill.position.set(-0.85, 0.01, 0)
+    fill.scale.set(0.001, 1, 1.5)
+    fill.position.set(-0.75, 0.05, 0)
     const ring = new Mesh(ringGeo, kind === 'missions' ? ringMats.missions : kind === 'upgrade' ? ringMats.upgrade : ringMats.buy)
-    ring.position.y = 0.05
     group.add(plate, fill, ring)
     this.parent.add(group)
     const label = this.labels.add(`pad pad-${kind}`, x, kind === 'missions' || kind === 'upgrade' ? 0.9 : 0.4, z, `pad-${kind}-${room ?? 'bakery'}`)
@@ -186,8 +241,8 @@ export class Pads {
     }
     if (p.target && price) {
       const f = price.paid / price.cost
-      p.fill.scale.x = Math.max(0.001, f * 1.7)
-      p.fill.position.x = -0.85 + f * 0.85
+      p.fill.scale.x = Math.max(0.001, f * 1.5)
+      p.fill.position.x = -0.75 + f * 0.75
       ;(p.group.children[0] as Mesh).material = p.active ? plateMat : plateMatDim
       p.ring.material = p.active ? ringMats.buy : ringMats.dim
     }
@@ -232,7 +287,7 @@ export class Pads {
   update(dt: number): void {
     this.time += dt
     for (const p of this.list) {
-      if (p.active && p.kind !== 'missions' && p.kind !== 'upgrade') p.ring.scale.setScalar(1 + Math.sin(this.time * 4) * 0.06)
+      if (p.active && p.kind !== 'missions' && p.kind !== 'upgrade') p.ring.scale.setScalar(1 + Math.sin(this.time * 4) * 0.035)
       else p.ring.scale.setScalar(1)
     }
   }

@@ -198,7 +198,7 @@ async function downscaleTextures(doc, max) {
 }
 
 // ---------- fonts & ui ----------
-for (const [kind, exts] of [['fonts', /\.(woff2|woff|ttf|otf)$/i], ['ui', /\.(svg|png|webp)$/i]]) {
+for (const [kind, exts] of [['fonts', /\.woff2$/i], ['ui', /\.(svg|png|webp)$/i]]) {
   const files = walk(path.join(SRC, kind)).filter((f) => exts.test(f))
   const dir = path.join(OUT, kind)
   fs.rmSync(dir, { recursive: true, force: true })

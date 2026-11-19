@@ -30,6 +30,8 @@ export async function start(progress: (p: number) => void): Promise<void> {
 
   // 2. Language: player's explicit choice, else bridge.platform.language, else English.
   await setLanguage(languageChoice.value ?? resolveLang(platform.language))
+  // UI fonts (bundled OFL WOFF2); never block the first frame for more than a moment
+  await Promise.race([loadFonts(), new Promise((r) => setTimeout(r, 900))])
   progress(66)
 
   applySafeArea()
@@ -120,6 +122,22 @@ export async function start(progress: (p: number) => void): Promise<void> {
     const { installDebugHooks } = await import('../debug/hooks')
     installDebugHooks({ renderer, game })
   }
+}
+
+async function loadFonts(): Promise<void> {
+  if (typeof FontFace === 'undefined') return
+  const faces = [
+    new FontFace('Fredoka', 'url(assets/fonts/fredoka-600.woff2)', { weight: '600', display: 'swap' }),
+    new FontFace('Nunito', 'url(assets/fonts/nunito-800.woff2)', { weight: '800', display: 'swap' }),
+  ]
+  await Promise.all(
+    faces.map((f) =>
+      f.load().then(
+        (ok) => document.fonts.add(ok),
+        () => undefined,
+      ),
+    ),
+  )
 }
 
 function applySafeArea(): void {
