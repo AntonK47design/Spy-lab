@@ -80,7 +80,11 @@ for (const group of ['music', 'sfx']) {
       const br = group === 'music' ? '96k' : '80k'
       execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', src, '-c:a', 'libmp3lame', '-b:a', br, dest])
     } else {
-      if (src && !ffmpeg) report.warnings.push(`${id}: ${path.basename(src)} needs ffmpeg to convert`)
+      if (src && !ffmpeg) {
+        // a real sound exists but cannot be converted: never ship silence silently
+        console.error(`ERROR ${id}: ${path.basename(src)} needs ffmpeg to convert (install ffmpeg)`)
+        process.exitCode = 1
+      }
       if (!ensurePlaceholder()) {
         report.warnings.push(`${id}: no source and no ffmpeg for a placeholder`)
         continue
@@ -181,7 +185,11 @@ function disposeAnim(anim) {
 
 /** Downscale embedded textures with ffmpeg (keeps PNG/JPEG type). */
 async function downscaleTextures(doc, max) {
-  if (!ffmpeg) return
+  if (!ffmpeg) {
+    if (!downscaleTextures.warned) console.warn('WARNING: ffmpeg missing, textures are not downscaled (bigger download)')
+    downscaleTextures.warned = true
+    return
+  }
   for (const tex of doc.getRoot().listTextures()) {
     const img = tex.getImage()
     if (!img || img.byteLength < 8192) continue
