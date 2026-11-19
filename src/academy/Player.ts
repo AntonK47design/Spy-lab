@@ -36,6 +36,7 @@ export class Player {
   }
 
   update(dt: number, mx: number, mz: number, colliders: AABB[]): void {
+    this.depenetrate(colliders)
     const moving = mx !== 0 || mz !== 0
     if (moving) {
       const nx = this.x + mx * this.speed * dt
@@ -48,6 +49,24 @@ export class Player {
     this.char.walking = moving ? Math.min(1, Math.hypot(mx, mz) * 1.2) : 0
     this.char.root.position.set(this.x, 0, this.z)
     this.char.update(dt)
+  }
+
+  /** Something was built on top of the player: step out along the shortest axis. */
+  depenetrate(colliders: AABB[]): void {
+    for (let pass = 0; pass < 3 && hits(this.x, this.z, colliders); pass++) {
+      for (const c of colliders) {
+        if (this.x <= c.minX - R || this.x >= c.maxX + R || this.z <= c.minZ - R || this.z >= c.maxZ + R) continue
+        const opts = [
+          { d: this.x - (c.minX - R), x: c.minX - R - 0.01, z: this.z },
+          { d: c.maxX + R - this.x, x: c.maxX + R + 0.01, z: this.z },
+          { d: this.z - (c.minZ - R), x: this.x, z: c.minZ - R - 0.01 },
+          { d: c.maxZ + R - this.z, x: this.x, z: c.maxZ + R + 0.01 },
+        ].sort((a, b) => a.d - b.d)
+        const free = opts.find((o) => !hits(o.x, o.z, colliders)) ?? opts[0]!
+        this.x = free.x
+        this.z = free.z
+      }
+    }
   }
 
   setCarry(n: number, color: number): void {

@@ -138,7 +138,12 @@ export class Game {
         // rebuild pads right away so a standing hero never pays into the NEXT pad by accident
         this.pads.sync(state)
         this.padOpened = 'just-built'
-        if (what === 'counter') this.world.syncCounter(true)
+        if (what === 'counter') {
+          this.world.syncCounter(true)
+          // the desk now stands where the hero was: put the hero behind it, ready to serve
+          this.player.x = LAYOUT.serveSpot.x
+          this.player.z = LAYOUT.serveSpot.z
+        }
         if (room) this.world.syncRooms(state)
         track('built', { what, room_id: room ?? 'bakery' })
         persist(['core', 'meta'], true)

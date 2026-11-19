@@ -125,23 +125,42 @@ export class World {
     this.wallX(b, x0, -1.3, front, STUB, PAL.bakeryWall, PAL.bakeryTrim)
     this.wallX(b, 1.3, x0 + bk.w, front, STUB, PAL.bakeryWall, PAL.bakeryTrim)
     // striped awning stubs + shop sign over the street door
-    for (let i = 0; i < 12; i++) b.rbox(bk.w / 12 - 0.02, 0.14, 0.9, x0 + (i + 0.5) * (bk.w / 12), 0.55, front + 0.45, i % 2 ? PAL.white : PAL.coral, 0.04)
-    b.rbox(4.6, 0.7, 0.18, 0, 0.75, front + 0.2, 0x7a3e2b, 0.06)
-    b.rbox(4.3, 0.46, 0.06, 0, 0.75, front + 0.31, PAL.white, 0.03)
-    b.rbox(3.8, 0.1, 0.07, 0, 0.6, front + 0.34, PAL.coral, 0.02)
+    for (let i = 0; i < 12; i++) if (Math.abs(x0 + (i + 0.5) * (bk.w / 12)) > 2.7) b.rbox(bk.w / 12 - 0.02, 0.14, 0.9, x0 + (i + 0.5) * (bk.w / 12), 0.55, front + 0.45, i % 2 ? PAL.white : PAL.coral, 0.04)
+    // street door: a small full-height facade (pillars + lintel + sign + awning) so the
+    // entrance reads at once, glass leaves folded open flat against the pillars
+    const DOOR = 0x7a3e2b
+    const H = 2.7
+    for (const sd of [-1, 1]) {
+      const cx = sd * 2.0
+      b.rbox(1.24, H, 0.36, cx, H / 2, front, PAL.bakeryWall, 0.05)
+      b.rbox(1.3, 0.2, 0.42, cx, 0.1, front, PAL.wallSkirt, 0.04)
+      b.rbox(0.2, H, 0.44, sd * 1.36, H / 2, front, DOOR, 0.05)
+      // open leaf: frame + glass + handle, lying on the pillar's street face
+      b.rbox(1.1, 2.15, 0.07, cx + sd * 0.02, 1.1, front + 0.24, DOOR, 0.03)
+      b.rbox(0.86, 1.75, 0.08, cx + sd * 0.02, 1.2, front + 0.25, 0xbfe3ff, 0.02)
+      b.rbox(0.06, 0.34, 0.1, cx - sd * 0.38, 1.05, front + 0.3, PAL.brandYellow, 0.02)
+    }
+    b.rbox(5.3, 0.5, 0.44, 0, H + 0.2, front, DOOR, 0.06)
+    b.rbox(4.6, 0.8, 0.2, 0, H + 0.85, front + 0.08, DOOR, 0.06)
+    b.rbox(4.3, 0.56, 0.06, 0, H + 0.85, front + 0.2, PAL.white, 0.03)
+    b.rbox(3.8, 0.1, 0.07, 0, H + 0.68, front + 0.23, PAL.coral, 0.02)
+    for (let i = 0; i < 5; i++) b.rbox(0.62, 0.1, 0.8, -1.24 + i * 0.62, H - 0.15, front + 0.55, i % 2 ? PAL.white : PAL.coral, 0.03)
+    b.rbox(2.3, 0.03, 1.1, 0, 0.02, front + 0.7, PAL.coral, 0.02)
+    b.rbox(2.0, 0.035, 0.85, 0, 0.025, front + 0.7, 0x9c3b2f, 0.02)
 
-    // back wall: pastry kitchen (left) + the secret oven (right of the corridor)
+    // back wall: pastry kitchen + the secret oven (left of the corridor)
     b.prop(P.shelfPaper, -8.4, back + 0.35, 0, 1, 1.2)
     b.prop(P.stove, -6.4, back + 1.05)
     b.prop(P.fridge, -8.6, back + 1.05)
     b.prop(P.counterDeco, -4.6, back + 1.0)
     this.colliders.push({ minX: -9.6, maxX: -3.7, minZ: back, maxZ: back + 2 })
-    b.prop(P.oven, 2.9, back + 1.0, 0, 0.75)
-    this.colliders.push({ minX: 2.1, maxX: 3.7, minZ: back, maxZ: back + 1.9 })
+    // secret oven left of the back door (keeps the lane behind the counter free)
+    b.prop(P.oven, -2.9, back + 1.0, 0, 0.75)
+    this.colliders.push({ minX: -3.7, maxX: -2.1, minZ: back, maxZ: back + 1.9 })
     // crates of buns by the door, menu sign
-    b.prop(P.crateBuns, -1.9, front - 0.9, 0.3, 0.45)
-    b.prop(P.crateBuns, -1.9, front - 0.9, 0.1, 0.45, 0.34)
-    b.prop(P.menu, 1.7, front - 0.6, 0.4)
+    b.prop(P.crateBuns, -3.4, front - 0.9, 0.3, 0.45)
+    b.prop(P.crateBuns, -3.4, front - 0.9, 0.1, 0.45, 0.34)
+    b.prop(P.menu, 3.4, front - 0.6, 0.4)
     // cafe tables
     for (const [tx, tz] of [[-6.6, bk.z + 1.5], [-3.6, bk.z + 0.4], [-8.8, bk.z - 0.2]] as const) {
       b.prop(P.tableRoundSmall, tx, tz)
@@ -170,8 +189,10 @@ export class World {
     b.rbox(half * 2, 0.06, rd, 0, 0.0, st.road0 + rd / 2, PAL.road, 0.02)
     b.rbox(half * 2, 0.16, 0.25, 0, 0.06, st.road0, PAL.curbTop, 0.04)
     b.rbox(half * 2, 0.16, 0.25, 0, 0.06, st.road1, PAL.curbTop, 0.04)
-    for (let x = -half + 1; x < half - 1; x += 2.4) b.rbox(1.2, 0.02, 0.14, x, 0.04, (st.laneIn + st.laneOut) / 2, PAL.roadLine, 0.01)
-    for (let i = 0; i < 6; i++) b.rbox(0.45, 0.02, rd - 0.6, -1.4 + i * 0.56, 0.035, st.road0 + rd / 2, PAL.white, 0.01)
+    for (let x = -half + 1; x < half - 1; x += 2.4) if (Math.abs(x) > 2.2) b.rbox(1.2, 0.02, 0.14, x, 0.04, (st.laneIn + st.laneOut) / 2, PAL.roadLine, 0.01)
+    // zebra: bars run along the road, spaced across it (walking direction = z)
+    const bars = Math.floor((rd - 0.6) / 0.8)
+    for (let i = 0; i < bars; i++) b.rbox(3.0, 0.02, 0.42, 0, 0.035, st.road0 + 0.5 + i * 0.8 + 0.21, PAL.white, 0.01)
     // taxi stop: bench, sign, shelter
     const sx = st.stopX
     const sz = st.road0 - 1.1
