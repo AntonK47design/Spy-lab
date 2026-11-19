@@ -81,7 +81,7 @@ export class CadetViews {
         const old = v
         const ch = new Character(this.look(c))
         this.parent.add(ch.root)
-        v = { ch, key: lookKey, path: [], lens: [], total: 0, px: old?.px ?? LAYOUT.streetDoor.x, pz: old?.pz ?? LAYOUT.streetDoor.z, far: 0 }
+        v = { ch, key: lookKey, path: [], lens: [], total: 0, px: old?.px ?? LAYOUT.street.stopX, pz: old?.pz ?? LAYOUT.street.stopZ, far: 0 }
         if (old) {
           ch.root.rotation.y = old.ch.root.rotation.y
           this.parent.remove(old.ch.root)

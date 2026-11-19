@@ -12,6 +12,7 @@ import { CashPiles } from '../academy/CashPiles'
 import { Pads, type Pad } from '../academy/Pads'
 import { WorldLabels, type WorldLabel } from '../academy/WorldLabels'
 import { FollowCamera } from '../academy/FollowCamera'
+import { Traffic } from '../academy/Traffic'
 import { Input } from '../input/Input'
 import { flatMat } from '../render/materials'
 import { charMaterial } from '../render/assets'
@@ -52,6 +53,7 @@ export class Game {
   readonly cadets: CadetViews
   readonly piles: CashPiles
   readonly pads: Pads
+  readonly traffic: Traffic
   mode: 'academy' | 'minigame' = 'academy'
   /** Debug: force a difficulty tier for the next missions. */
   tierOverride: number | null = null
@@ -88,6 +90,7 @@ export class Game {
     this.cadets = new CadetViews(world.dynamic)
     this.piles = new CashPiles(world.dynamic)
     this.pads = new Pads(world.dynamic, this.labels)
+    this.traffic = new Traffic(world.dynamic, { taxi: world.propGeo('taxi'), sedan: world.propGeo('sedan'), wagon: world.propGeo('wagon') })
     world.dynamic.add(this.player.char.root)
     this.guide = new Mesh(new ConeGeometry(0.35, 0.8, 4).rotateX(Math.PI), new MeshBasicMaterial({ color: 0xf2b134 }))
     this.guide.visible = false
@@ -276,6 +279,7 @@ export class Game {
     this.cadets.camZ = this.cam.target.z
     this.cadets.sync(state, dt)
     this.cadets.syncStaff(state, dt)
+    this.traffic.update(state, dt)
     this.piles.sync(state)
     this.piles.update(dt, this.player.x, this.player.z)
     this.pads.update(dt)

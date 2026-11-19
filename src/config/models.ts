@@ -68,8 +68,9 @@ export const MODELS = {
   palletB: kk('prototype', 'Pallet_Small_Decorated_B'),
   // street (City Builder Bits, miniature scale)
   road: kk('city', 'road_straight', 4),
-  streetlight: kk('city', 'streetlight', 3.8),
-  bench: kk('city', 'bench', 4),
+  streetlight: kk('city', 'streetlight', 4),
+  bench: kk('city', 'bench', 4.5),
+  wagon: kk('city', 'car_stationwagon', 3.6),
   bush: kk('city', 'bush', 4),
   hydrant: kk('city', 'firehydrant', 4),
   taxi: kk('city', 'car_taxi', 3.6),

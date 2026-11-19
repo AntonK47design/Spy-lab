@@ -74,6 +74,11 @@ export class World {
     this.scene.add(street)
   }
 
+  /** Baked prop geometry (for dynamic props such as cars). */
+  propGeo(id: ModelId): BufferGeometry | null {
+    return this.p[id] ?? null
+  }
+
   followShadow(x: number, z: number): void {
     this.sun.position.set(x - 7, 16, z + 10)
     this.sun.target.position.set(x, 0, z)
@@ -94,7 +99,7 @@ export class World {
     const plotMinX = -(LAYOUT.corridorWidth / 2 + LAYOUT.roomW) - 0.8
     const plotMaxX = -plotMinX
     const plotMinZ = 0
-    const plotMaxZ = front + 3.4
+    const plotMaxZ = LAYOUT.street.plotFront
 
     // bakery plot (raised, light curb) — the area islands are built in syncAreas()
     const pw = plotMaxX - plotMinX
@@ -103,8 +108,13 @@ export class World {
     const bd = plotMaxZ - bz0
     this.plot(b, pcx, bz0 + bd / 2, pw, bd, true)
     void plotMinZ
-    // sidewalk paving in front of the bakery
-    this.tiles(b, plotMinX, front, pw, plotMaxZ - front - 0.1, PAL.pavingA, PAL.pavingB, PAL.curbSide)
+    // sidewalk paving in front of the bakery (walkable), the road itself is built in buildStreet()
+    const st = LAYOUT.street
+    this.tiles(b, plotMinX, front, pw, st.road0 - front, PAL.pavingA, PAL.pavingB, PAL.curbSide)
+    // edges of the street block: the player stays on the island
+    this.colliders.push({ minX: plotMinX - 1, maxX: plotMaxX + 1, minZ: plotMaxZ - 0.2, maxZ: plotMaxZ + 1, id: 'street_edge' })
+    this.colliders.push({ minX: plotMinX - 1, maxX: plotMinX + 0.2, minZ: front, maxZ: plotMaxZ, id: 'street_edge' })
+    this.colliders.push({ minX: plotMaxX - 0.2, maxX: plotMaxX + 1, minZ: front, maxZ: plotMaxZ, id: 'street_edge' })
 
     // ---- bakery
     this.tiles(b, x0, back, bk.w, bk.d, PAL.bakeryA, PAL.bakeryB)
@@ -114,7 +124,6 @@ export class World {
     this.wallZ(b, x0 + bk.w, back, front, 1.4, PAL.bakeryWall, PAL.bakeryTrim)
     this.wallX(b, x0, -1.3, front, STUB, PAL.bakeryWall, PAL.bakeryTrim)
     this.wallX(b, 1.3, x0 + bk.w, front, STUB, PAL.bakeryWall, PAL.bakeryTrim)
-    this.colliders.push({ minX: -1.3, maxX: 1.3, minZ: front - 0.2, maxZ: front + 1, id: 'street_door' })
     // striped awning stubs + shop sign over the street door
     for (let i = 0; i < 12; i++) b.rbox(bk.w / 12 - 0.02, 0.14, 0.9, x0 + (i + 0.5) * (bk.w / 12), 0.55, front + 0.45, i % 2 ? PAL.white : PAL.coral, 0.04)
     b.rbox(4.6, 0.7, 0.18, 0, 0.75, front + 0.2, 0x7a3e2b, 0.06)
@@ -150,20 +159,43 @@ export class World {
   }
 
   /** Street + harbour skyline in front of the plot (outside the walkable area). */
+  /** Walkable street on the island: road with lanes, curb, taxi stop; harbour skyline beyond. */
   private buildStreet(): BufferGeometry {
     const b = new StaticBatch()
     const P = this.p
-    const z = LAYOUT.bakery.z + LAYOUT.bakery.d / 2 + 4.6
-    for (let x = -28; x <= 28; x += 8) b.prop(P.road, x, z + 3.4, Math.PI / 2, 1, -0.6)
-    b.prop(P.taxi, -5.5, z + 2.4, Math.PI / 2, 1, -0.6)
-    b.prop(P.sedan, 9, z + 4.6, -Math.PI / 2, 1, -0.6)
-    for (const x of [-11, 11]) b.prop(P.streetlight, x, z - 0.7, 0, 1, -0.05)
-    b.prop(P.bench, 5, z - 0.7, Math.PI, 1, -0.05)
-    b.prop(P.hydrant, 3.2, z - 0.8, 0, 1, -0.05)
-    b.prop(P.bush, -8, z - 0.7, 0, 1, -0.05)
-    b.prop(P.dumpster, 13.5, z - 0.4, 0, 1, -0.05)
+    const st = LAYOUT.street
+    const half = LAYOUT.corridorWidth / 2 + LAYOUT.roomW + 0.8
+    const rd = st.road1 - st.road0
+    // asphalt + curbs + lane dashes + zebra crossing to the bakery door
+    b.rbox(half * 2, 0.06, rd, 0, 0.0, st.road0 + rd / 2, PAL.road, 0.02)
+    b.rbox(half * 2, 0.16, 0.25, 0, 0.06, st.road0, PAL.curbTop, 0.04)
+    b.rbox(half * 2, 0.16, 0.25, 0, 0.06, st.road1, PAL.curbTop, 0.04)
+    for (let x = -half + 1; x < half - 1; x += 2.4) b.rbox(1.2, 0.02, 0.14, x, 0.04, (st.laneIn + st.laneOut) / 2, PAL.roadLine, 0.01)
+    for (let i = 0; i < 6; i++) b.rbox(0.45, 0.02, rd - 0.6, -1.4 + i * 0.56, 0.035, st.road0 + rd / 2, PAL.white, 0.01)
+    // taxi stop: bench, sign, shelter
+    const sx = st.stopX
+    const sz = st.road0 - 1.1
+    b.rbox(3.2, 0.1, 1.4, sx, 2.2, sz, PAL.brand, 0.05)
+    b.rbox(0.1, 2.2, 0.1, sx - 1.5, 1.1, sz - 0.6, PAL.steelDark, 0.03)
+    b.rbox(0.1, 2.2, 0.1, sx + 1.5, 1.1, sz - 0.6, PAL.steelDark, 0.03)
+    b.rbox(3.0, 1.4, 0.06, sx, 1.2, sz - 0.62, 0xbfe3ff, 0.02)
+    b.prop(P.bench, sx, sz - 0.2, Math.PI)
+    b.rbox(0.12, 2.6, 0.12, sx + 2.2, 1.3, sz + 0.2, PAL.steelDark, 0.04)
+    b.rbox(0.8, 0.8, 0.08, sx + 2.2, 2.5, sz + 0.2, PAL.brandYellow, 0.2)
+    this.colliders.push({ minX: sx - 1.6, maxX: sx + 1.6, minZ: sz - 0.8, maxZ: sz + 0.1, id: 'stop' })
+    // sidewalk furniture
+    for (const x of [-12, 6.5, 12]) {
+      b.prop(P.streetlight, x, st.road0 - 0.5)
+      this.colliders.push({ minX: x - 0.2, maxX: x + 0.2, minZ: st.road0 - 0.7, maxZ: st.road0 - 0.3, id: 'lamp' })
+    }
+    b.prop(P.hydrant, 4.2, st.road0 - 0.5)
+    b.prop(P.bush, -5, st.road0 - 0.6)
+    b.prop(P.bush, 9.4, st.road0 - 0.6)
+    b.prop(P.trash, 8.2, st.road0 - 0.5)
+    // across the street (outside the island): parked car + harbour skyline
+    b.prop(P.dumpster, 13.5, st.road1 + 0.8, 0, 1, -0.6)
     const blds: ModelId[] = ['buildingA', 'buildingB', 'buildingC', 'buildingD']
-    for (let i = 0; i < 8; i++) b.prop(P[blds[i % 4]!], -24 + i * 7, z + 11, Math.PI, 1, -0.6)
+    for (let i = 0; i < 8; i++) b.prop(P[blds[i % 4]!], -24 + i * 7, st.road1 + 7, Math.PI, 1, -0.6)
     return b.build()
   }
 

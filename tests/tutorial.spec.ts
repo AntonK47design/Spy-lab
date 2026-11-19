@@ -13,7 +13,7 @@ test('tutorial route: cash -> desk -> safe -> crate -> sign-up -> kits -> fees -
   await goTo(page, 'station', 'vault')
   await expect.poll(tut).toBe(3)
   await goTo(page, 'crate', 'vault')
-  await expect.poll(tut).toBe(4)
+  await expect.poll(tut, { timeout: 10_000 }).toBe(4)
   await goTo(page, 'serve', 'vault')
   await expect.poll(tut, { timeout: 10_000 }).toBe(5)
   // keep the safe supplied and the fees collected until the first cadet graduates

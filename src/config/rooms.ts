@@ -62,16 +62,16 @@ export const LAYOUT = {
   wallH: 1.6,
   wall: 0.3,
   bakery: { x: 0, z: 9, w: 25, d: 6 },
-  street: { z: 14 },
   /** Bakery street door and back door into the secret corridor. */
   streetDoor: { x: 0, z: 12.6 },
   backDoor: { x: 0, z: 5.6 },
-  playerSpawn: { x: 4.6, z: 7.6 },
+  /** The game starts on the sidewalk in front of the bakery (tutorial begins outside). */
+  playerSpawn: { x: 2.6, z: 14.0 },
   /** Bakery counter = cadet sign-up desk. Hero serves standing behind it (serveSpot). */
   counter: { x: 6.9, z: 8.6 },
   serveSpot: { x: 6.9, z: 7.4 },
   /** Opening cash pile right next to the spawn (lesson: first cash <= 2 m away). */
-  welcomeSpot: { x: 3.2, z: 7.8 },
+  welcomeSpot: { x: 4.2, z: 13.4 },
   /** Waiting spots in front of the counter (first = being served). */
   queue: [
     { x: 6.9, z: 9.9 },
@@ -80,6 +80,8 @@ export const LAYOUT = {
     { x: 3.0, z: 11.4 },
   ],
   clerkPad: { x: 9.0, z: 7.2 },
+  /** Walkable street in front of the bakery: sidewalk, road, taxi stop where cadets get out. */
+  street: { sidewalk0: 12.0, road0: 15.4, road1: 20.6, plotFront: 21.3, laneIn: 17.0, laneOut: 19.2, stopX: -9.5, stopZ: 15.9 },
   /** Max slots ever placed in a room (visual stations). */
   maxSlots: 6,
 } as const
@@ -235,7 +237,15 @@ export function slotOf(id: RoomId, slot: number): { x: number; z: number } {
 /** Street door -> waiting spot in front of the counter. */
 export function arrivalPath(queueIndex: number): { x: number; z: number }[] {
   const q = LAYOUT.queue[Math.min(queueIndex, LAYOUT.queue.length - 1)]!
-  return [{ x: LAYOUT.streetDoor.x, z: LAYOUT.streetDoor.z }, { x: LAYOUT.streetDoor.x, z: 11.6 }, q]
+  const st = LAYOUT.street
+  return [
+    { x: st.stopX, z: st.stopZ },
+    { x: st.stopX + 1.2, z: 13.8 },
+    { x: -0.4, z: 13.8 },
+    { x: LAYOUT.streetDoor.x, z: LAYOUT.streetDoor.z },
+    { x: LAYOUT.streetDoor.x + 0.6, z: 11.4 },
+    q,
+  ]
 }
 
 /** Counter -> back door -> corridor -> room door -> station. */
