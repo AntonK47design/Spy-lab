@@ -176,6 +176,26 @@ function runBot(seed: number, efficiency: number, seconds: number): Run {
       collect(s, g.room)
       continue
     }
+    // the arrow points at a new mission: play it (like the real player in tests/pace.spec.ts)
+    if (g && g.kind === 'mission' && t() - lastMission > 20) {
+      const m = MISSIONS.find((x) => missionLock(s, x) === 'ok' && !((s.missions[x.id]?.wins ?? 0) > 0))
+      if (m) {
+        walkTo(padOf('mission_control'))
+        mark(`mission_${m.id}`)
+        const m0 = t()
+        playing = true
+        step(MISSION_SECONDS)
+        playing = false
+        missionTime.push([m0, t()])
+        progress.push(t())
+        if (rng() < 0.7) {
+          const stars = 1 + Math.floor(rng() * 3)
+          recordWin(s, m, stars, missionReward(s, m, stars), bestAgent(s, m), ev)
+        } else recordFail(s, m)
+        lastMission = t()
+        continue
+      }
+    }
     // 3. sign up waiting cadets
     if (!s.clerk && serveBlocker(s) === null) {
       walkTo(LAYOUT.serveSpot)
@@ -263,6 +283,9 @@ const PACE_WINDOWS: [number, number, number][] = [
   [600, 900, 30],
   [900, 1500, 30],
   [1500, 3600, 40],
+  [3600, 5400, 45],
+  [5400, 7200, 50],
+  [7200, 10800, 60],
 ]
 
 const BEATS: [string, string, number, number][] = [
@@ -283,6 +306,10 @@ const BEATS: [string, string, number, number][] = [
   ['level_10', 'Akademie-Level 10', 1500, 2400],
   // prestige becomes possible (brief: first relocation after 40-60 min)
   ['level_15', 'Akademie-Level 15 (Umzug)', 3000, 3600],
+  ['area_lighthouse', 'Leuchtturm-Insel offen', 1800, 3600],
+  ['unlock_hack', 'Hack Lab', 2400, 4800],
+  ['level_20', 'Akademie-Level 20', 5400, 9000],
+  ['level_25', 'Akademie-Level 25', 7200, 10800],
 ]
 
 if (TRACE) {
