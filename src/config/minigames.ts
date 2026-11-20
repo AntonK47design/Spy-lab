@@ -152,16 +152,16 @@ export interface MoleTier {
 }
 
 export const MOLE_TIERS: MoleTier[] = [
-  { npcs: 14, clues: 2, clueInterval: 4, speed: 0.55, similarity: 0.2, timeLimit: 40 },
-  { npcs: 16, clues: 2, clueInterval: 4.5, speed: 0.6, similarity: 0.25, timeLimit: 40 },
-  { npcs: 18, clues: 3, clueInterval: 4.5, speed: 0.65, similarity: 0.3, timeLimit: 45 },
-  { npcs: 20, clues: 3, clueInterval: 5, speed: 0.7, similarity: 0.35, timeLimit: 45 },
-  { npcs: 23, clues: 3, clueInterval: 5.5, speed: 0.75, similarity: 0.4, timeLimit: 48 },
-  { npcs: 26, clues: 3, clueInterval: 6, speed: 0.8, similarity: 0.45, timeLimit: 50 },
-  { npcs: 28, clues: 4, clueInterval: 6, speed: 0.85, similarity: 0.45, timeLimit: 55 },
-  { npcs: 30, clues: 4, clueInterval: 6.5, speed: 0.9, similarity: 0.5, timeLimit: 55 },
-  { npcs: 33, clues: 4, clueInterval: 7, speed: 0.95, similarity: 0.55, timeLimit: 58 },
-  { npcs: 36, clues: 4, clueInterval: 7.5, speed: 1.0, similarity: 0.6, timeLimit: 60 },
+  { npcs: 10, clues: 2, clueInterval: 3.5, speed: 0.5, similarity: 0.1, timeLimit: 45 },
+  { npcs: 12, clues: 2, clueInterval: 3.5, speed: 0.55, similarity: 0.15, timeLimit: 45 },
+  { npcs: 14, clues: 3, clueInterval: 4, speed: 0.6, similarity: 0.15, timeLimit: 48 },
+  { npcs: 16, clues: 3, clueInterval: 4, speed: 0.65, similarity: 0.2, timeLimit: 48 },
+  { npcs: 18, clues: 3, clueInterval: 4.5, speed: 0.7, similarity: 0.25, timeLimit: 50 },
+  { npcs: 20, clues: 3, clueInterval: 4.5, speed: 0.75, similarity: 0.3, timeLimit: 50 },
+  { npcs: 22, clues: 4, clueInterval: 5, speed: 0.8, similarity: 0.3, timeLimit: 55 },
+  { npcs: 24, clues: 4, clueInterval: 5, speed: 0.85, similarity: 0.35, timeLimit: 55 },
+  { npcs: 26, clues: 4, clueInterval: 5.5, speed: 0.9, similarity: 0.4, timeLimit: 58 },
+  { npcs: 28, clues: 4, clueInterval: 5.5, speed: 0.95, similarity: 0.45, timeLimit: 60 },
 ]
 
 export const MOLE = {

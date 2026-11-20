@@ -130,7 +130,8 @@ export class SpotTheMole implements Minigame {
 
   private makeCast(): void {
     const t = this.tier
-    const moleLooks = this.randomLooks()
+    // the mole wears every feature, so each clue is a clear positive ("red hat", "glasses", "briefcase", "blue coat")
+    const moleLooks: Looks = { hat: 1 + rnd(RANGE.hat - 1), glasses: 1, bag: 1, shirt: rnd(RANGE.shirt) }
     // clue order: random attributes of the mole
     const order = [...ATTRS].sort(() => Math.random() - 0.5).slice(0, t.clues)
     this.clues = order.map((attr) => ({ attr, value: moleLooks[attr] }))
@@ -141,8 +142,9 @@ export class SpotTheMole implements Minigame {
       for (const a of ATTRS) if (Math.random() < t.similarity) l[a] = moleLooks[a]
       // nobody else may match every clue: change the last clue's attribute
       if (this.matches(l, this.clues.length)) {
-        const c = this.clues[this.clues.length - 1]!
-        l[c.attr] = (c.value + 1 + rnd(RANGE[c.attr] - 1)) % RANGE[c.attr]
+        // break the match on one clue (a different hat / coat colour, or no glasses / briefcase)
+        const c = this.clues[rnd(this.clues.length)]!
+        l[c.attr] = c.attr === 'glasses' || c.attr === 'bag' ? 0 : (c.value + 1 + rnd(RANGE[c.attr] - 1)) % RANGE[c.attr]
       }
       all.push(l)
     }
@@ -230,18 +232,18 @@ export class SpotTheMole implements Minigame {
     }
     // hat: brim + crown + band (white band coloured per instance as part of the crown colour)
     const hatGeo = mergeGeometries([
-      new CylinderGeometry(0.42, 0.42, 0.045, 18).translate(0, 0.02, 0),
-      new CylinderGeometry(0.26, 0.29, 0.28, 18).translate(0, 0.17, 0),
+      new CylinderGeometry(0.5, 0.5, 0.05, 18).translate(0, 0.025, 0),
+      new CylinderGeometry(0.31, 0.34, 0.34, 18).translate(0, 0.2, 0),
     ])!
     this.hats = mk(hatGeo, 0xffffff)
     const glassGeo = mergeGeometries([
-      new BoxGeometry(0.2, 0.13, 0.05).translate(-0.13, 0, 0),
-      new BoxGeometry(0.2, 0.13, 0.05).translate(0.13, 0, 0),
-      new BoxGeometry(0.56, 0.04, 0.04).translate(0, 0.04, 0),
+      new BoxGeometry(0.26, 0.17, 0.06).translate(-0.16, 0, 0),
+      new BoxGeometry(0.26, 0.17, 0.06).translate(0.16, 0, 0),
+      new BoxGeometry(0.66, 0.05, 0.05).translate(0, 0.06, 0),
     ])!
     this.glasses = mk(glassGeo, 0x15151c)
     const bagGeo = mergeGeometries([
-      new BoxGeometry(0.42, 0.3, 0.12).translate(0, -0.15, 0),
+      new BoxGeometry(0.56, 0.4, 0.16).translate(0, -0.2, 0),
       new BoxGeometry(0.14, 0.05, 0.04).translate(0, 0.02, 0),
     ])!
     this.bags = mk(bagGeo, 0x6b4226)
@@ -312,6 +314,12 @@ export class SpotTheMole implements Minigame {
     }
     this.mistakes++
     n.wrong = true
+    // a wrong suspect walks out, so he cannot confuse you twice
+    n.leaving = true
+    n.tx = n.x < 0 ? -this.hallW / 2 - 3 : this.hallW / 2 + 3
+    n.tz = n.z
+    n.wait = 0
+    n.speed = Math.max(n.speed, 1.8)
     this.time = Math.max(0, this.time - MOLE.wrongPenalty)
     this.flash = 'miss'
     this.flashT = 0.35

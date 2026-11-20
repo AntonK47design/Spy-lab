@@ -185,3 +185,8 @@ Plan: https://claude.ai/artifact/3VK5u4uetgNAqxG6wv9qhA (Fähre, Dead Drops, Sei
 - Spiel: Punktzahl = Vermächtnis-Medaillen, gesendet beim Start (falls > 0) und nach jedem Umzug. `in_game` → eigene Liste (Top 20) über den Knopf im Täglich-Ordner; `native_popup` → Plattform-Overlay; `native` (YouTube) → nur Punktzahl; `not_available` → Knopf ausgeblendet (lokaler Mock).
 - Fixes: Tagesaufträge-Zufallsgenerator lief ab Level 4 in eine Endlosschleife (Spiel fror ein) → 32-Bit-Generator mit Obergrenze; HUD-Extraknöpfe aktualisierten sich nur bei offenem Ordner → eigener HUD-Takt; VIP verschwand sofort; Täglich-Popup kommt jetzt nach dem Willkommen-zurück-Popup.
 - Tests (ohne Größen-Matrix): alle grün inkl. neuer Tests für Gadget-Labor, Field Ops, Alarm/Endlos, Umzug, Angebote, Täglich, Boss + Vault Bonus. `check-build` OK, Start-Download 2,89 MB.
+
+## Spot the Mole leichter & klarer (Antons Feedback) — 2026-11-20
+- Nur noch positive Hinweise: Der Maulwurf trägt immer Hut, Brille, Aktenkoffer und eine Jackenfarbe; die Hinweise nennen davon 2–4 („Gelber Hut", „Weiße Jacke", „Aktenkoffer") – kein „Kein Hut" mehr.
+- Größere Hüte, Brillen und Koffer. Weniger Reisende (10 → 28 statt 14 → 36) und weniger Doppelgänger (Ähnlichkeit 0,1 → 0,45), schnellere Hinweise.
+- Falsch angetippte Verdächtige verlassen die Halle (−5 s bleibt), damit sie nicht erneut verwirren.
