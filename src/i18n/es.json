@@ -357,5 +357,8 @@
   "lb.empty": "Aún no hay entradas.",
   "lb.agent": "Agente",
   "pad.upgrade": "MEJORA",
-  "supply.short": "Caja"
+  "supply.short": "Caja",
+  "coach.laserStation": "¡Construye el primer marco láser en el Gimnasio Láser!",
+  "coach.laserCrate": "¡Construye la caja de kits del Gimnasio Láser!",
+  "coach.need": "Faltan {n} de dinero: ¡recógelo!"
 }

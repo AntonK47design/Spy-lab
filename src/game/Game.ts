@@ -55,7 +55,7 @@ import { CircuitHack } from '../minigames/circuit/CircuitHack'
 import { BossCutscene } from '../minigames/BossCutscene'
 import { CodeBreaker } from '../minigames/code/CodeBreaker'
 import type { Minigame, MinigameResult } from '../minigames/Minigame'
-import { coachLine, infoCard, missionUi, moveHint, nextPopup, panel, queuePopup, popupQueue, hudTick, showToast, vaultLoot, briefingGadget, liveOffers, type Panel } from '../ui/uiState'
+import { coachLine, coachNeed, infoCard, missionUi, moveHint, nextPopup, panel, queuePopup, popupQueue, hudTick, showToast, vaultLoot, briefingGadget, liveOffers, type Panel } from '../ui/uiState'
 import { formatNumber } from '../core/format'
 import { DEBUG } from '../debug/flags'
 import { lang, t } from '../i18n/i18n'
@@ -663,6 +663,14 @@ export class Game {
     this.updateCoach()
   }
 
+  private updateCoachNeed(): void {
+    const step = tutorialActive(state) ? TUTORIAL[state.tutorial] : undefined
+    const price = step?.buy ? padPrice(state, step.buy) : null
+    const left = price ? Math.ceil(price.cost - price.paid - state.cash) : 0
+    const v = left > 0 ? left : null
+    if (coachNeed.value !== v) coachNeed.value = v
+  }
+
   private updateCoach(): void {
     coachLine.value = tutorialActive(state) ? (TUTORIAL[state.tutorial]?.line ?? null) : null
   }
@@ -685,8 +693,9 @@ export class Game {
     const price = step.buy ? padPrice(state, step.buy) : null
     const short = price ? price.cost - price.paid > state.cash : false
     if (at && !short) return { at, kind: `tut:${step.id}` }
-    // purchase steps save up (chores only); steps without a target allow any next step
-    const g = guideGoal(state, !!step.buy)
+    // saving up / waiting: only chores (cash, kits, sign-ups), never an unrelated purchase,
+    // so the arrow always matches the coach line
+    const g = guideGoal(state, true)
     if (g) return { at: g.at, kind: `tut-wait:${g.kind}` }
     return at ? { at, kind: `tut:${step.id}` } : null
   }
@@ -730,6 +739,7 @@ export class Game {
   private updateGuide(dt: number): void {
     const show = !panel.value && this.mode === 'academy'
     const target = show ? this.objectiveTarget() : null
+    this.updateCoachNeed()
     // standing on the target: no pointer needed
     const here = target && this.player.near(target.x, target.z, 1.2)
     this.guide.update(dt, here ? null : target, this.cam, this.w, this.h)

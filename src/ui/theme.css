@@ -484,6 +484,9 @@ button {
 }
 .coach-name { font-size: max(10px, 0.7em); color: var(--coral); font-weight: 700; }
 .coach-line { font-weight: 800; line-height: 1.2; }
+.coach-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.coach.objective .coach-line { -webkit-line-clamp: 3; }
+.coach-need { font-weight: 700; font-size: max(10.5px, 0.82em); line-height: 1.2; color: var(--coral, #e8735a); }
 
 @media (min-aspect-ratio: 5/4) {
   .coach, .orders { bottom: calc(var(--sa-bottom) + var(--gap)); }

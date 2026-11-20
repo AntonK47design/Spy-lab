@@ -14,7 +14,7 @@ import { TUTORIAL } from '../game/tutorial'
 import { game } from '../game/actions'
 import { nextUnlock } from '../sim/academy'
 import { ROOMS } from '../config/rooms'
-import { coachLine, infoCard, inMission, moveHint, panel, portrait, toast, missionUi, liveOffers, hudTick } from './uiState'
+import { coachLine, coachNeed, infoCard, inMission, moveHint, panel, portrait, toast, missionUi, liveOffers, hudTick } from './uiState'
 import { PanelHost, closePanel, openPause } from './panels'
 import { MissionLayer } from './mission'
 import { click } from './common'
@@ -221,7 +221,10 @@ function Coach() {
   return (
     <aside class="coach objective" data-testid="coach" key={line} aria-label={t('coach.name')}>
       <span class="obj-ico"><AvatarMarmalade class="coach-avatar" /></span>
-      <div class="coach-line">{t(line)}</div>
+      <div class="coach-text">
+        <div class="coach-line">{t(line)}</div>
+        {coachNeed.value ? <div class="coach-need" data-testid="coach-need">{t('coach.need', { n: fmt(coachNeed.value) })}</div> : null}
+      </div>
     </aside>
   )
 }

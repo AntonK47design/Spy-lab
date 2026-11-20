@@ -58,6 +58,8 @@ export const moveHint = signal<string | null>(null)
 
 /** Tutorial bubble (Agent Marmalade) — i18n key or null. */
 export const coachLine = signal<string | null>(null)
+/** Tutorial purchase step not affordable yet: cash still missing (the arrow shows where to earn it). */
+export const coachNeed = signal<number | null>(null)
 /** Rendered hero head (data URL) for the HUD portrait; null until rendered. */
 export const portrait = signal<string | null>(null)
 

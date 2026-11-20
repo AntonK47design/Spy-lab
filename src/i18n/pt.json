@@ -357,5 +357,8 @@
   "lb.empty": "Ainda sem entradas.",
   "lb.agent": "Agente",
   "pad.upgrade": "MELHORIA",
-  "supply.short": "Caixa"
+  "supply.short": "Caixa",
+  "coach.laserStation": "Construa a primeira moldura laser na Academia Laser!",
+  "coach.laserCrate": "Construa a caixa de kits da Academia Laser!",
+  "coach.need": "Faltam {n} de dinheiro: colete!"
 }

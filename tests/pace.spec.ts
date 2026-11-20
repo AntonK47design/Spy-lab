@@ -22,6 +22,8 @@ async function ui(page: Page) {
   })
 }
 
+const TUT_STEPS = 14
+
 async function clickIf(page: Page, id: string): Promise<boolean> {
   const l = page.getByTestId(id)
   if ((await l.count()) && (await l.first().isVisible()) && (await l.first().isEnabled())) {
@@ -41,6 +43,9 @@ test('new player: first 5 minutes are fast-paced (waiting <= 10 s, purchases kee
   let lastP = -1
   let missionStart = -1
   const log: string[] = []
+  const wrongArrow: string[] = []
+  const tutLog: string[] = []
+  let lastTut = -1
   for (let guard = 0; guard < 4000; guard++) {
     const u = await ui(page)
     if (u.t >= GAME_SECONDS) break
@@ -100,6 +105,9 @@ test('new player: first 5 minutes are fast-paced (waiting <= 10 s, purchases kee
       await spy(page, 'teleport', g.x, g.z)
     }
     log.push(`${u.t.toFixed(0)} -> ${g.kind}`)
+    // tutorial arrow matches the coach line: the step's own target, or a chore while saving up
+    if (raw.tutorial < TUT_STEPS && g.kind.startsWith('tut-wait:')) wrongArrow.push(`${u.t.toFixed(0)}s step ${raw.tutorial}: ${g.kind}`)
+    if (raw.tutorial !== lastTut) { tutLog.push(`${u.t.toFixed(0)}s step ${raw.tutorial} ${g.kind}`); lastTut = raw.tutorial }
     // stay a moment (pads pour cash, kits are picked / dropped, sign-ups take a second)
     await page.waitForTimeout(g.kind === 'serve' || g.kind.includes('serve') ? 1300 : 700)
   }
@@ -121,5 +129,7 @@ test('new player: first 5 minutes are fast-paced (waiting <= 10 s, purchases kee
   console.log(log.filter((l) => { const t = Number(l.split(' ')[0]); return t >= Number(process.env.FROM ?? 0) }).slice(0, 60).join(' | '))
   expect(maxIdle, summary).toBeLessThanOrEqual(10)
   expect(maxGap.gap, summary).toBeLessThanOrEqual(35)
+  console.log('tutorial: ' + tutLog.join(' | '))
+  expect(wrongArrow.filter((w) => /tut-wait:(pad|level|mission)/.test(w)), 'tutorial arrow pointed at an unrelated purchase').toEqual([])
   expect(beats.length, summary).toBeGreaterThanOrEqual(25)
 })

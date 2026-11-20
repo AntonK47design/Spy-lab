@@ -4,7 +4,7 @@
  * skip what they have already done; it never comes back after a reload.
  */
 import { ECONOMY } from '../config/economy'
-import { LAYOUT, OFFICE, ROOMS, cashSpotOf, crateOf, padOf, slotOf, staffPadOf } from '../config/rooms'
+import { LAYOUT, OFFICE, cashSpotOf, crateOf, padOf, slotOf } from '../config/rooms'
 import type { GameState } from '../sim/state'
 import type { PadTarget } from '../sim/academy'
 
@@ -38,13 +38,10 @@ export const TUTORIAL: TutorialStep[] = [
   // graduates wait in the agency office (no pop-up): hire the first one for Mission 1
   { id: 'hire', line: 'coach.hire', target: () => OFFICE.laptopPad, done: (s) => s.agents.length > 0 },
   { id: 'mission', line: 'coach.mission', target: () => padOf('mission_control'), done: (s) => (s.missions.harbor_01?.wins ?? 0) > 0 },
-  { id: 'unlock', line: 'coach.unlock', target: (s) => (s.rooms.laser.unlocked ? null : padOf('laser')), done: (s) => s.rooms.laser.unlocked, buy: { kind: 'unlock', room: 'laser' } },
-  {
-    id: 'runner',
-    line: 'coach.runner',
-    target: (s) => (s.cash >= ROOMS.vault.runnerCost * 0.6 ? staffPadOf('vault') : null),
-    done: (s) => v(s).runner || s.clerk,
-  },
+  { id: 'unlock', line: 'coach.unlock', target: () => padOf('laser'), done: (s) => s.rooms.laser.unlocked, buy: { kind: 'unlock', room: 'laser' } },
+  // stay in the new room: first trap, then its kit crate (same pattern as the Vault Workshop)
+  { id: 'laserStation', line: 'coach.laserStation', target: () => slotOf('laser', 0), done: (s) => s.rooms.laser.stations > 0, buy: { kind: 'station', room: 'laser' } },
+  { id: 'laserCrate', line: 'coach.laserCrate', target: () => crateOf('laser'), done: (s) => s.rooms.laser.crate, buy: { kind: 'crate', room: 'laser' } },
 ]
 
 export function tutorialActive(s: GameState): boolean {

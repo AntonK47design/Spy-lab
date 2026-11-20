@@ -357,5 +357,8 @@
   "lb.empty": "No entries yet.",
   "lb.agent": "Agent",
   "pad.upgrade": "UPGRADE",
-  "supply.short": "Crate"
+  "supply.short": "Crate",
+  "coach.laserStation": "Build the first laser frame in the Laser Gym!",
+  "coach.laserCrate": "Build the Laser Gym's kit crate!",
+  "coach.need": "{n} more cash needed: collect it!"
 }

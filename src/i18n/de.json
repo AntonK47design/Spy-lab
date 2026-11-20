@@ -357,5 +357,8 @@
   "lb.empty": "Noch keine Einträge.",
   "lb.agent": "Agent",
   "pad.upgrade": "UPGRADE",
-  "supply.short": "Kiste"
+  "supply.short": "Kiste",
+  "coach.laserStation": "Bau den ersten Laserrahmen im Laser-Studio!",
+  "coach.laserCrate": "Bau die Kit-Kiste im Laser-Studio!",
+  "coach.need": "Noch {n} Cash nötig: sammle es ein!"
 }
