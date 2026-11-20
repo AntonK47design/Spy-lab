@@ -1032,7 +1032,7 @@ button {
 @media (max-aspect-ratio: 4/5) {
   .btn-round.light { width: var(--tap); height: var(--tap); }
   .level-ring { width: calc(var(--tap) * 1.25); height: calc(var(--tap) * 1.25); }
-  .xp-bar { left: calc(var(--sa-left) + var(--gap) * 2 + var(--tap) * 2.3); right: calc(var(--sa-right) + var(--gap) * 2 + var(--tap) * 2.4); }
+  .xp-bar { left: calc(var(--sa-left) + var(--gap) * 2.5 + var(--tap) * 2.5); right: calc(var(--sa-right) + var(--gap) * 2 + var(--tap) * 2.4); }
   .xp-star { font-size: calc(var(--tap) * 0.8); margin-right: -0.45em; }
   .xp-text { font-size: max(14px, 1.1em); padding-left: 0.6em; }
   .cash-pill { min-width: calc(var(--tap) * 2.4); padding-left: calc(var(--tap) * 0.95); }
