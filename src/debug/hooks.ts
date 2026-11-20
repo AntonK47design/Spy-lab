@@ -6,6 +6,7 @@ import type { createRenderer } from '../render/renderer'
 import { state, persist } from '../game/store'
 import { createAgent, levelCost } from '../sim/academy'
 import { mgHud } from '../minigames/Minigame'
+import { setManualFrames, stepFrames } from '../core/loop'
 import { timeWarp as warp, now } from '../core/time'
 import { bootMarks } from '../platform/bridge'
 import { flush, saveStats } from '../core/save'
@@ -130,6 +131,10 @@ export function installDebugHooks(g: { renderer: ReturnType<typeof createRendere
     /** QA: next academy frame spawns a Villain Alert. */
     /** QA: drone + VIP recruit on the next academy frame. */
     spawnOffers: () => game.debugOffers(),
+    /** Video capture: manual fixed-step frames + hero autopilot (waypoints or 'guide'). */
+    manualFrames: (on: boolean) => setManualFrames(on),
+    step: (n: number, dt = 1 / 30) => stepFrames(n, dt),
+    autopilot: (p: { x: number; z: number }[] | 'guide' | null) => (game.autopilot = p),
     /** Where the guide arrow points (tutorial or next useful step). */
     guide: () => game.debugGuide(),
     levelCost: (room: RoomId) => levelCost(state, room),

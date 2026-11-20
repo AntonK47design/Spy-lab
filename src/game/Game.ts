@@ -434,6 +434,7 @@ export class Game {
     const modal = panel.value !== null
     this.input.enabled = !modal
     this.input.update()
+    this.applyAutopilot()
     if (this.input.active && moveHint.value) moveHint.value = null
     const ride = this.ferry.update(dt, state.areas.lighthouse, this.player)
     if (ride) {
@@ -688,6 +689,32 @@ export class Game {
     const g = guideGoal(state, !!step.buy)
     if (g) return { at: g.at, kind: `tut-wait:${g.kind}` }
     return at ? { at, kind: `tut:${step.id}` } : null
+  }
+
+  // ---------------------------------------------------------------- QA autopilot (gameplay video)
+  /** Waypoints to walk (debug only); 'guide' = keep following the guide arrow. */
+  autopilot: { x: number; z: number }[] | 'guide' | null = null
+  private autoDwell = 0
+
+  private applyAutopilot(): void {
+    const a = this.autopilot
+    if (!a) return
+    let t: { x: number; z: number } | null | undefined
+    if (a === 'guide') t = this.objectiveTarget()
+    else t = a[0]
+    if (!t) return
+    const dx = t.x - this.player.x
+    const dz = t.z - this.player.z
+    const d = Math.hypot(dx, dz)
+    if (d < 0.35) {
+      if (Array.isArray(a)) a.shift()
+      this.input.move.x = 0
+      this.input.move.y = 0
+      return
+    }
+    this.input.move.x = dx / d
+    this.input.move.y = dz / d
+    void this.autoDwell
   }
 
   /** QA: where the arrow points now (null = nothing to do). */
