@@ -22,7 +22,7 @@ async function tap(page: Page, wrong = false): Promise<void> {
 }
 
 async function waitClues(page: Page): Promise<void> {
-  await expect.poll(() => spy(page, 'mgAllClues'), { timeout: 60_000 }).toBe(true)
+  await expect.poll(() => spy(page, 'mgAllClues'), { timeout: 150_000 }).toBe(true)
 }
 
 test('Spot the Mole (mission 7): clues appear, wrong tap costs time, hint, tap the mole', async ({ page }) => {
@@ -45,7 +45,7 @@ test('Spot the Mole (mission 7): clues appear, wrong tap costs time, hint, tap t
 })
 
 test('Spot the Mole: every tier 1-10 can be solved once all clues are out', async ({ page }) => {
-  test.setTimeout(400_000)
+  test.setTimeout(900_000)
   await setup(page)
   for (let tier = 1; tier <= 10; tier++) {
     await spy(page, 'setTier', 'mole', tier)

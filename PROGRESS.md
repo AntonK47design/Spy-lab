@@ -179,3 +179,9 @@ Plan: https://claude.ai/artifact/3VK5u4uetgNAqxG6wv9qhA (Fähre, Dead Drops, Sei
 ## Phase 5 · Retention — 2026-11-20
 - **Täglich-Ordner**: 7-Tage-Belohnungen (Streak, verpasster Tag setzt zurück, ×2 per Ad), 3 Tagesaufträge ab Level 4 (deterministisch pro UTC-Tag, Fortschritt ab Tagesbeginn, Gold Badges), 13 Erfolge (Missionen, Sterne, Absolventen, Upgrades, Millionär, Bosse, Umzug). Roter Punkt am Knopf, wenn etwas abholbar ist; Popup an neuen Tagen.
 - Technikentscheidung: eigene Umsetzung über `bridge.storage` statt der Bridge-Module `dailyRewards`/`tasks` – läuft auf jeder Plattform und im Mock gleich und braucht keine Konsolen-Konfiguration. Leaderboard nicht umgesetzt (bräuchte ein in der Playgama-Konsole angelegtes Leaderboard → Antons OK).
+
+## Bestenliste „Legacy Medals" — 2026-11-20
+- Auf Antons OK in der Playgama-Konsole angelegt: `legacy_medals` (numerisch, absteigend). Bridge-Config: `leaderboards: [{ id: legacy_medals, isMain: true }]` + `saas` (Public Token, Plattformen playgama + qa_tool), denn Playgama selbst hat keine native Bestenliste – über Bridge SaaS läuft sie dort als `in_game`.
+- Spiel: Punktzahl = Vermächtnis-Medaillen, gesendet beim Start (falls > 0) und nach jedem Umzug. `in_game` → eigene Liste (Top 20) über den Knopf im Täglich-Ordner; `native_popup` → Plattform-Overlay; `native` (YouTube) → nur Punktzahl; `not_available` → Knopf ausgeblendet (lokaler Mock).
+- Fixes: Tagesaufträge-Zufallsgenerator lief ab Level 4 in eine Endlosschleife (Spiel fror ein) → 32-Bit-Generator mit Obergrenze; HUD-Extraknöpfe aktualisierten sich nur bei offenem Ordner → eigener HUD-Takt; VIP verschwand sofort; Täglich-Popup kommt jetzt nach dem Willkommen-zurück-Popup.
+- Tests (ohne Größen-Matrix): alle grün inkl. neuer Tests für Gadget-Labor, Field Ops, Alarm/Endlos, Umzug, Angebote, Täglich, Boss + Vault Bonus. `check-build` OK, Start-Download 2,89 MB.

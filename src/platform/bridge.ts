@@ -183,6 +183,50 @@ export const features = {
   },
 }
 
+/** Leaderboards (Legacy Medals). in_game: own UI via getEntries; native: score only; native_popup: platform overlay. */
+export type LbType = 'not_available' | 'in_game' | 'native' | 'native_popup'
+export interface LbEntry {
+  id: string
+  name: string
+  photo: string
+  score: number
+  rank: number
+}
+
+export const leaderboards = {
+  get type(): LbType {
+    try {
+      return String(b().leaderboards.type) as LbType
+    } catch {
+      return 'not_available'
+    }
+  },
+  async setScore(id: string, score: number): Promise<void> {
+    if (leaderboards.type === 'not_available') return
+    try {
+      await b().leaderboards.setScore(id, score)
+    } catch {
+      /* a failed submit must never break the game */
+    }
+  },
+  async getEntries(id: string): Promise<LbEntry[]> {
+    if (leaderboards.type !== 'in_game') return []
+    try {
+      return ((await b().leaderboards.getEntries(id)) as LbEntry[]) ?? []
+    } catch {
+      return []
+    }
+  },
+  async showNativePopup(id: string): Promise<void> {
+    if (leaderboards.type !== 'native_popup') return
+    try {
+      await b().leaderboards.showNativePopup(id)
+    } catch {
+      /* ignore */
+    }
+  },
+}
+
 export const analytics = {
   send(eventName: string, data?: Record<string, unknown>): void {
     try {

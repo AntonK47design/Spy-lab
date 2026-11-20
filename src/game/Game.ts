@@ -28,6 +28,7 @@ import { OFFERS } from '../config/ads'
 import { gadgetFor, type GadgetId } from '../config/gadgets'
 import { craftGadget, rushGadget, takeGadget, tickGadgets } from '../sim/gadgets'
 import { relocate } from '../sim/prestige'
+import { LEADERBOARD_ID } from '../config/prestige'
 import { openSupply, vipRecruit } from '../sim/offers'
 import { claimAchievement, claimContract, claimDaily, dailyIndex, ensureContracts } from '../sim/meta'
 import { collectFieldOp, finishFieldOp, resolveMission, startFieldOp, tickAlert } from '../sim/ops'
@@ -42,7 +43,7 @@ import { TUTORIAL, advanceTutorial, tutorialActive } from './tutorial'
 import { isGameplayActive, onFlushRequest, pageHidden, userPaused } from '../core/lifecycle'
 import { elapsedSince, now } from '../core/time'
 import { AudioManager } from '../audio/AudioManager'
-import { platform } from '../platform/bridge'
+import { leaderboards, platform } from '../platform/bridge'
 import { beginFlow, blockInterstitials, rewardedSupported, showInterstitial, showRewarded } from '../platform/ads'
 import { track } from '../analytics/telemetry'
 import { SafeCracker } from '../minigames/safe/SafeCracker'
@@ -279,6 +280,7 @@ export class Game {
     const since = away > 0 ? now() - away * 1000 : state.lastSeen
     if (since > 0) this.checkAway(since)
     this.offerDaily()
+    if (state.medals > 0) void leaderboards.setScore(LEADERBOARD_ID, state.medals)
     this.updateCoach()
     blockInterstitials('tutorial', tutorialActive(state))
     // iframe portals often keep the keyboard: grab focus, and say so while we do not have it
@@ -293,11 +295,13 @@ export class Game {
   }
 
   checkAway(since: number): void {
-    this.offerDaily()
     const secs = elapsedSince(since, ECONOMY.offline.capSeconds)
-    if (secs < ECONOMY.offline.minAwaySeconds) return
-    const amount = offlineEarnings(state, secs)
-    if (amount > 0) queuePopup({ kind: 'welcome', amount, seconds: Math.round(secs) })
+    if (secs >= ECONOMY.offline.minAwaySeconds) {
+      const amount = offlineEarnings(state, secs)
+      if (amount > 0) queuePopup({ kind: 'welcome', amount, seconds: Math.round(secs) })
+    }
+    // a new day: the daily reward comes after the welcome-back popup
+    this.offerDaily()
   }
 
   /** New day: the daily reward pops up (after the tutorial). */
@@ -1029,6 +1033,13 @@ export class Game {
     showToast('prestige.done')
     persist(['core', 'agents', 'progress', 'meta'], true)
     showInterstitial('prestige')
+    void leaderboards.setScore(LEADERBOARD_ID, state.medals)
+  }
+
+  /** Leaderboard button: own list (in_game) or the platform overlay (native_popup). */
+  openLeaderboard(): void {
+    if (leaderboards.type === 'native_popup') void leaderboards.showNativePopup(LEADERBOARD_ID)
+    else if (leaderboards.type === 'in_game') panel.value = { kind: 'leaderboard' }
   }
 
   // ---------------------------------------------------------------- Field Ops

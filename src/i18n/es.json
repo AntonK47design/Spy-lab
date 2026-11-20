@@ -351,5 +351,9 @@
   "ach.boss_5": "Velvet Paw desarticulada",
   "ach.prestige_1": "Nuevo cuartel",
   "shop.freeBadges": "{n} insignia de oro gratis",
-  "shop.freeBadgesWait": "Más insignias gratis en {time}"
+  "shop.freeBadgesWait": "Más insignias gratis en {time}",
+  "lb.title": "Clasificación",
+  "lb.text": "Agencias por medallas de legado: tienes {n}.",
+  "lb.empty": "Aún no hay entradas.",
+  "lb.agent": "Agente"
 }

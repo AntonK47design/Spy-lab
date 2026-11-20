@@ -9,6 +9,9 @@ export const PRESTIGE = {
   incomePerMedal: 0.1,
 } as const
 
+/** Leaderboard id (Bridge config + Playgama console): Legacy Medals, highest first. */
+export const LEADERBOARD_ID = 'legacy_medals'
+
 export type ShopId = 'bakery' | 'icecream' | 'flowers' | 'toys' | 'lighthouse'
 
 /** Cover shops in order; the look cycles after the last one. */

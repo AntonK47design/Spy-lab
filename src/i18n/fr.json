@@ -351,5 +351,9 @@
   "ach.boss_5": "Velvet Paw démantelée",
   "ach.prestige_1": "Nouveau QG",
   "shop.freeBadges": "{n} badge d'or gratuit",
-  "shop.freeBadgesWait": "D'autres badges gratuits dans {time}"
+  "shop.freeBadgesWait": "D'autres badges gratuits dans {time}",
+  "lb.title": "Classement",
+  "lb.text": "Agences classées par médailles d'héritage – tu en as {n}.",
+  "lb.empty": "Pas encore d'entrées.",
+  "lb.agent": "Agent"
 }

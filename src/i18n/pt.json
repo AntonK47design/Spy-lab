@@ -351,5 +351,9 @@
   "ach.boss_5": "Velvet Paw desmantelada",
   "ach.prestige_1": "Novo QG",
   "shop.freeBadges": "{n} distintivo de ouro grátis",
-  "shop.freeBadgesWait": "Mais distintivos grátis em {time}"
+  "shop.freeBadgesWait": "Mais distintivos grátis em {time}",
+  "lb.title": "Classificação",
+  "lb.text": "Agências por medalhas de legado – você tem {n}.",
+  "lb.empty": "Ainda sem entradas.",
+  "lb.agent": "Agente"
 }

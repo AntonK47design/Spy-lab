@@ -17,7 +17,10 @@ import { GADGETS, GADGET, gadgetFor } from '../config/gadgets'
 import { craftBlock } from '../sim/gadgets'
 import { resolveMission, endlessOpen, fieldOpsOpen } from '../sim/ops'
 import { FIELD_OPS } from '../config/ops'
-import { PRESTIGE, shopOf } from '../config/prestige'
+import { LEADERBOARD_ID, PRESTIGE, shopOf } from '../config/prestige'
+import { leaderboards, type LbEntry } from '../platform/bridge'
+import { useEffect } from 'preact/hooks'
+import { useSignal } from '@preact/signals'
 import { ACHIEVEMENTS, DAILY } from '../config/meta'
 import { OFFERS } from '../config/ads'
 import { achievementProgress, contractProgress, contractsOpen, dailyIndex, dailyValue } from '../sim/meta'
@@ -498,6 +501,11 @@ export function DailyPanel() {
           </div>
         </>
       )}
+      {(leaderboards.type === 'in_game' || leaderboards.type === 'native_popup') && (
+        <button class="fieldops-btn" data-testid="btn-leaderboard" onClick={() => { click(); game().openLeaderboard() }}>
+          <IconStar /> {t('lb.title')}
+        </button>
+      )}
       <div class="fo-head typewriter">{t('achievements.title')}</div>
       <div class="lab-list">
         {ACHIEVEMENTS.map((a) => {
@@ -518,6 +526,35 @@ export function DailyPanel() {
           )
         })}
       </div>
+    </Folder>
+  )
+}
+
+/** In-game leaderboard (Legacy Medals) where the platform has no own UI. */
+export function LeaderboardPanel() {
+  const entries = useSignal<LbEntry[] | null>(null)
+  useEffect(() => {
+    void leaderboards.getEntries(LEADERBOARD_ID).then((e) => (entries.value = e))
+  }, [])
+  const list = entries.value
+  return (
+    <Folder title={t('lb.title')} testid="panel-leaderboard" onClose={() => (panel.value = { kind: 'daily' })} tab={t('prestige.short')}>
+      <div class="center small muted">{t('lb.text', { n: state.medals })}</div>
+      {list === null ? (
+        <div class="center muted">…</div>
+      ) : list.length === 0 ? (
+        <div class="center muted">{t('lb.empty')}</div>
+      ) : (
+        <div class="lab-list">
+          {list.slice(0, 20).map((e) => (
+            <div class="lab-row" data-testid="lb-row">
+              <b class="typewriter">#{e.rank}</b>
+              <span class="lab-name fit">{e.name || t('lb.agent')}</span>
+              <span class="lab-stock"><IconStar /> {fmt(e.score)}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </Folder>
   )
 }
@@ -691,6 +728,7 @@ export function PanelHost() {
     case 'fieldops': return <FieldOpsPanel />
     case 'prestige': return <PrestigePanel />
     case 'daily': return <DailyPanel />
+    case 'leaderboard': return <LeaderboardPanel />
     case 'levelup': return <LevelUpPanel level={p.level} />
     case 'welcome': return <WelcomePanel amount={p.amount} seconds={p.seconds} />
   }

@@ -351,5 +351,9 @@
   "ach.boss_5": "Velvet Paw çökertildi",
   "ach.prestige_1": "Yeni karargâh",
   "shop.freeBadges": "{n} bedava altın rozet",
-  "shop.freeBadgesWait": "Daha fazla bedava rozet: {time}"
+  "shop.freeBadgesWait": "Daha fazla bedava rozet: {time}",
+  "lb.title": "Liderlik tablosu",
+  "lb.text": "Ajanslar Miras Madalyalarına göre – sende {n}.",
+  "lb.empty": "Henüz kayıt yok.",
+  "lb.agent": "Ajan"
 }

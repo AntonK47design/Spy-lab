@@ -351,5 +351,9 @@
   "ach.boss_5": "Velvet Paw zerschlagen",
   "ach.prestige_1": "Neues HQ",
   "shop.freeBadges": "{n} Gold Badge gratis",
-  "shop.freeBadgesWait": "Weitere Gratis-Badges in {time}"
+  "shop.freeBadgesWait": "Weitere Gratis-Badges in {time}",
+  "lb.title": "Bestenliste",
+  "lb.text": "Agenturen nach Vermächtnis-Medaillen – du hast {n}.",
+  "lb.empty": "Noch keine Einträge.",
+  "lb.agent": "Agent"
 }

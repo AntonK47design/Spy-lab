@@ -18,6 +18,7 @@ export type Panel =
   | { kind: 'fieldops' }
   | { kind: 'prestige' }
   | { kind: 'daily' }
+  | { kind: 'leaderboard' }
 
 export const panel = signal<Panel | null>(null)
 /** Vault Bonus loot collected in the running round (HUD counter). */

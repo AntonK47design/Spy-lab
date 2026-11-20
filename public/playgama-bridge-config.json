@@ -75,5 +75,20 @@
         }
       ]
     }
+  },
+  "leaderboards": [
+    {
+      "id": "legacy_medals",
+      "isMain": true
+    }
+  ],
+  "saas": {
+    "publicToken": "cmwn8cekc1jk4k40h6lpiju3n",
+    "leaderboards": {
+      "platforms": [
+        "playgama",
+        "qa_tool"
+      ]
+    }
   }
 }

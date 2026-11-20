@@ -351,5 +351,9 @@
   "ach.boss_5": "Velvet Paw broken",
   "ach.prestige_1": "New HQ",
   "shop.freeBadges": "{n} free Gold Badge",
-  "shop.freeBadgesWait": "More free badges in {time}"
+  "shop.freeBadgesWait": "More free badges in {time}",
+  "lb.title": "Leaderboard",
+  "lb.text": "Agencies ranked by Legacy Medals - you have {n}.",
+  "lb.empty": "No entries yet.",
+  "lb.agent": "Agent"
 }
