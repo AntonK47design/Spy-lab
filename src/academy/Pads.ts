@@ -13,7 +13,7 @@ import { t, lang } from '../i18n/i18n'
 import type { WorldLabels, WorldLabel } from './WorldLabels'
 import { ECONOMY } from '../config/economy'
 
-export type PadKind = PadTarget['kind'] | 'missions' | 'upgrade' | 'laptop'
+export type PadKind = PadTarget['kind'] | 'missions' | 'upgrade' | 'laptop' | 'lab'
 
 export interface Pad {
   kind: PadKind
@@ -129,7 +129,7 @@ export class Pads {
     const fill = new Mesh(fillGeo, fillMat)
     fill.scale.set(0.001, 1, 1.5)
     fill.position.set(-0.75, 0.05, 0)
-    const ring = new Mesh(ringGeo, kind === 'missions' || kind === 'laptop' ? ringMats.missions : kind === 'upgrade' ? ringMats.upgrade : ringMats.buy)
+    const ring = new Mesh(ringGeo, kind === 'missions' || kind === 'laptop' || kind === 'lab' ? ringMats.missions : kind === 'upgrade' ? ringMats.upgrade : ringMats.buy)
     group.add(plate, fill, ring)
     this.parent.add(group)
     const label = this.labels.add(`pad pad-${kind}`, x, kind === 'missions' ? 0.9 : 0.4, z, `pad-${kind}-${room ?? 'bakery'}`)
@@ -162,6 +162,8 @@ export class Pads {
     if (s.rooms.mission_control.unlocked) out.push({ kind: 'missions', room: 'mission_control', target: null, ...padOf('mission_control') })
     // agency office: the laptop on the desk opens the office menu
     out.push({ kind: 'laptop', room: null, target: null, ...OFFICE.laptopPad })
+    // Gadget Lab: workbench pad in the unlocked gadget room
+    if (s.rooms.gadget.unlocked) out.push({ kind: 'lab', room: 'gadget', target: null, ...upgradeSpotOf('gadget') })
     return out
   }
 
@@ -228,6 +230,10 @@ export class Pads {
       key = `laptop${n}${s.flags.autoSellWeak ? 1 : 0}`
       if (key !== p.key || force)
         html = `<div class="pad-title${n ? ' big' : ''}"><b>${t('pad.laptop')}</b> ${n ? t('office.waiting', { n }) : t('office.none')}</div>${s.flags.autoSellWeak ? `<div class="pad-title dim">${t('office.autoOn')}</div>` : ''}`
+    } else if (p.kind === 'lab') {
+      const busy = !!s.crafting
+      key = `lab${busy ? 1 : 0}`
+      if (key !== p.key || force) html = `<div class="pad-title big"><b>${t('pad.lab')}</b></div>${busy ? `<div class="pad-title dim">${t('lab.crafting')}</div>` : ''}`
     } else if (p.kind === 'missions') {
       key = 'm'
       if (key !== p.key || force) html = `<div class="pad-title big"><b>${t('pad.missions')}</b></div>`

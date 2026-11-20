@@ -7,6 +7,7 @@ import {
   MeshLambertMaterial, PerspectiveCamera, RingGeometry, Scene, BoxGeometry, Vector3,
 } from 'three'
 import { SAFE, SAFE_TIERS, type SafeTier } from '../../config/minigames'
+import { GADGET } from '../../config/gadgets'
 import { mgHud, type GameContext, type Minigame, type MinigameResult, type MissionModifiers } from '../Minigame'
 import { AudioManager } from '../../audio/AudioManager'
 
@@ -25,6 +26,8 @@ export class SafeCracker implements Minigame {
   readonly scene = new Scene()
   readonly camera = new PerspectiveCamera(30, 1, 0.1, 100)
   onResult: (r: MinigameResult) => void = () => {}
+  /** Vault Bonus: called for every bolt cracked. */
+  onBolt?: (n: number) => void
 
   private tier!: SafeTier
   private zoneW = 0
@@ -54,7 +57,9 @@ export class SafeCracker implements Minigame {
   async init(ctx: GameContext, tierN: number, mods: MissionModifiers): Promise<void> {
     this.tier = SAFE_TIERS[Math.max(0, Math.min(SAFE_TIERS.length - 1, tierN - 1))] as SafeTier
     const bonus = Math.min(SAFE.maxSkillBonusDeg, mods.agentSkill * SAFE.zoneDegPerSkill)
-    this.zoneW = ((this.tier.zoneDeg + bonus) * Math.PI) / 180
+    // Stethoscope Pro gadget: sweet spot +15 %
+    const gadget = mods.gadget === 'stethoscope' ? 1 + GADGET.stethoscopeZone : 1
+    this.zoneW = (((this.tier.zoneDeg + bonus) * gadget) * Math.PI) / 180
     this.time = this.tier.timeLimit
     this.firstTime = ctx.firstTime
     this.w = ctx.width
@@ -191,6 +196,7 @@ export class SafeCracker implements Minigame {
       this.flash = 'hit'
       this.flashT = 0.25
       AudioManager.play('bolt_open')
+      this.onBolt?.(this.done)
       if (this.done >= this.tier.bolts) return this.finish(true)
       if (this.tier.reverse) this.dir *= -1
       this.placeZones()

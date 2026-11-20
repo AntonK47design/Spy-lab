@@ -273,3 +273,14 @@ export const CIRCUIT = {
   /** Seconds for one quarter turn (animation only; input is never blocked). */
   turnSeconds: 0.12,
 } as const
+
+// ---------------------------------------------------------------- Vault Bonus (Safe Cracker bonus round)
+export const VAULT_BONUS = {
+  /** Loot per bolt = this share of the next mission's cash reward (min below). */
+  lootShare: 0.35,
+  minLoot: 60,
+  /** Safe tier = 1 + floor(academy level / this), max 10. */
+  levelsPerTier: 3,
+  /** Offered after a boss win and after every academy level-up from this level on. */
+  fromLevel: 3,
+} as const

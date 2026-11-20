@@ -2,7 +2,9 @@
  * Game controller: fixed 60 Hz sim, academy view, hero interactions (serve, carry kits,
  * collect, pads), mission flow (briefing -> minigame -> result) and every ad call site.
  */
-import { PCFShadowMap, type WebGLRenderer } from 'three'
+import { Color, CylinderGeometry, Group, Mesh, PCFShadowMap, type Object3D, type WebGLRenderer } from 'three'
+import { StaticBatch } from '../render/geometry'
+import { PAL } from '../render/palette'
 import { GuideArrow } from '../academy/GuideArrow'
 import { effect } from '@preact/signals-core'
 import { World } from '../academy/World'
@@ -19,8 +21,16 @@ import { Input } from '../input/Input'
 import { flatMat } from '../render/materials'
 import { charMaterial } from '../render/assets'
 import { ECONOMY, padFillSeconds } from '../config/economy'
-import { LAYOUT, OFFICE, ROOMS, ROOM_ORDER, cashSpotOf, crateOf, padOf, slotOf, upgradeSpotOf, type RoomId } from '../config/rooms'
-import { missionById, type MissionDef } from '../config/missions'
+import { LAYOUT, OFFICE, ROOMS, TEASER, ROOM_ORDER, cashSpotOf, crateOf, padOf, slotOf, upgradeSpotOf, type RoomId } from '../config/rooms'
+import { BOSSES, MISSIONS, REGION_LOOK, missionById, type MissionDef } from '../config/missions'
+import { VAULT_BONUS } from '../config/minigames'
+import { OFFERS } from '../config/ads'
+import { gadgetFor, type GadgetId } from '../config/gadgets'
+import { craftGadget, rushGadget, takeGadget, tickGadgets } from '../sim/gadgets'
+import { relocate } from '../sim/prestige'
+import { openSupply, vipRecruit } from '../sim/offers'
+import { claimAchievement, claimContract, claimDaily, dailyIndex, ensureContracts } from '../sim/meta'
+import { collectFieldOp, finishFieldOp, resolveMission, startFieldOp, tickAlert } from '../sim/ops'
 import {
   tick, collect, collectWelcome, payPad, padPrice, pickKits, dropKits, resolveGraduate, buySpeed, upgradeLevel,
   offlineEarnings, trainingRooms, nextUnlock, canUnlock, officeAct, autoSellWeak, type SimEvents, type HeroInput,
@@ -40,9 +50,10 @@ import { LaserHall } from '../minigames/laser/LaserHall'
 import { SpotTheMole } from '../minigames/mole/SpotTheMole'
 import { ScooterPursuit } from '../minigames/scooter/ScooterPursuit'
 import { CircuitHack } from '../minigames/circuit/CircuitHack'
+import { BossCutscene } from '../minigames/BossCutscene'
 import { CodeBreaker } from '../minigames/code/CodeBreaker'
 import type { Minigame, MinigameResult } from '../minigames/Minigame'
-import { coachLine, infoCard, missionUi, moveHint, nextPopup, panel, queuePopup, showToast, type Panel } from '../ui/uiState'
+import { coachLine, infoCard, missionUi, moveHint, nextPopup, panel, queuePopup, popupQueue, hudTick, showToast, vaultLoot, briefingGadget, liveOffers, type Panel } from '../ui/uiState'
 import { formatNumber } from '../core/format'
 import { DEBUG } from '../debug/flags'
 import { lang, t } from '../i18n/i18n'
@@ -70,6 +81,10 @@ export class Game {
   private agent: Agent | null = null
   private revivedThisAttempt = false
   private lastReward = { cash: 0, intel: 0 }
+  /** Boss missions: current stage, stars and intel collected in earlier stages. */
+  private stage = 0
+  private stageStars: number[] = []
+  private stageIntel = 0
   private padOpened: string | null = null
   private padSound = 0
   private kitT = 0
@@ -102,6 +117,7 @@ export class Game {
     world.dynamic.add(this.player.char.root)
     this.guide = new GuideArrow(world.dynamic, uiLayer)
     this.serveLabel = this.labels.add('serve', LAYOUT.serveSpot.x, 2.4, LAYOUT.serveSpot.z, 'serve-progress')
+    this.teaserLabel = this.labels.add('pad pad-soon', TEASER.x, 1.9, TEASER.z - 2.6, 'teaser')
 
     this.ev = {
       cycle: (room, amount, auto) => {
@@ -231,6 +247,7 @@ export class Game {
       }
     })
 
+    this.world.setShop(state.prestige)
     this.world.syncAreas(state)
     this.world.syncRooms(state)
     this.world.syncCounter(state.counter)
@@ -261,6 +278,7 @@ export class Game {
     const away = DEBUG ? Number((window as unknown as { __spylabAwayOverride?: number }).__spylabAwayOverride) : 0
     const since = away > 0 ? now() - away * 1000 : state.lastSeen
     if (since > 0) this.checkAway(since)
+    this.offerDaily()
     this.updateCoach()
     blockInterstitials('tutorial', tutorialActive(state))
     // iframe portals often keep the keyboard: grab focus, and say so while we do not have it
@@ -275,10 +293,57 @@ export class Game {
   }
 
   checkAway(since: number): void {
+    this.offerDaily()
     const secs = elapsedSince(since, ECONOMY.offline.capSeconds)
     if (secs < ECONOMY.offline.minAwaySeconds) return
     const amount = offlineEarnings(state, secs)
     if (amount > 0) queuePopup({ kind: 'welcome', amount, seconds: Math.round(secs) })
+  }
+
+  /** New day: the daily reward pops up (after the tutorial). */
+  offerDaily(): void {
+    if (state.tutorial >= TUTORIAL.length && dailyIndex(state, now()) >= 0 && panel.value?.kind !== 'daily' && !popupQueue.value.some((p) => p.kind === 'daily')) queuePopup({ kind: 'daily' })
+  }
+
+  async claimDaily(double: boolean): Promise<void> {
+    if (dailyIndex(state, now()) < 0) return
+    if (double) {
+      const res = await showRewarded('daily_double')
+      if (res !== 'rewarded') {
+        if (res === 'failed') showToast('toast.noAd')
+        return
+      }
+    }
+    const r = claimDaily(state, now(), double ? 2 : 1)
+    if (!r) return
+    track('daily_claimed', { day: state.daily.streak })
+    AudioManager.play(r.reward.kind === 'cash' ? 'coin' : 'upgrade')
+    persist(['core', 'progress', 'meta'], true)
+  }
+
+  async freeBadges(): Promise<void> {
+    if (now() - state.freeBadgesAt < OFFERS.freeBadgesCooldown * 1000) return
+    const res = await showRewarded('free_badges')
+    if (res === 'rewarded') {
+      state.badges += OFFERS.freeBadges
+      state.freeBadgesAt = now()
+      AudioManager.play('upgrade')
+      persist(['core', 'meta'], true)
+    } else if (res === 'failed') showToast('toast.noAd')
+  }
+
+  claimContract(i: number): void {
+    if (claimContract(state, i)) {
+      AudioManager.play('upgrade')
+      persist(['core', 'meta'], true)
+    }
+  }
+
+  claimAchievement(id: string): void {
+    if (claimAchievement(state, id)) {
+      AudioManager.play('level_up')
+      persist(['core', 'meta'], true)
+    }
   }
 
   // ---------------------------------------------------------------- frame
@@ -309,6 +374,7 @@ export class Game {
     if (this.revTimer > 0.25) {
       this.revTimer = 0
       if (panel.value) bump()
+      hudTick.value++
       this.pads.sync(state)
       const finished = advanceTutorial(state)
       if (finished.length) this.onTutorialStep(finished)
@@ -324,7 +390,32 @@ export class Game {
     }
   }
 
+  private teaserLabel: WorldLabel | null = null
+  private teaserLang = ''
+
   private academyFrame(dt: number): void {
+    state.incomeBoost = now() < state.boostUntil ? OFFERS.boostMult : 1
+    if (ensureContracts(state, now())) persist(['meta'])
+    this.updateOffers(dt)
+    if (this.teaserLabel && this.teaserLang !== lang.value) {
+      this.teaserLang = lang.value
+      this.teaserLabel.el.innerHTML = `<div class="pad-title big"><b>${t('soon.title')}</b></div><div class="pad-title dim">${t('soon.text')}</div>`
+    }
+    // Villain Alert: counts active play time only (dt is 0 while paused)
+    const alert = tickAlert(state, dt, now())
+    if (alert === 'spawned') {
+      showToast('alert.toast')
+      AudioManager.play('alarm', 0.9)
+      persist(['progress'])
+    } else if (alert === 'expired') persist(['progress'])
+    // Gadget Lab: a finished craft goes into the stock
+    const ready = tickGadgets(state, now())
+    if (ready) {
+      showToast('lab.ready')
+      AudioManager.play('upgrade')
+      this.pads.sync(state)
+      persist(['progress'])
+    }
     const modal = panel.value !== null
     this.input.enabled = !modal
     this.input.update()
@@ -455,6 +546,7 @@ export class Game {
     AudioManager.play('ui_click')
     if (pad.kind === 'missions') panel.value = { kind: 'missions' }
     else if (pad.kind === 'laptop') panel.value = { kind: 'office' }
+    else if (pad.kind === 'lab') panel.value = { kind: 'lab' }
     else if (pad.kind === 'upgrade' && pad.room) panel.value = { kind: 'upgrade', room: pad.room }
   }
 
@@ -625,43 +717,423 @@ export class Game {
 
   // ---------------------------------------------------------------- missions
   canStart(id: string): boolean {
-    const m = missionById(id)
+    const m = resolveMission(state, id)
     return !!m && missionLock(state, m) === 'ok'
   }
 
   async startMission(id: string): Promise<void> {
-    const m = missionById(id)
+    const m = resolveMission(state, id)
     if (!m || missionLock(state, m) !== 'ok') return
     this.mission = m
     this.agent = bestAgent(state, m)
     this.revivedThisAttempt = false
+    this.resetStages()
+    // gadget from the briefing: own stock (used up) or a free trial (after an ad)
+    this.gadget = null
+    const g = gadgetFor(m.minigame)
+    const sel = briefingGadget.value
+    if (!m.boss && g && sel?.mission === m.id && (sel.mode === 'trial' || takeGadget(state, g.id))) {
+      this.gadget = g.id
+      persist(['progress'])
+    }
+    briefingGadget.value = null
     panel.value = null
     beginFlow()
     blockInterstitials('mission', true)
     await this.launchMinigame()
   }
 
+  private resetStages(): void {
+    this.stage = 0
+    this.stageStars = []
+    this.stageIntel = 0
+  }
+
   private async launchMinigame(): Promise<void> {
     const m = this.mission
     if (!m) return
     this.mg?.dispose()
+    // boss missions play their stages back to back
+    const st = m.stages?.[this.stage] ?? m
     const mg: Minigame =
-      m.minigame === 'laser' ? new LaserHall() : m.minigame === 'code' ? new CodeBreaker() : m.minigame === 'mole' ? new SpotTheMole() : m.minigame === 'scooter' ? new ScooterPursuit() : m.minigame === 'circuit' ? new CircuitHack() : new SafeCracker()
-    const skill = ROOMS[m.room].skill ?? 'finesse'
-    const firstKey = `played_${m.minigame}`
+      st.minigame === 'laser' ? new LaserHall()
+      : st.minigame === 'code' ? new CodeBreaker()
+      : st.minigame === 'mole' ? new SpotTheMole()
+      : st.minigame === 'scooter' ? new ScooterPursuit()
+      : st.minigame === 'circuit' ? new CircuitHack()
+      : new SafeCracker()
+    const skill = ROOMS[st.room].skill ?? 'finesse'
+    const firstKey = `played_${st.minigame}`
+    // the best agent for this stage's skill
+    if (m.stages) this.agent = bestAgent(state, { ...m, room: st.room })
     await mg.init(
       { renderer: this.renderer, width: this.w, height: this.h, firstTime: !state.flags[firstKey] },
-      this.tierOverride ?? m.tier,
-      { agentSkill: this.agent?.skills[skill] ?? 0 },
+      this.tierOverride ?? st.tier,
+      { agentSkill: this.agent?.skills[skill] ?? 0, region: m.region, gadget: this.gadget ?? undefined },
     )
+    // region palette swap (the scooter street does its own)
+    const look = REGION_LOOK[m.region]
+    if (look.bg !== null && st.minigame !== 'scooter') mg.scene.background = new Color(look.bg)
     mg.onResult = (r) => this.onResult(r)
     this.mg = mg
     this.mode = 'minigame'
     this.input.enabled = false
-    missionUi.value = { phase: 'playing', mission: m.id }
-    platform.sendMessage('level_started', { world: m.region, level: m.id })
+    missionUi.value = { phase: 'playing', mission: m.id, stage: m.stages ? this.stage : undefined }
+    if (this.stage === 0) platform.sendMessage('level_started', { world: m.region, level: m.id })
+    AudioManager.playMusic(m.boss ? 'music_boss' : 'music_mission')
+    mg.start()
+  }
+
+  // ---------------------------------------------------------------- Gadget Lab
+  private gadget: GadgetId | null = null
+
+  craft(id: GadgetId): void {
+    if (!craftGadget(state, id, now())) return
+    AudioManager.play('upgrade')
+    this.pads.sync(state)
+    persist(['core', 'progress'], true)
+  }
+
+  rushCraft(): void {
+    const id = rushGadget(state, now())
+    if (!id) return
+    showToast('lab.ready')
+    AudioManager.play('upgrade')
+    this.pads.sync(state)
+    persist(['core', 'progress'], true)
+  }
+
+  /** Briefing: try the mission's gadget for free (rewarded gadget_trial). */
+  async gadgetTrial(missionId: string): Promise<void> {
+    const res = await showRewarded('gadget_trial')
+    if (res === 'rewarded') briefingGadget.value = { mission: missionId, mode: 'trial' }
+    else if (res === 'failed') showToast('toast.noAd')
+  }
+
+  // ---------------------------------------------------------------- rewarded offers
+  /** HUD: x2 income for 5 min per ad, stackable up to 30 min. */
+  async incomeBoost(): Promise<void> {
+    const t0 = now()
+    if (state.boostUntil - t0 > (OFFERS.boostMaxMinutes - OFFERS.boostMinutes) * 60_000) return
+    const res = await showRewarded('income_boost')
+    if (res === 'rewarded') {
+      state.boostUntil = Math.max(now(), state.boostUntil) + OFFERS.boostMinutes * 60_000
+      AudioManager.play('upgrade')
+      persist(['core'], true)
+    } else if (res === 'failed') showToast('toast.noAd')
+  }
+
+  private lastMissingOffer = -1e9
+
+  /** Upgrade panel: offer the missing cash when only a little is missing (not more often than every 2 min). */
+  missingCashOffer(cost: number): number {
+    const missing = cost - state.cash
+    if (missing <= 0 || missing > cost * OFFERS.missingShare) return 0
+    if (now() - this.lastMissingOffer < OFFERS.missingEverySeconds * 1000) return 0
+    return Math.ceil(missing)
+  }
+
+  async missingCash(cost: number): Promise<void> {
+    const missing = this.missingCashOffer(cost)
+    if (!missing) return
+    this.lastMissingOffer = now()
+    const res = await showRewarded('missing_cash')
+    if (res === 'rewarded') {
+      state.cash += missing
+      AudioManager.play('coin')
+      persist(['core'], true)
+    } else if (res === 'failed') showToast('toast.noAd')
+  }
+
+  /** Fail screen after repeated fails: win the mission with 1 star (no doubling). */
+  async skipMission(): Promise<void> {
+    const m = this.mission
+    const ui = missionUi.value
+    if (!m || !ui || ui.phase !== 'fail' || m.boss) return
+    const res = await showRewarded('mission_skip')
+    if (res !== 'rewarded') {
+      if (res === 'failed') showToast('toast.noAd')
+      return
+    }
+    const reward = missionReward(state, m, 1)
+    recordWin(state, m, 1, reward, this.agent, this.ev)
+    this.lastReward = reward
+    AudioManager.playJingle('jingle_win')
+    missionUi.value = { phase: 'result', mission: m.id, stars: 1, cash: reward.cash, intel: reward.intel, doubled: true, freeDouble: false, skipped: true }
+    persist(['core', 'agents', 'progress', 'meta'], true)
+  }
+
+  /** Welcome back: double the offline earnings. */
+  async welcomeDouble(amount: number): Promise<boolean> {
+    const res = await showRewarded('offline_double')
+    if (res === 'rewarded') {
+      this.collectWelcome(amount, true)
+      return true
+    }
+    if (res === 'failed') showToast('toast.noAd')
+    return false
+  }
+
+  // ---------------------------------------------------------------- supply drone + VIP recruit
+  private supplyT = 0
+  private supplyLeft = 0
+  private vipT = 0
+  private vipLeft = 0
+  private drone: Group | null = null
+  private vip: Character | null = null
+
+  private updateOffers(dt: number): void {
+    const on = state.tutorial >= TUTORIAL.length && state.counter
+    if (on && dt > 0) {
+      if (this.supplyLeft <= 0) {
+        this.supplyT += dt
+        if (this.supplyT >= OFFERS.supplyEvery) {
+          this.supplyT = 0
+          this.supplyLeft = OFFERS.supplyStays
+          this.spawnDrone()
+        }
+      } else {
+        this.supplyLeft = Math.max(0, this.supplyLeft - dt)
+        if (this.supplyLeft === 0) this.dropDrone()
+      }
+      if (this.vipLeft <= 0) {
+        this.vipT += dt
+        if (this.vipT >= OFFERS.vipEvery && rewardedSupported()) {
+          this.vipT = 0
+          this.vipLeft = OFFERS.vipStays
+          this.spawnVip()
+        }
+      } else {
+        this.vipLeft = Math.max(0, this.vipLeft - dt)
+        if (this.vipLeft === 0) this.dropVip()
+      }
+    }
+    // drone hovers above the hero (lazy follow), bobbing; flies off up when gone
+    if (this.drone) {
+      const d = this.drone
+      const tx = this.player.x + 1.2
+      const tz = this.player.z - 1.0
+      const leaving = this.supplyLeft <= 0
+      d.position.x += (tx - d.position.x) * Math.min(1, dt * 1.5)
+      d.position.z += (tz - d.position.z) * Math.min(1, dt * 1.5)
+      d.position.y += ((leaving ? 14 : 4.2 + Math.sin(performance.now() / 300) * 0.15) - d.position.y) * Math.min(1, dt * (leaving ? 1.2 : 2))
+      for (const r of d.children.filter((c: Object3D) => c.userData.rotor)) r.rotation.y += dt * 30
+      if (leaving && d.position.y > 13) {
+        this.world.dynamic.remove(d)
+        this.drone = null
+      }
+    }
+    this.vip?.update(dt)
+    const lo = liveOffers.value
+    const supply = this.supplyLeft > 0 ? Math.ceil(this.supplyLeft) : null
+    const vip = this.vipLeft > 0 ? Math.ceil(this.vipLeft) : null
+    const free = !state.flags.supplyFreeUsed
+    if (lo.supply !== supply || lo.vip !== vip || lo.supplyFree !== free) liveOffers.value = { supply, vip, supplyFree: free }
+  }
+
+  private spawnDrone(): void {
+    if (this.drone) this.world.dynamic.remove(this.drone)
+    const b = new StaticBatch()
+    b.rbox(0.9, 0.22, 0.9, 0, 0, 0, 0x2b3346, 0.08)
+    b.rbox(0.4, 0.12, 0.4, 0, 0.16, 0, PAL.brandYellow, 0.05)
+    for (const [ax, az] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const) b.box(0.7, 0.06, 0.08, ax * 0.42, 0.05, az * 0.42, 0x5d6779, (ax * az * Math.PI) / 4)
+    // crate on a rope
+    b.box(0.03, 0.6, 0.03, 0, -0.4, 0, PAL.dark)
+    b.rbox(0.62, 0.5, 0.62, 0, -0.95, 0, 0xc98b4f, 0.05)
+    b.rbox(0.66, 0.08, 0.66, 0, -0.75, 0, PAL.brandYellow, 0.03)
+    const g = new Group()
+    g.add(new Mesh(b.build(), flatMat))
+    for (const [ax, az] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const) {
+      const r = new Mesh(new CylinderGeometry(0.28, 0.28, 0.03, 12), flatMat)
+      r.position.set(ax * 0.62, 0.12, az * 0.62)
+      r.userData.rotor = true
+      g.add(r)
+    }
+    g.position.set(this.player.x - 14, 12, this.player.z - 6)
+    this.world.dynamic.add(g)
+    this.drone = g
+    AudioManager.play('drone', 1)
+  }
+
+  private dropDrone(): void {
+    this.supplyLeft = 0
+  }
+
+  /** Open the crate: the first one is free, later ones after a rewarded ad. */
+  async openSupply(): Promise<void> {
+    if (this.supplyLeft <= 0) return
+    if (state.flags.supplyFreeUsed) {
+      const res = await showRewarded('supply_drop')
+      if (res !== 'rewarded') {
+        if (res === 'failed') showToast('toast.noAd')
+        return
+      }
+    }
+    state.flags.supplyFreeUsed = true
+    const r = openSupply(state)
+    this.supplyLeft = 0
+    AudioManager.play(r.kind === 'cash' ? 'coin' : 'upgrade')
+    this.popText({ x: this.player.x, z: this.player.z }, r.kind === 'cash' ? `+${formatNumber(r.amount, lang.value)}` : r.kind === 'badges' ? `+${r.amount}` : t(`gadget.${r.id}`), 'cash')
+    showToast(`supply.${r.kind}`)
+    persist(['core', 'progress', 'meta'], true)
+  }
+
+  private spawnVip(): void {
+    if (this.vip) this.world.dynamic.remove(this.vip.root)
+    const v = new Character({ model: 'cadetF2', tint: { shirt: 0xf2b134, pants: 0x8f6bd8 } })
+    v.root.position.set(LAYOUT.street.stopX + 2.2, 0, LAYOUT.street.stopZ - 1.0)
+    v.cheer(OFFERS.vipStays)
+    this.world.dynamic.add(v.root)
+    this.vip = v
+  }
+
+  private dropVip(): void {
+    if (this.vip) this.world.dynamic.remove(this.vip.root)
+    this.vip = null
+    this.vipLeft = 0
+  }
+
+  async recruitVip(): Promise<void> {
+    if (this.vipLeft <= 0) return
+    const res = await showRewarded('vip_recruit')
+    if (res !== 'rewarded') {
+      if (res === 'failed') showToast('toast.noAd')
+      return
+    }
+    vipRecruit(state)
+    this.dropVip()
+    AudioManager.play('level_up')
+    showToast('vip.joined')
+    this.pads.sync(state)
+    persist(['agents'], true)
+  }
+
+  /** QA: bring the drone / VIP right now. */
+  debugOffers(): void {
+    this.supplyT = OFFERS.supplyEvery
+    this.vipT = OFFERS.vipEvery
+  }
+
+  // ---------------------------------------------------------------- Prestige
+  relocateHq(): void {
+    const gain = relocate(state)
+    if (!gain) return
+    track('prestige', { count: state.prestige })
+    panel.value = null
+    this.world.setShop(state.prestige)
+    this.world.syncAreas(state)
+    this.world.syncRooms(state)
+    this.pads.sync(state)
+    this.teleport(0, 4.6)
+    AudioManager.play('level_up')
+    showToast('prestige.done')
+    persist(['core', 'agents', 'progress', 'meta'], true)
+    showInterstitial('prestige')
+  }
+
+  // ---------------------------------------------------------------- Field Ops
+  fieldOp(pendingIndex: number, op: number): void {
+    if (!startFieldOp(state, pendingIndex, op, now())) return
+    AudioManager.play('whoosh')
+    this.pads.sync(state)
+    persist(['agents'], true)
+  }
+
+  async fieldOpFinish(i: number): Promise<void> {
+    const res = await showRewarded('fieldop_finish')
+    if (res === 'rewarded') {
+      finishFieldOp(state, i, now())
+      persist(['agents'], true)
+    } else if (res === 'failed') showToast('toast.noAd')
+  }
+
+  fieldOpCollect(i: number): void {
+    const r = collectFieldOp(state, i, now())
+    if (!r) return
+    AudioManager.play('coin')
+    persist(['core', 'agents'], true)
+  }
+
+  // ---------------------------------------------------------------- Vault Bonus
+  private vault: { perBolt: number; retried: boolean } | null = null
+
+  /** Offer the Vault Bonus round (after a boss win / academy level-up), once the tutorial is done. */
+  private offerVault(): void {
+    if (state.tutorial < TUTORIAL.length || state.level < VAULT_BONUS.fromLevel) return
+    queuePopup({ kind: 'vault' })
+  }
+
+  vaultLootPerBolt(): number {
+    const next = MISSIONS.find((m) => !((state.missions[m.id]?.wins ?? 0) > 0)) ?? MISSIONS[MISSIONS.length - 1]!
+    return Math.max(VAULT_BONUS.minLoot, Math.round(next.cash * VAULT_BONUS.lootShare))
+  }
+
+  async startVault(): Promise<void> {
+    if (this.mode !== 'academy') return
+    panel.value = null
+    this.mg?.dispose()
+    this.vault = { perBolt: this.vaultLootPerBolt(), retried: false }
+    vaultLoot.value = 0
+    const mg = new SafeCracker()
+    const tier = Math.min(10, 1 + Math.floor(state.level / VAULT_BONUS.levelsPerTier))
+    beginFlow()
+    blockInterstitials('mission', true)
+    await mg.init({ renderer: this.renderer, width: this.w, height: this.h, firstTime: false }, tier, { agentSkill: 0 })
+    mg.onBolt = () => {
+      vaultLoot.value += this.vault?.perBolt ?? 0
+      AudioManager.play('coin', 1.1)
+    }
+    mg.onResult = (r) => {
+      missionUi.value = {
+        phase: 'vault', mission: 'vault', loot: vaultLoot.value, cracked: r.success,
+        canRetry: !r.success && !this.vault?.retried && rewardedSupported(),
+      }
+      AudioManager.playJingle(r.success ? 'jingle_win' : 'jingle_fail')
+    }
+    this.mg = mg
+    this.mode = 'minigame'
+    this.input.enabled = false
+    missionUi.value = { phase: 'playing', mission: 'vault' }
     AudioManager.playMusic('music_mission')
     mg.start()
+  }
+
+  /** Extra attempt (rewarded vault_retry, once per round): the safe continues where it stopped. */
+  async vaultRetry(): Promise<void> {
+    const ui = missionUi.value
+    if (!ui || ui.phase !== 'vault' || !ui.canRetry || !this.vault || this.vault.retried) return
+    const res = await showRewarded('vault_retry')
+    if (res !== 'rewarded') {
+      if (res === 'failed') showToast('toast.noAd')
+      return
+    }
+    this.vault.retried = true
+    missionUi.value = { phase: 'playing', mission: 'vault' }
+    this.mg?.revive()
+  }
+
+  vaultCollect(): void {
+    const loot = vaultLoot.value
+    state.cash += loot
+    state.stats.earned += loot
+    if (loot > 0) AudioManager.play('coin')
+    vaultLoot.value = 0
+    this.vault = null
+    this.mg?.dispose()
+    this.mg = null
+    this.mode = 'academy'
+    missionUi.value = null
+    this.input.enabled = true
+    blockInterstitials('mission', false)
+    AudioManager.playMusic('music_academy')
+    persist(['core', 'meta'], true)
+    nextPopup()
+  }
+
+  /** QA: end the running minigame with a result (boss flow tests). */
+  debugFinish(success: boolean): void {
+    if (this.mode === 'minigame' && this.mg && !(this.mg instanceof BossCutscene) && missionUi.value?.phase === 'playing')
+      this.mg.onResult({ success, stars: 3, timeLeft: 10, mistakes: 0, intel: 0, reason: success ? undefined : 'alarm' })
   }
 
   private canPlay(): boolean {
@@ -698,17 +1170,48 @@ export class Game {
   private onResult(r: MinigameResult): void {
     const m = this.mission
     if (!m) return
-    state.flags[`played_${m.minigame}`] = true
+    const st = m.stages?.[this.stage] ?? m
+    state.flags[`played_${st.minigame}`] = true
+    if (r.success && m.stages && this.stage < m.stages.length - 1) {
+      // boss: next stage after a short "stage cleared" stamp
+      this.stageStars.push(r.stars)
+      this.stageIntel += r.intel
+      this.stage++
+      missionUi.value = { phase: 'stage', mission: m.id, stage: this.stage }
+      AudioManager.play('level_up')
+      setTimeout(() => {
+        if (missionUi.value?.phase === 'stage' && this.mission === m) void this.launchMinigame()
+      }, 1600)
+      return
+    }
+    if (r.success && m.boss && !(this.mg instanceof BossCutscene)) {
+      // boss captured: cutscene first, the result folder follows
+      this.stageStars.push(r.stars)
+      this.stageIntel += r.intel
+      this.mg?.dispose()
+      const cut = new BossCutscene(BOSSES[m.region] ?? { suit: 0x1b1b24, hat: 'captain', hatColor: 0xffffff })
+      this.mg = cut
+      missionUi.value = { phase: 'captured', mission: m.id }
+      AudioManager.playJingle('jingle_win')
+      void cut.init({ renderer: this.renderer, width: this.w, height: this.h, firstTime: false }).then(() => {
+        cut.onResult = () => this.onResult({ success: true, stars: Math.min(...this.stageStars), timeLeft: 0, mistakes: 0, intel: 0 })
+        cut.start()
+      })
+      return
+    }
     if (r.success) {
-      const reward = missionReward(state, m, r.stars)
-      reward.intel += r.intel // e.g. intel chips picked up in the Laser Hall
-      recordWin(state, m, r.stars, reward, this.agent, this.ev)
+      const stars = m.boss ? Math.min(...this.stageStars, 3) : r.stars
+      const reward = missionReward(state, m, stars)
+      reward.intel += r.intel + this.stageIntel // e.g. intel chips picked up in the Laser Hall
+      const firstBossWin = !!m.boss && !((state.missions[m.id]?.wins ?? 0) > 0)
+      recordWin(state, m, stars, reward, this.agent, this.ev)
+      if (m.boss) track('boss_defeated', { region: m.region })
       this.lastReward = reward
       platform.sendMessage('level_completed', { world: m.region, level: m.id })
-      AudioManager.playJingle('jingle_win')
+      if (!m.boss) AudioManager.playJingle('jingle_win')
       missionUi.value = {
-        phase: 'result', mission: m.id, stars: r.stars, cash: reward.cash, intel: reward.intel,
-        doubled: false, freeDouble: !state.flags.firstDoubleFree,
+        phase: 'result', mission: m.id, stars, cash: reward.cash, intel: reward.intel,
+        doubled: false, freeDouble: !state.flags.firstDoubleFree, badges: firstBossWin ? (m.badges ?? 0) : 0,
       }
       persist(['core', 'agents', 'progress', 'meta'], true)
     } else {
@@ -753,17 +1256,19 @@ export class Game {
       return
     }
     this.revivedThisAttempt = true
-    missionUi.value = { phase: 'playing', mission: ui.mission }
+    missionUi.value = { phase: 'playing', mission: ui.mission, stage: this.mission?.stages ? this.stage : undefined }
     this.mg?.revive()
   }
 
   async retry(): Promise<void> {
     this.revivedThisAttempt = false
+    this.resetStages()
     await this.launchMinigame()
   }
 
   /** Continue from result / give up from fail: back to the academy (natural pause). */
   endMission(): void {
+    const boss = !!this.mission?.boss && missionUi.value?.phase === 'result'
     this.mg?.dispose()
     this.mg = null
     this.mission = null
@@ -772,7 +1277,8 @@ export class Game {
     this.input.enabled = true
     blockInterstitials('mission', false)
     AudioManager.playMusic('music_academy')
-    showInterstitial('mission_end')
+    showInterstitial(boss ? 'boss_end' : 'mission_end')
+    if (boss) this.offerVault()
     nextPopup()
   }
 
@@ -787,7 +1293,14 @@ export class Game {
 
   closePanel(p: Panel | null): void {
     panel.value = null
-    if (p?.kind === 'levelup') showInterstitial('level_up')
+    if (p?.kind === 'levelup') {
+      showInterstitial('level_up')
+      this.offerVault()
+    }
+    // natural pause: leaving the world map (missions folder)
+    if (p?.kind === 'missions') showInterstitial('map_close')
+    // natural pause: leaving the agents roster, the Gadget Lab or Field Ops (Bridge rate-limits)
+    if (p && (p.kind === 'agents' || p.kind === 'lab' || p.kind === 'fieldops')) showInterstitial('panel_close')
     if (!nextPopup()) bump()
   }
 

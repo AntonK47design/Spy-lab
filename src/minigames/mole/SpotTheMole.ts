@@ -12,6 +12,7 @@ import {
 } from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { MOLE, MOLE_TIERS, type MoleTier } from '../../config/minigames'
+import { GADGET } from '../../config/gadgets'
 import { mgHud, type GameContext, type Minigame, type MinigameResult, type MissionModifiers, type MoleClue } from '../Minigame'
 import { AudioManager } from '../../audio/AudioManager'
 import { Character } from '../../academy/Character'
@@ -108,6 +109,8 @@ export class SpotTheMole implements Minigame {
       n.hand = findBone(n.ch.root, /^arm-right$/)
     }
     this.resize(ctx.width, ctx.height)
+    // Face Scanner gadget: three wrong suspects walk out right away
+    if (mods.gadget === 'scanner') this.sendAway(GADGET.scannerRemove)
     this.shown = 1
     this.publish()
   }
@@ -347,8 +350,15 @@ export class SpotTheMole implements Minigame {
   /** Half of the remaining wrong suspects walk out of the hall. */
   useHint(): void {
     if (this.finished) return
+    this.sendAway(Math.floor(this.npcs.filter((n) => n !== this.mole && !n.leaving && !n.gone).length * MOLE.hintRemoveShare))
+    this.hintsLeft = Math.max(0, this.hintsLeft - 1)
+    AudioManager.play('whoosh')
+    this.publish()
+  }
+
+  /** k wrong suspects (the most confusing first) walk out of the hall. */
+  private sendAway(k: number): void {
     const wrong = this.npcs.filter((n) => n !== this.mole && !n.leaving && !n.gone)
-    const k = Math.floor(wrong.length * MOLE.hintRemoveShare)
     // prefer the most confusing ones (matching most shown clues)
     const score = (n: Npc) => this.clues.slice(0, this.shown).filter((c) => n.looks[c.attr] === c.value).length
     wrong.sort((a, b) => score(b) - score(a) || Math.random() - 0.5)
@@ -359,9 +369,6 @@ export class SpotTheMole implements Minigame {
       n.wait = 0
       n.speed = Math.max(n.speed, 1.6)
     }
-    this.hintsLeft = Math.max(0, this.hintsLeft - 1)
-    AudioManager.play('whoosh')
-    this.publish()
   }
 
   freeHints(): number {

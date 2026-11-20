@@ -151,3 +151,31 @@ Plan: https://claude.ai/artifact/3VK5u4uetgNAqxG6wv9qhA (Fähre, Dead Drops, Sei
 - Tipp (1× gratis, dann Werbung): 3 Felder auf dem Weg zu einem dunklen Terminal rasten ein. Revive +20 s. Tech-Skill: bis +15 s. Geisterhand beim ersten Mal zeigt die nächsten Felder.
 - Instanzierte Felder/Leitungen: ~15 Draw Calls auch bei 7×7.
 - Snowpeak 5 und 9 spielbar → **alle 6 Minispiele fertig**. Tests: Mission komplett (Tastatur, Tipp, Klicks); alle 10 Stufen gelöst.
+
+## Phase 2 · Bosse + Vault Bonus — 2026-11-19
+- **Captain Clawford** (Harbor Bay, nach Mission 10) und **Lady Snowpaw** (Snowpeak): 3 Minispiele hintereinander (Harbor: Safe → Laser → Code; Snowpeak: Scooter → Circuit → Mole), Etappen-Leiste unten, Stempel „Etappe geschafft!" zwischen den Stufen, Boss-Musik. Fehlschlag: Revive (1× pro Versuch) oder Neustart ab Etappe 1.
+- Danach Cutscene: Boss (Katzenohr-Maske + Kapitänsmütze bzw. Bommelmütze) im Schaum mit Seilnetz, Geldregen, Kamerafahrt, Stempel „GEFASST"; Ergebnis mit Sternen (schwächste Etappe), 3× Cash, 2× Intel, **5 Gold Badges** beim ersten Sieg; Interstitial `boss_end`. Die nächste Region öffnet sich erst nach dem Boss.
+- Abweichung vom Brief: keine gemeinsame Alarm-Leiste über alle Etappen (jedes Minispiel hat seine eigene Fehlergrenze); die Etappen-Leiste zeigt den Fortschritt.
+- **Vault Bonus**: nach jedem Bosssieg und jedem Akademie-Level-up (ab Level 3, nach dem Tutorial) bietet ein Popup einen Gratis-Tresor an; jeder Bolzen bringt Beute (35 % der Belohnung der nächsten Mission), Zähler oben. Bei Alarm: Extraversuch per Rewarded `vault_retry` (1× pro Runde), sonst Beute einsammeln.
+- Tests: Boss komplett (Etappen, Neustart, Cutscene, Badges, boss_end, Snowpeak offen) inkl. Vault Bonus mit Extraversuch.
+
+## Phase 3 · Inhalt & Progression — 2026-11-20
+- **Regionen 3–5**: Dune Oasis, Neon City, Sky Station mit je 10 Missionen (Stufen 4–10) und Boss (Sandy Sphinx, Neo Tom, Baron Velvet); 55 Missionen gesamt. Region-Look als Palettentausch: Hintergrund jeder Szene; die Scooter-Straße hat pro Region eigene Gehwege/Himmel (Schnee, Sandverwehungen, Neonleisten bei Nacht, Wolken).
+- **Gadget Lab** (Hafen-Bootshaus): Werkbank-Feld öffnet das Labor; 6 Gadgets für Intel + Echtzeit (60–105 s), einer zur Zeit, mit 1 Gold Badge sofort fertig. Briefing-Slot: eigenes Gadget einsetzen oder per Rewarded `gadget_trial` gratis testen. Effekte: Stethoskop (+15 % Sweet Spot), Spiegelschild (fängt 1 Lasertreffer), Decoder (1 Symbol zu Beginn), Gesichtsscanner (3 Falsche gehen), Turbo-Kit (Start-Boost), Auto-Spleißer (2 Felder vorgelöst).
+- **Field Ops** (ab Level 4, Missions-Ordner): wartende Absolventen auf 5/15/60-Min-Einsätze schicken (3 Plätze) → Cash (3/7/20× Verkaufsgebühr) + Intel; Rewarded `fieldop_finish` = sofort fertig.
+- **Villain Alerts**: alle 5–8 Min aktiver Spielzeit eine rote Alarm-Mission (3 Min, eine Stufe über deiner besten), roter Puls-Knopf mit Countdown, Sieg = 1,5× Cash + 2 Gold Badges.
+- **Endless Ops** nach dem Snowpeak-Boss: eigener Reiter, prozedurale Einsätze (Minispiel-Rotation, Stufe 4 → 10, Belohnung +18 % je Einsatz).
+- **Prestige „HQ umziehen"** ab Level 15: Vermächtnis-Medaillen = √(Lebens-Cash / 250 k), je +10 % Einkommen; Cash, Räume, Areale, Level zurück; Agenten, Missionen/Sterne, Gadgets, Badges, Intel bleiben. Neuer Tarnladen-Look (Bäckerei → Eisdiele → Blumenladen → Spielzeugladen → Leuchtturm: Boden, Wände, Markise). Interstitial `prestige`.
+- **Baustelle „Demnächst"** gegenüber dem Laden (Bauzaun, Turmkran, Hütchen, Schild).
+- **Balancing (Sim)**: Empfangskraft 240 → 100, XP-Stufe 16 → 9. Ergebnis fokussiert: erste Automatisierung 2:46 (Ziel 3:20), längste Durststrecke 54 s (≤ 60), Level 10 bei 25:42 (Ziel 25:00), Level 15 / erster Umzug bei 45:28 (Ziel 40–60 Min); abgelenkt 57:36. Offen: Durststrecke beim abgelenkten Profil 95 s (Ziel 85).
+- Bugfix nebenbei: `areas`, `areaPaid` und der Büro-Angestellte wurden nicht gespeichert (gingen beim Neuladen verloren).
+
+## Phase 4 · Monetarisierung — 2026-11-20
+- Alle 7 Interstitial-Punkte verdrahtet (neu: `map_close` beim Schließen der Karte, `panel_close` bei Agenten/Gadget-Labor/Field Ops, `prestige`).
+- Alle 14 Rewarded-Platzierungen: neu `mission_skip` (nach 2 Fehlschlägen: Sieg mit 1 Stern), `offline_double` (Willkommen-zurück ×2), `income_boost` (HUD-Knopf, ×2 Einkommen je 5 Min, stapelbar bis 30 Min, Restzeit sichtbar), `supply_drop` (Drohne alle ~3 Min aktiver Zeit über dem Helden, erste Kiste gratis, sonst Ad; Cash/Badge/Gadget; fliegt nach 20 s weiter), `missing_cash` (Upgrade, wenn ≤ 25 % fehlen, max. alle 2 Min), `vip_recruit` (gelegentlich ein Wunderkind vor dem Laden → seltener+ Absolvent), `daily_double`, `free_badges` (Abklingzeit 10 Min).
+- Abweichung: `free_badges` sitzt im Täglich-Ordner, weil es (ohne In-App-Käufe, Phase 7) noch keinen Shop gibt. Banner: nicht umgesetzt (Playgama/YouTube unterstützen keine).
+- Extra-Knöpfe (Boost, Umzug, Alarm, Drohne, VIP, Täglich) stehen als Spalte über der Aktionsleiste.
+
+## Phase 5 · Retention — 2026-11-20
+- **Täglich-Ordner**: 7-Tage-Belohnungen (Streak, verpasster Tag setzt zurück, ×2 per Ad), 3 Tagesaufträge ab Level 4 (deterministisch pro UTC-Tag, Fortschritt ab Tagesbeginn, Gold Badges), 13 Erfolge (Missionen, Sterne, Absolventen, Upgrades, Millionär, Bosse, Umzug). Roter Punkt am Knopf, wenn etwas abholbar ist; Popup an neuen Tagen.
+- Technikentscheidung: eigene Umsetzung über `bridge.storage` statt der Bridge-Module `dailyRewards`/`tasks` – läuft auf jeder Plattform und im Mock gleich und braucht keine Konsolen-Konfiguration. Leaderboard nicht umgesetzt (bräuchte ein in der Playgama-Konsole angelegtes Leaderboard → Antons OK).

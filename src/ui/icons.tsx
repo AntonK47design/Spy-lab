@@ -314,3 +314,23 @@ export const IconBulb = (p: P) => (
     <path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z" />
   </Svg>
 )
+export const IconAlert = (p: P) => (
+  <Svg {...p}>
+    <path d="M12 3l9.5 17h-19z" />
+    <path d="M12 10v4.5M12 17.5v.5" />
+  </Svg>
+)
+export const IconField = (p: P) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M12 3.5v3M12 17.5v3M3.5 12h3M17.5 12h3" />
+    <circle cx="12" cy="12" r="2.2" />
+  </Svg>
+)
+export const IconCalendar = (p: P) => (
+  <Svg {...p}>
+    <rect x="3.5" y="5" width="17" height="15" rx="2.5" />
+    <path d="M3.5 10h17M8 3v4M16 3v4" />
+    <path d="M9 14.5l2 2 4-4" />
+  </Svg>
+)

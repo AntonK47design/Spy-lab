@@ -13,14 +13,30 @@ export type Panel =
   | { kind: 'agent'; agentId: number }
   | { kind: 'graduate' }
   | { kind: 'office' }
+  | { kind: 'vault' }
+  | { kind: 'lab' }
+  | { kind: 'fieldops' }
+  | { kind: 'prestige' }
+  | { kind: 'daily' }
 
 export const panel = signal<Panel | null>(null)
+/** Vault Bonus loot collected in the running round (HUD counter). */
+export const vaultLoot = signal(0)
+/** Ticks 4x per second: refreshes HUD buttons that depend on game state (boost timer, alerts, daily dot). */
+export const hudTick = signal(0)
+/** Live academy offers on screen: seconds left for the supply drone / VIP recruit (null = none). */
+export const liveOffers = signal<{ supply: number | null; vip: number | null; supplyFree: boolean }>({ supply: null, vip: null, supplyFree: true })
+/** Briefing: gadget chosen for the next mission (own stock or a free trial after an ad). */
+export const briefingGadget = signal<{ mission: string; mode: 'use' | 'trial' } | null>(null)
 /** Celebration popups wait here while another panel is open. */
 export const popupQueue = signal<Panel[]>([])
 
 export type MissionUi =
-  | { phase: 'playing'; mission: string }
-  | { phase: 'result'; mission: string; stars: number; cash: number; intel: number; doubled: boolean; freeDouble: boolean }
+  | { phase: 'playing'; mission: string; stage?: number }
+  | { phase: 'stage'; mission: string; stage: number }
+  | { phase: 'captured'; mission: string }
+  | { phase: 'vault'; mission: string; loot: number; cracked: boolean; canRetry: boolean }
+  | { phase: 'result'; mission: string; stars: number; cash: number; intel: number; doubled: boolean; freeDouble: boolean; badges?: number; skipped?: boolean }
   | { phase: 'fail'; mission: string; reason: 'alarm' | 'time'; canRevive: boolean }
 
 export const missionUi = signal<MissionUi | null>(null)

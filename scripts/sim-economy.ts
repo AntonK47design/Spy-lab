@@ -264,6 +264,9 @@ const BEATS: [string, string, number, number][] = [
   ['area_harbor', 'Areal 2 (Hafen) offen', 600, 960],
   ['unlock_cipher', 'Cipher Room', 660, 1000],
   ['level_3', 'Akademie-Level 3', 390, 520],
+  ['level_10', 'Akademie-Level 10', 1500, 2400],
+  // prestige becomes possible (brief: first relocation after 40-60 min)
+  ['level_15', 'Akademie-Level 15 (Umzug)', 3000, 3600],
 ]
 
 if (TRACE) {

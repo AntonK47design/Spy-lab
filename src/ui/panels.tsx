@@ -12,10 +12,20 @@ import { signal } from '@preact/signals'
 import { ECONOMY, speedCost } from '../config/economy'
 import { agentPower, cycleTime, income, levelCost, weakestAgent } from '../sim/academy'
 import { bestAgent, missionLock, missionReward } from '../sim/missions'
-import { panel, type Panel } from './uiState'
-import { Btn, Folder, Stars, click } from './common'
+import { panel, briefingGadget, type Panel } from './uiState'
+import { GADGETS, GADGET, gadgetFor } from '../config/gadgets'
+import { craftBlock } from '../sim/gadgets'
+import { resolveMission, endlessOpen, fieldOpsOpen } from '../sim/ops'
+import { FIELD_OPS } from '../config/ops'
+import { PRESTIGE, shopOf } from '../config/prestige'
+import { ACHIEVEMENTS, DAILY } from '../config/meta'
+import { OFFERS } from '../config/ads'
+import { achievementProgress, contractProgress, contractsOpen, dailyIndex, dailyValue } from '../sim/meta'
+import { canRelocate, medalGain } from '../sim/prestige'
+import { now } from '../core/time'
+import { AdButton, Btn, Folder, Stars, click } from './common'
 import {
-  IconCash, IconGlobe, IconIntel, IconLock, IconMusic, IconPeople, IconPlay, IconSoundOff, IconSoundOn,
+  IconAlert, IconBadge, IconCash, IconCheck, IconField, IconGadget, IconGlobe, IconIntel, IconLock, IconMusic, IconPeople, IconPlay, IconSoundOff, IconSoundOn,
   IconSpeed, IconUp, IconWhistle, IconStar, IconAgent,
 } from './icons'
 
@@ -135,6 +145,11 @@ export function UpgradePanel(props: { room: RoomId }) {
       </div>
       <UpRow icon={<IconUp />} label={t('upgrade.income')} value={fmt(inc)} next={fmt(nextInc)}
         cost={r.level < ECONOMY.maxRoomLevel ? levelCost(state, id) : null} testid="buy-level" onBuy={() => g.upgrade(id, 'level')} />
+      {(() => {
+        const cost = r.level < ECONOMY.maxRoomLevel ? levelCost(state, id) : 0
+        const miss = cost ? g.missingCashOffer(cost) : 0
+        return miss > 0 ? <AdButton testid="btn-missing-cash" label={t('upgrade.missing', { cash: fmt(miss) })} onClick={() => void g.missingCash(cost)} /> : null
+      })()}
       <UpRow icon={<IconSpeed />} label={t('upgrade.speed')} value={`${ct.toFixed(1)}s`}
         next={r.speed < ECONOMY.speed.max ? `${(ct * ECONOMY.speed.factorPerLevel).toFixed(1)}s` : undefined}
         cost={r.speed < ECONOMY.speed.max ? speedCost(r.speed) : null} testid="buy-speed" onBuy={() => g.upgrade(id, 'speed')} />
@@ -237,7 +252,7 @@ function bumpPanel(): void {
 
 // ---------------------------------------------------------------- missions
 /** Region tab of the missions folder (defaults to the region of the next mission to win). */
-const missionRegion = signal<RegionId | null>(null)
+const missionRegion = signal<RegionId | 'endless' | null>(null)
 
 function currentRegion(): RegionId {
   const next = MISSIONS.find((m) => !((state.missions[m.id]?.wins ?? 0) > 0))
@@ -247,9 +262,26 @@ function currentRegion(): RegionId {
 export function MissionsPanel() {
   void rev.value
   const region = missionRegion.value ?? currentRegion()
-  const list = MISSIONS.filter((m) => m.region === region)
+  const endless = region === 'endless'
+  const list = endless ? [resolveMission(state, 'endless')!].filter(Boolean) : MISSIONS.filter((m) => m.region === region)
+  const alert = state.alert ? resolveMission(state, 'alert') : undefined
   return (
-    <Folder title={t('missions.title')} testid="panel-missions" onClose={() => { missionRegion.value = null; closePanel() }} tab={t(`region.${region}`)} wide>
+    <Folder title={t('missions.title')} testid="panel-missions" onClose={() => { missionRegion.value = null; closePanel() }} tab={endless ? t('endless.title') : t(`region.${region}`)} wide>
+      {alert && (
+        <button class="alert-card" data-testid="mission-alert" onClick={() => { click(); panel.value = { kind: 'briefing', mission: 'alert' } }}>
+          <IconAlert />
+          <span class="ac-text">
+            <b>{t('alert.title')}</b>
+            <span>{t('alert.text', { region: t(`region.${alert.region}`) })}</span>
+          </span>
+          <span class="ac-badges"><IconBadge /> {alert.badges}</span>
+        </button>
+      )}
+      {fieldOpsOpen(state) && (
+        <button class="fieldops-btn" data-testid="btn-fieldops" onClick={() => { click(); panel.value = { kind: 'fieldops' } }}>
+          <IconField /> {t('fieldops.title')} <span class="muted small">{state.fieldOps.length}/{FIELD_OPS.slots}</span>
+        </button>
+      )}
       <div class="region-tabs" role="tablist">
         {REGIONS.map((r) => (
           <button
@@ -259,6 +291,11 @@ export function MissionsPanel() {
             {t(`region.${r}`)}
           </button>
         ))}
+        {endlessOpen(state) && (
+          <button role="tab" aria-selected={endless} class={`region-tab ${endless ? 'on' : ''}`} data-testid="tab-region-endless" onClick={() => { click(); missionRegion.value = 'endless' }}>
+            {t('endless.title')}
+          </button>
+        )}
       </div>
       <div class="mission-list">
         {list.map((m) => {
@@ -266,11 +303,11 @@ export function MissionsPanel() {
           const p = state.missions[m.id]
           return (
             <button
-              class={`mission-card ${lock === 'ok' ? '' : 'locked'}`} data-testid={`mission-${m.id}`} disabled={lock !== 'ok'}
+              class={`mission-card ${lock === 'ok' ? '' : 'locked'} ${m.boss ? 'boss' : ''}`} data-testid={`mission-${m.id}`} disabled={lock !== 'ok'}
               onClick={() => { click(); panel.value = { kind: 'briefing', mission: m.id } }}
             >
-              <span class="mc-num typewriter">#{m.index + 1}</span>
-              <span class={`mc-game mg-${m.minigame}`}>{t(`minigame.${m.minigame}`)}</span>
+              <span class="mc-num typewriter">{m.boss ? t('boss.label') : endless ? t('endless.op', { n: m.index + 1 }) : `#${m.index + 1}`}</span>
+              <span class={`mc-game mg-${m.minigame}`}>{m.boss ? t(`target.${m.id}`) : t(`minigame.${m.minigame}`)}</span>
               {lock === 'ok' ? <Stars n={p?.stars ?? 0} size="1em" /> : (
                 <span class="mc-lock"><IconLock /> {t(`lock.${lock}`, { room: t(`room.${m.room}`) })}</span>
               )}
@@ -284,18 +321,20 @@ export function MissionsPanel() {
 
 export function BriefingPanel(props: { mission: string }) {
   void rev.value
-  const m = missionById(props.mission)
+  const m = resolveMission(state, props.mission)
   if (!m) return null
   const agent = bestAgent(state, m)
   const skill = ROOMS[m.room].skill ?? 'finesse'
   const reward = missionReward(state, m, 1)
   return (
-    <Folder title={t('briefing.title', { n: m.index + 1 })} testid="panel-briefing" onClose={() => (panel.value = { kind: 'missions' })} tab={t('stamp.topSecret')}>
+    <Folder title={m.boss ? t('boss.label') : m.id === 'alert' ? t('alert.title') : m.id === 'endless' ? t('endless.op', { n: m.index + 1 }) : t('briefing.title', { n: m.index + 1 })} testid="panel-briefing" onClose={() => (panel.value = { kind: 'missions' })} tab={t('stamp.topSecret')}>
       <div class="dossier">
         <div class="dossier-photo"><span class="paw" aria-hidden="true" /></div>
         <div class="dossier-text">
           <div class="typewriter dossier-target">{t(`target.${m.id}`)}</div>
-          <div class="muted">{t(`minigame.${m.minigame}`)} · {t('briefing.tier', { n: m.tier })}</div>
+          <div class="muted">
+            {m.stages ? m.stages.map((st) => t(`minigame.${st.minigame}`)).join(' → ') : `${t(`minigame.${m.minigame}`)} · ${t('briefing.tier', { n: m.tier })}`}
+          </div>
         </div>
       </div>
       <div class="reward-row">
@@ -309,6 +348,7 @@ export function BriefingPanel(props: { mission: string }) {
           <span class="agent-skill">{t(`skill.${skill}`)} {agent.skills[skill]}</span>
         </div>
       )}
+      <GadgetSlot mission={m.id} />
       <Btn testid="btn-start-mission" onClick={() => void game().startMission(m.id)} icon={<IconPlay />}>{t('briefing.start')}</Btn>
     </Folder>
   )
@@ -371,6 +411,253 @@ export function LevelUpPanel(props: { level: number }) {
   )
 }
 
+/** Briefing: the mission's gadget from the stock, or a free trial after an ad. */
+function GadgetSlot(props: { mission: string }) {
+  const m = resolveMission(state, props.mission)
+  const g = m && !m.boss ? gadgetFor(m.minigame) : undefined
+  if (!g) return null
+  const stock = state.gadgets[g.id] ?? 0
+  const sel = briefingGadget.value?.mission === props.mission ? briefingGadget.value : null
+  return (
+    <div class={`gadget-slot ${sel ? 'on' : ''}`} data-testid="gadget-slot">
+      <IconGadget />
+      <div class="gs-text">
+        <b>{t(`gadget.${g.id}`)}</b>
+        <span class="muted small">{t(`gadget.${g.id}.desc`)}</span>
+      </div>
+      {sel ? (
+        <button class="gs-btn on" data-testid="btn-gadget-off" onClick={() => { click(); if (sel.mode === 'use') briefingGadget.value = null }}>
+          {t(sel.mode === 'trial' ? 'briefing.gadgetTrialOn' : 'briefing.gadgetOn')}
+        </button>
+      ) : stock > 0 ? (
+        <button class="gs-btn" data-testid="btn-gadget-use" onClick={() => { click(); briefingGadget.value = { mission: props.mission, mode: 'use' } }}>
+          {t('briefing.gadgetUse', { n: stock })}
+        </button>
+      ) : (
+        <AdButton testid="btn-gadget-trial" class="gs-ad" label={t('briefing.gadgetTrial')} onClick={() => void game().gadgetTrial(props.mission)} />
+      )}
+    </div>
+  )
+}
+
+/** Daily rewards (7-day streak, x2 via ad), today's contracts and achievements. */
+export function DailyPanel() {
+  void rev.value
+  const t0 = now()
+  const today = dailyIndex(state, t0)
+  const shownDay = today >= 0 ? today : (state.daily.streak + DAILY.length - 1) % DAILY.length
+  return (
+    <Folder title={t('daily.title')} testid="panel-daily" onClose={closePanel} wide>
+      {t0 - state.freeBadgesAt >= OFFERS.freeBadgesCooldown * 1000 ? (
+        <AdButton testid="btn-free-badges" label={t('shop.freeBadges', { n: OFFERS.freeBadges })} onClick={() => void game().freeBadges()} />
+      ) : (
+        <div class="center muted small">{t('shop.freeBadgesWait', { time: formatDuration(Math.ceil((OFFERS.freeBadgesCooldown * 1000 - (t0 - state.freeBadgesAt)) / 1000)) })}</div>
+      )}
+      <div class="daily-row">
+        {DAILY.map((r, i) => {
+          const done = today >= 0 ? i < today : i <= shownDay
+          return (
+            <div class={`daily-tile ${i === today ? 'now' : ''} ${done ? 'done' : ''}`} data-testid={`daily-${i}`}>
+              <span class="dt-day">{t('daily.day', { n: i + 1 })}</span>
+              <span class="dt-ico">{r.kind === 'cash' ? <IconCash /> : r.kind === 'badges' ? <IconBadge /> : r.kind === 'intel' ? <IconIntel /> : <IconGadget />}</span>
+              <b>{r.kind === 'gadget' ? '1' : fmt(dailyValue(state, r))}</b>
+              {done && <span class="dt-check"><IconCheck /></span>}
+            </div>
+          )
+        })}
+      </div>
+      {today >= 0 ? (
+        <div class="daily-actions">
+          <AdButton testid="btn-daily-double" label={t('daily.double')} onClick={() => void game().claimDaily(true)} />
+          <Btn testid="btn-daily-claim" onClick={() => void game().claimDaily(false)}>{t('daily.claim')}</Btn>
+        </div>
+      ) : (
+        <div class="center muted">{t('daily.tomorrow')}</div>
+      )}
+      {contractsOpen(state) && state.contracts.items.length > 0 && (
+        <>
+          <div class="fo-head typewriter">{t('contracts.title')}</div>
+          <div class="lab-list">
+            {state.contracts.items.map((c, i) => {
+              const p = contractProgress(state, i)!
+              const ok = p.progress >= p.goal
+              return (
+                <div class="lab-row" data-testid={`contract-${i}`}>
+                  <div class="lab-name">
+                    <b>{t(`contract.${c.id}`, { n: p.goal })}</b>
+                    <div class="lab-bar"><div style={{ width: `${Math.round((p.progress / p.goal) * 100)}%` }} /></div>
+                  </div>
+                  {c.claimed ? <span class="muted"><IconCheck /></span> : (
+                    <button class="btn-mini buy" data-testid={`btn-contract-${i}`} disabled={!ok} onClick={() => { click(); game().claimContract(i) }}>
+                      <IconBadge /> {p.badges}
+                    </button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
+      <div class="fo-head typewriter">{t('achievements.title')}</div>
+      <div class="lab-list">
+        {ACHIEVEMENTS.map((a) => {
+          const p = achievementProgress(state, a.id)!
+          const ok = p.progress >= p.goal
+          return (
+            <div class={`lab-row ${p.claimed ? 'claimed' : ''}`} data-testid={`ach-${a.id}`}>
+              <div class="lab-name">
+                <b>{t(`ach.${a.id}`)}</b>
+                <div class="muted small">{fmt(p.progress)} / {fmt(p.goal)}</div>
+              </div>
+              {p.claimed ? <span class="muted"><IconCheck /></span> : (
+                <button class="btn-mini buy" data-testid={`btn-ach-${a.id}`} disabled={!ok} onClick={() => { click(); game().claimAchievement(a.id) }}>
+                  <IconBadge /> {p.badges}
+                </button>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </Folder>
+  )
+}
+
+/** Relocate HQ: new cover shop + Legacy Medals; agents, missions, gadgets, badges and intel stay. */
+export function PrestigePanel() {
+  void rev.value
+  const gain = medalGain(state)
+  const ok = canRelocate(state)
+  const next = shopOf(state.prestige + 1)
+  return (
+    <Folder title={t('prestige.title')} testid="panel-prestige" onClose={closePanel} tab={t('stamp.topSecret')}>
+      <div class="prestige-shop" style={{ background: `#${next.wall.toString(16).padStart(6, '0')}`, borderColor: `#${next.trim.toString(16).padStart(6, '0')}` }}>
+        <span class="muted small">{t('prestige.next')}</span>
+        <b class="typewriter">{t(`shop.${next.id}`)}</b>
+      </div>
+      <div class="reward-row big">
+        <span class="reward" data-testid="prestige-gain"><IconStar /> +{gain}</span>
+      </div>
+      <div class="center small">{t('prestige.medals', { n: state.medals, pct: Math.round(state.medals * PRESTIGE.incomePerMedal * 100) })}</div>
+      <ul class="prestige-list small">
+        <li class="keep">{t('prestige.keep')}</li>
+        <li class="reset">{t('prestige.reset')}</li>
+      </ul>
+      {!ok && <div class="center muted">{state.level < PRESTIGE.fromLevel ? t('prestige.needLevel', { n: PRESTIGE.fromLevel }) : t('prestige.needCash')}</div>}
+      <Btn testid="btn-relocate" kind="buy" disabled={!ok} onClick={() => game().relocateHq()}>{t('prestige.go')}</Btn>
+    </Folder>
+  )
+}
+
+/** Field Ops: send waiting graduates on timed jobs; collect or finish now (rewarded). */
+export function FieldOpsPanel() {
+  void rev.value
+  const t0 = now()
+  const free = FIELD_OPS.slots - state.fieldOps.length
+  return (
+    <Folder title={t('fieldops.title')} testid="panel-fieldops" onClose={closePanel} wide>
+      <div class="lab-list">
+        {state.fieldOps.map((f, i) => {
+          const def = FIELD_OPS.ops[f.op]!
+          const left = Math.max(0, (f.endsAt - t0) / 1000)
+          const done = left <= 0
+          return (
+            <div class="lab-row" data-testid={`fieldop-${i}`}>
+              <div class="lab-name">
+                <b>{f.agent.name}</b> <span class="muted small">{t('fieldops.op', { min: def.minutes })}</span>
+                {!done && <div class="lab-bar"><div style={{ width: `${Math.round((1 - left / (def.minutes * 60)) * 100)}%` }} /></div>}
+                <div class="small"><IconCash /> {fmt(f.cash)} · <IconIntel /> {f.intel}</div>
+              </div>
+              {done ? (
+                <button class="btn-mini buy" data-testid={`btn-fieldop-collect-${i}`} onClick={() => { click(); game().fieldOpCollect(i) }}>{t('welcome.collect')}</button>
+              ) : (
+                <div class="fo-right">
+                  <span class="lab-time">{formatDuration(Math.ceil(left))}</span>
+                  <AdButton testid={`btn-fieldop-finish-${i}`} class="gs-ad" label={t('fieldops.finish')} onClick={() => void game().fieldOpFinish(i)} />
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+      <div class="fo-head typewriter">{t('fieldops.send')}</div>
+      {state.pending.length === 0 ? (
+        <div class="center muted">{t('fieldops.none')}</div>
+      ) : free <= 0 ? (
+        <div class="center muted">{t('fieldops.full')}</div>
+      ) : (
+        <div class="lab-list">
+          {state.pending.slice(0, 4).map((p, pi) => (
+            <div class="lab-row" data-testid={`fieldop-grad-${pi}`}>
+              <div class="lab-name"><b>{p.agent.name}</b> <span class="muted small">{t(`rarity.${p.agent.rarity}`)}</span></div>
+              <div class="fo-ops">
+                {FIELD_OPS.ops.map((o, oi) => (
+                  <button class="btn-mini" data-testid={`btn-fieldop-${pi}-${oi}`} onClick={() => { click(); game().fieldOp(pi, oi) }}>
+                    {t('fieldops.min', { min: o.minutes })}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Folder>
+  )
+}
+
+/** Gadget Lab: craft gadgets with Intel and time (one at a time). */
+export function LabPanel() {
+  void rev.value
+  const c = state.crafting
+  const def = c ? GADGETS.find((g) => g.id === c.id) : null
+  const left = c ? Math.max(0, (c.endsAt - now()) / 1000) : 0
+  return (
+    <Folder title={t('lab.title')} testid="panel-lab" onClose={closePanel} wide>
+      {c && def && (
+        <div class="lab-craft" data-testid="lab-crafting">
+          <IconGadget />
+          <div class="lab-craft-main">
+            <b>{t(`gadget.${c.id}`)}</b>
+            <div class="lab-bar"><div style={{ width: `${Math.round((1 - left / def.seconds) * 100)}%` }} /></div>
+          </div>
+          <span class="lab-time">{formatDuration(Math.ceil(left))}</span>
+          <button class="btn-mini buy" data-testid="btn-lab-rush" disabled={state.badges < GADGET.rushBadges} onClick={() => { click(); game().rushCraft() }}>
+            <IconBadge /> {GADGET.rushBadges}
+          </button>
+        </div>
+      )}
+      <div class="lab-list">
+        {GADGETS.map((g) => {
+          const block = craftBlock(state, g.id)
+          return (
+            <div class="lab-row" data-testid={`lab-${g.id}`}>
+              <div class="lab-name">
+                <b>{t(`gadget.${g.id}`)}</b> <span class="lab-stock">×{state.gadgets[g.id] ?? 0}</span>
+                <div class="muted small">{t(`minigame.${g.minigame}`)} · {t(`gadget.${g.id}.desc`)}</div>
+              </div>
+              <button class="btn-mini buy" data-testid={`btn-craft-${g.id}`} disabled={block !== 'ok'} onClick={() => { click(); game().craft(g.id) }}>
+                <IconIntel /> {g.intel} · {formatDuration(g.seconds)}
+              </button>
+            </div>
+          )
+        })}
+      </div>
+    </Folder>
+  )
+}
+
+/** Vault Bonus offer: a free Safe Cracker round, every bolt pays loot. */
+export function VaultOfferPanel() {
+  return (
+    <Folder title={t('vault.title')} testid="panel-vault" onClose={closePanel} tab={t('stamp.topSecret')}>
+      <div class="vault-offer">
+        <span class="vault-dial" aria-hidden="true" />
+        <div class="center">{t('vault.text', { cash: fmt(game().vaultLootPerBolt()) })}</div>
+      </div>
+      <Btn testid="btn-vault-start" onClick={() => void game().startVault()}>{t('vault.start')}</Btn>
+    </Folder>
+  )
+}
+
 export function WelcomePanel(props: { amount: number; seconds: number }) {
   const take = (doubled: boolean) => {
     game().collectWelcome(props.amount, doubled)
@@ -380,6 +667,7 @@ export function WelcomePanel(props: { amount: number; seconds: number }) {
     <Folder title={t('welcome.title')} testid="panel-welcome" onClose={() => take(false)}>
       <div class="center muted">{t('welcome.text', { time: formatDuration(props.seconds) })}</div>
       <div class="big-reward"><IconCash /> {fmt(props.amount)}</div>
+      <AdButton testid="btn-welcome-double" label={t('welcome.double')} onClick={() => void game().welcomeDouble(props.amount).then((ok) => ok && closePanel())} />
       <Btn testid="btn-welcome-collect" onClick={() => take(false)}>{t('welcome.collect')}</Btn>
     </Folder>
   )
@@ -398,6 +686,11 @@ export function PanelHost() {
     case 'agent': return <AgentReveal agentId={p.agentId} />
     case 'graduate': return <GraduatePanel />
     case 'office': return <OfficePanel />
+    case 'vault': return <VaultOfferPanel />
+    case 'lab': return <LabPanel />
+    case 'fieldops': return <FieldOpsPanel />
+    case 'prestige': return <PrestigePanel />
+    case 'daily': return <DailyPanel />
     case 'levelup': return <LevelUpPanel level={p.level} />
     case 'welcome': return <WelcomePanel amount={p.amount} seconds={p.seconds} />
   }

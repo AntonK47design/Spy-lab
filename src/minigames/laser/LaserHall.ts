@@ -108,6 +108,7 @@ export class LaserHall implements Minigame {
     // stealth skill: shorter on-phase of blinking beams
     this.onShare = Math.max(0.25, this.tier.blinkOn - Math.min(LASER.maxSkillBonus, mods.agentSkill * LASER.onSharePerSkill))
     this.time = this.tier.timeLimit
+    this.shield = mods.gadget === 'mirror'
     this.firstTime = ctx.firstTime
     this.w = ctx.width
     this.h = ctx.height
@@ -399,7 +400,22 @@ export class LaserHall implements Minigame {
     else this.move(dy < 0 ? 'fwd' : 'back')
   }
 
+  /** Mirror Shield gadget: catches the first hit. */
+  private shield = false
+
   private hit(): void {
+    if (this.shield) {
+      this.shield = false
+      this.flash = 'hit'
+      this.flashT = 0.35
+      this.stun = 0.25
+      this.hop = null
+      this.queued = null
+      AudioManager.play('upgrade', 1.4)
+      this.row = this.lastSafeRow
+      this.placeAgent()
+      return
+    }
     this.mistakes++
     this.flash = 'miss'
     this.flashT = 0.35

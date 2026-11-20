@@ -1,3 +1,6 @@
+import type { GadgetId } from '../config/gadgets.ts'
+import type { RegionId } from '../config/missions.ts'
+import type { MinigameId } from '../config/rooms.ts'
 /**
  * Plain-data game state. JSON-serializable, no DOM / three imports, so the same
  * code runs in the browser and in `npm run sim` (node with type stripping).
@@ -108,6 +111,47 @@ export interface GameState {
   flags: Record<string, boolean>
   tutorial: number
   lastSeen: number
+  /** Gadget Lab: stock per gadget and the running craft (real-time end). */
+  gadgets: Partial<Record<GadgetId, number>>
+  crafting: { id: GadgetId; endsAt: number } | null
+  /** Field Ops: graduates sent on timed jobs (one per slot). */
+  fieldOps: FieldOp[]
+  /** Villain Alert on the map (dynamic mission) and the active-play countdown to the next one. */
+  alert: AlertState | null
+  alertIn: number
+  /** Endless Ops won so far. */
+  endless: number
+  /** Prestige: relocations done and Legacy Medals owned (+income each). */
+  prestige: number
+  medals: number
+  /** Rewarded income boost: real-time end (ms) and the current multiplier (set by the game each frame). */
+  boostUntil: number
+  incomeBoost: number
+  /** Daily rewards streak, today's contracts (stat baselines), claimed achievements. */
+  daily: { lastDay: number; streak: number }
+  contracts: { day: number; items: { id: string; base: number; claimed: boolean }[] }
+  achievements: Record<string, boolean>
+  /** Last free_badges reward (ms, cooldown). */
+  freeBadgesAt: number
+}
+
+export interface FieldOp {
+  agent: Agent
+  op: number
+  endsAt: number
+  cash: number
+  intel: number
+}
+
+export interface AlertState {
+  minigame: MinigameId
+  room: RoomId
+  region: RegionId
+  tier: number
+  cash: number
+  intel: number
+  badges: number
+  endsAt: number
 }
 
 export function newRoom(id: RoomId): RoomState {
@@ -164,6 +208,20 @@ export function newGame(): GameState {
     flags: {},
     tutorial: 0,
     lastSeen: 0,
+    gadgets: {},
+    crafting: null,
+    fieldOps: [],
+    alert: null,
+    alertIn: 360,
+    endless: 0,
+    prestige: 0,
+    medals: 0,
+    boostUntil: 0,
+    incomeBoost: 1,
+    daily: { lastDay: -1, streak: 0 },
+    contracts: { day: -1, items: [] },
+    achievements: {},
+    freeBadgesAt: 0,
   }
 }
 
@@ -193,6 +251,15 @@ export function hydrate(raw: Partial<GameState> | null | undefined): GameState {
   s.stats = { ...base.stats, ...(raw.stats ?? {}) }
   s.flags = { ...(raw.flags ?? {}) }
   s.missions = { ...(raw.missions ?? {}) }
+  s.gadgets = raw.gadgets && typeof raw.gadgets === 'object' ? { ...raw.gadgets } : {}
+  s.crafting = raw.crafting && typeof raw.crafting === 'object' && raw.crafting.id ? raw.crafting : null
+  s.fieldOps = Array.isArray(raw.fieldOps) ? raw.fieldOps.filter((f) => f && f.agent) : []
+  s.alert = raw.alert && typeof raw.alert === 'object' && raw.alert.minigame ? raw.alert : null
+  s.incomeBoost = 1
+  s.daily = raw.daily && typeof raw.daily === 'object' ? { lastDay: Number(raw.daily.lastDay) || -1, streak: Number(raw.daily.streak) || 0 } : base.daily
+  s.contracts = raw.contracts && Array.isArray(raw.contracts.items) ? raw.contracts : base.contracts
+  s.achievements = raw.achievements && typeof raw.achievements === 'object' ? { ...raw.achievements } : {}
+  for (const k of ['alertIn', 'endless', 'prestige', 'medals', 'boostUntil', 'freeBadgesAt'] as const) if (!(Number(s[k]) >= 0)) s[k] = base[k]
   s.agents = Array.isArray(raw.agents) ? raw.agents : []
   s.pending = Array.isArray(raw.pending) ? raw.pending : []
   s.carry = raw.carry && typeof raw.carry === 'object' ? { room: raw.carry.room ?? null, n: Number(raw.carry.n) || 0 } : base.carry

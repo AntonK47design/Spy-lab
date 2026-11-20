@@ -5,14 +5,22 @@ import { t, lang } from '../i18n/i18n'
 import { contextLost } from '../core/lifecycle'
 import { formatNumber } from '../core/format'
 import { hud, state, rev } from '../game/store'
+import { now } from '../core/time'
+import { PRESTIGE } from '../config/prestige'
+import { canRelocate } from '../sim/prestige'
+import { metaClaimable } from '../sim/meta'
+import { rewardedSupported } from '../platform/ads'
+import { TUTORIAL } from '../game/tutorial'
+import { game } from '../game/actions'
 import { nextUnlock } from '../sim/academy'
 import { ROOMS } from '../config/rooms'
-import { coachLine, infoCard, inMission, moveHint, panel, portrait, toast, missionUi } from './uiState'
+import { coachLine, infoCard, inMission, moveHint, panel, portrait, toast, missionUi, liveOffers, hudTick } from './uiState'
 import { PanelHost, closePanel, openPause } from './panels'
 import { MissionLayer } from './mission'
 import { click } from './common'
 import {
   AvatarDirector, AvatarMarmalade, IconAgent, IconHand, IconBadge, IconCash, IconGear, IconIntel, IconMap, IconStar,
+  IconAlert, IconAd, IconGadget, IconCalendar,
 } from './icons'
 
 const fmt = (n: number) => formatNumber(n, lang.value)
@@ -109,8 +117,89 @@ function TopRight() {
   )
 }
 
+/** Villain Alert: red pulsing button with the time left, opens the alert briefing. */
+function AlertButton() {
+  void hudTick.value
+  const a = state.alert
+  if (!a) return null
+  const left = Math.max(0, Math.ceil((a.endsAt - now()) / 1000))
+  return (
+    <button class="action-round alert" data-testid="bar-alert" aria-label={t('alert.title')} onClick={() => { click(); panel.value = { kind: 'briefing', mission: 'alert' } }}>
+      <IconAlert />
+      <span class="action-label fit">{`${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`}</span>
+    </button>
+  )
+}
+
+/** Relocate HQ shows up once the academy level allows it. */
+function PrestigeButton() {
+  void hudTick.value
+  if (state.level < PRESTIGE.fromLevel) return null
+  return (
+    <button class={`action-round ${canRelocate(state) ? 'gold' : ''}`} data-testid="bar-prestige" aria-label={t('prestige.title')} onClick={() => { click(); panel.value = { kind: 'prestige' } }}>
+      <IconStar />
+      <span class="action-label fit">{t('prestige.short')}</span>
+    </button>
+  )
+}
+
+/** Rewarded income boost: x2 for 5 min per ad (stackable to 30 min), time left on the button. */
+function BoostButton() {
+  void hudTick.value
+  if (!rewardedSupported() || state.tutorial < TUTORIAL.length) return null
+  const left = Math.max(0, Math.ceil((state.boostUntil - now()) / 1000))
+  return (
+    <button class={`action-round boost ${left > 0 ? 'on' : ''}`} data-testid="bar-boost" aria-label={t('boost.title')} onClick={() => { click(); void game().incomeBoost() }}>
+      {left > 0 ? <span class="boost-x">x2</span> : <IconAd />}
+      <span class="action-label fit">{left > 0 ? `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}` : t('boost.short')}</span>
+    </button>
+  )
+}
+
+/** Supply drone (first crate free) and VIP recruit: shown while they are on screen. */
+function OfferButtons() {
+  const o = liveOffers.value
+  return (
+    <>
+      {o.supply !== null && (
+        <button class="action-round offer" data-testid="bar-supply" aria-label={t('supply.title')} onClick={() => { click(); void game().openSupply() }}>
+          {o.supplyFree ? <IconGadget /> : <IconAd />}
+          <span class="action-label fit">{o.supplyFree ? t('supply.free') : `0:${String(o.supply).padStart(2, '0')}`}</span>
+        </button>
+      )}
+      {o.vip !== null && (
+        <button class="action-round offer vip" data-testid="bar-vip" aria-label={t('vip.title')} onClick={() => { click(); void game().recruitVip() }}>
+          <IconAd />
+          <span class="action-label fit">{t('vip.short')}</span>
+        </button>
+      )}
+    </>
+  )
+}
+
+/** Daily rewards / contracts / achievements, with a dot when something can be claimed. */
+function DailyButton() {
+  void hudTick.value
+  if (state.tutorial < TUTORIAL.length) return null
+  return (
+    <button class="action-round" data-testid="bar-daily" aria-label={t('daily.title')} onClick={() => { click(); panel.value = { kind: 'daily' } }}>
+      <IconCalendar />
+      {metaClaimable(state, now()) && <span class="dot" />}
+      <span class="action-label fit">{t('daily.short')}</span>
+    </button>
+  )
+}
+
 function ActionButtons() {
   return (
+    <>
+    <div class="hud-extras">
+      <DailyButton />
+      <OfferButtons />
+      <BoostButton />
+      <PrestigeButton />
+      <AlertButton />
+    </div>
     <nav class="hud-actions">
       <button class="action-round" data-testid="bar-agents" aria-label={t('bar.agents')} onClick={() => { click(); panel.value = { kind: 'agents' } }}>
         <IconAgent />
@@ -121,6 +210,7 @@ function ActionButtons() {
         <span class="action-label fit">{t('bar.map')}</span>
       </button>
     </nav>
+    </>
   )
 }
 

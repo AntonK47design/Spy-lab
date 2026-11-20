@@ -9,6 +9,8 @@ import {
   Scene, Vector3, type BufferGeometry,
 } from 'three'
 import { SCOOTER, SCOOTER_TIERS, type ScooterTier } from '../../config/minigames'
+import { GADGET } from '../../config/gadgets'
+import { REGION_LOOK } from '../../config/missions'
 import { mgHud, type GameContext, type Minigame, type MinigameResult, type MissionModifiers } from '../Minigame'
 import { AudioManager } from '../../audio/AudioManager'
 import { Character } from '../../academy/Character'
@@ -83,12 +85,14 @@ export class ScooterPursuit implements Minigame {
   private chipGeo!: BufferGeometry
   private chipMat = new MeshBasicMaterial({ color: 0x5ad1ff })
   private disposables: { dispose(): void }[] = []
+  private look = REGION_LOOK.snowpeak
 
   async init(ctx: GameContext, tierN: number, mods: MissionModifiers): Promise<void> {
     this.tier = SCOOTER_TIERS[Math.max(0, Math.min(SCOOTER_TIERS.length - 1, tierN - 1))]!
     const bonus = Math.min(SCOOTER.maxSkillSpeed, mods.agentSkill * SCOOTER.skillSpeedPerPoint)
     this.base = this.tier.speed * (1 + bonus)
     this.thiefV = this.tier.speed * this.tier.thiefShare
+    this.look = REGION_LOOK[mods.region ?? 'snowpeak']
     this.v = this.base * 0.6
     this.gapLeft = this.tier.gap
     this.limit = this.tier.timeLimit
@@ -106,6 +110,8 @@ export class ScooterPursuit implements Minigame {
     // first row a little ahead, then rows out to the horizon
     this.lastRow = -28 + this.tier.rowSpacing
     this.fillRows()
+    // Turbo Kit gadget: start with a boost
+    if (mods.gadget === 'turbo') this.boostT = GADGET.turboSeconds
     this.resize(ctx.width, ctx.height)
     this.publish()
   }
@@ -113,10 +119,10 @@ export class ScooterPursuit implements Minigame {
   // ---------------------------------------------------------------- scene
   private build(): void {
     const s = this.scene
-    s.background = new Color(0xcfe6f2)
-    s.fog = new Fog(0xcfe6f2, 40, 105)
-    s.add(new HemisphereLight(0xffffff, 0x6a7a8a, 1.7))
-    const sun = new DirectionalLight(0xfff0d6, 1.4)
+    s.background = new Color(this.look.sky)
+    s.fog = new Fog(this.look.sky, 40, 105)
+    s.add(new HemisphereLight(this.look.night ? 0x8a7aff : 0xffffff, 0x6a7a8a, this.look.night ? 1.1 : 1.7))
+    const sun = new DirectionalLight(this.look.night ? 0xb0a0ff : 0xfff0d6, this.look.night ? 0.7 : 1.4)
     sun.position.set(-5, 12, 6)
     s.add(sun)
     // street segments: 3 looks recycled
@@ -168,9 +174,15 @@ export class ScooterPursuit implements Minigame {
     // curbs + sidewalks
     for (const sgn of [-1, 1]) {
       b.box(0.3, 0.2, L, sgn * (roadW / 2 + 0.15), 0.05, -L / 2, 0xb7a88a)
-      b.box(3, 0.16, L, sgn * (roadW / 2 + 1.8), 0.04, -L / 2, 0xeef4fa)
-      // Snowpeak: snowbanks along the curb
-      for (let z = 2 + variant * 2; z < L; z += 7) b.sphere(0.7, sgn * (roadW / 2 + 0.55), 0.05, -z, 0xffffff, 8, 6, 0.45)
+      b.box(3, 0.16, L, sgn * (roadW / 2 + 1.8), 0.04, -L / 2, this.look.walk)
+      if (this.look.night) {
+        // Neon City: glowing strips along the shop fronts
+        b.box(0.08, 0.5, L - 2, sgn * (roadW / 2 + 3.25), 1.6, -L / 2, variant % 2 ? 0xff4fd8 : 0x5ad1ff)
+        b.box(0.08, 0.12, L - 2, sgn * (roadW / 2 + 3.25), 0.4, -L / 2, 0xfff3b0)
+      } else {
+        // snowbanks (Snowpeak) / sand drifts (Dune) / cloud puffs (Sky) along the curb
+        for (let z = 2 + variant * 2; z < L; z += 7) b.sphere(0.7, sgn * (roadW / 2 + 0.55), 0.05, -z, this.look.bank, 8, 6, 0.45)
+      }
       // buildings: alternating Kenney blocks
       const bids: ModelId[] = ['buildingA', 'buildingB', 'buildingC']
       for (let k = 0; k < 3; k++) {

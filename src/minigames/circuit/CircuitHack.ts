@@ -12,6 +12,7 @@ import {
 } from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { CIRCUIT, CIRCUIT_TIERS, type CircuitTier } from '../../config/minigames'
+import { GADGET } from '../../config/gadgets'
 import { mgHud, type GameContext, type Minigame, type MinigameResult, type MissionModifiers } from '../Minigame'
 import { AudioManager } from '../../audio/AudioManager'
 
@@ -94,6 +95,16 @@ export class CircuitHack implements Minigame {
     this.w = ctx.width
     this.h = ctx.height
     this.generate()
+    // Auto-Splicer gadget: tiles on the way to a terminal pre-solved
+    if (mods.gadget === 'splicer') {
+      const wrong = this.solutionPath().filter((i) => this.mask[i] !== this.sol[i])
+      for (const i of wrong.slice(0, GADGET.splicerTiles)) {
+        this.mask[i] = this.sol[i]!
+        this.offset[i] = Math.ceil(this.offset[i]! / 4) * 4
+        this.locked[i] = true
+      }
+      this.angle = this.sol.map((v, i) => (shapeOf(v).turns + this.offset[i]!) * (Math.PI / 2))
+    }
     this.build()
     this.recompute()
     this.syncMarkers()

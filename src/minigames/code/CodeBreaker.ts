@@ -106,6 +106,12 @@ export class CodeBreaker implements Minigame {
     this.known = Array.from({ length: this.tier.length }, () => null)
     this.candidates = this.allCodes()
     this.build()
+    // Decoder Lens gadget: one symbol revealed from the start (does not use up a hint)
+    if (mods.gadget === 'decoder') {
+      const keep = this.hintsLeft
+      this.useHint()
+      this.hintsLeft = keep
+    }
     this.resize(ctx.width, ctx.height)
     this.publish()
   }

@@ -23,6 +23,8 @@ export interface MissionModifiers {
   /** The chosen agent's value in the minigame's skill. */
   agentSkill: number
   gadget?: string
+  /** Region of the mission (palette swap of the scene). */
+  region?: import('../config/missions').RegionId
 }
 
 /** Shared HUD read by the Preact minigame overlay. */

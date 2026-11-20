@@ -8,7 +8,7 @@ export const ECONOMY = {
   welcomeCash: 30,
   /** Price of the cadet sign-up desk (first purchase, ~0:02). */
   counterCost: 10,
-  clerkCost: 240,
+  clerkCost: 100,
   /**
    * Agency office clerk: sells common graduates after they waited sellDelay seconds (rare+ wait
    * for the player) and empties every room's cash pile every collectSeconds.
@@ -65,7 +65,7 @@ export const ECONOMY = {
     missionWin: 4,
     /** xpToNext(level) = base + perLevel * (level-1) */
     base: 20,
-    perLevel: 16,
+    perLevel: 9,
     maxLevel: 30,
   },
 

@@ -63,9 +63,10 @@ export function persist(scopes: SaveScope[] = ['core', 'meta'], immediate = fals
         cadets: s.cadets, arrivalTimer: s.arrivalTimer, nextId: s.nextId, graduatedTotal: s.graduatedTotal,
         rosterLimit: s.rosterLimit, counter: s.counter, counterPaid: s.counterPaid, clerk: s.clerk,
         clerkPaid: s.clerkPaid, carry: s.carry, welcome: s.welcome, serveT: s.serveT,
+        areas: s.areas, areaPaid: s.areaPaid, prestige: s.prestige, medals: s.medals, boostUntil: s.boostUntil, officeClerk: s.officeClerk, officeClerkPaid: s.officeClerkPaid, officeTimer: s.officeTimer,
       }, immediate)
-    else if (sc === 'agents') write(SAVE.keys.agents, { agents: s.agents, pending: s.pending }, immediate)
-    else if (sc === 'progress') write(SAVE.keys.progress, { missions: s.missions }, immediate)
-    else write(SAVE.keys.meta, { flags: s.flags, tutorial: s.tutorial, stats: s.stats, lastSeen: s.lastSeen }, immediate)
+    else if (sc === 'agents') write(SAVE.keys.agents, { agents: s.agents, pending: s.pending, fieldOps: s.fieldOps }, immediate)
+    else if (sc === 'progress') write(SAVE.keys.progress, { missions: s.missions, gadgets: s.gadgets, crafting: s.crafting, alert: s.alert, alertIn: s.alertIn, endless: s.endless }, immediate)
+    else write(SAVE.keys.meta, { flags: s.flags, tutorial: s.tutorial, stats: s.stats, lastSeen: s.lastSeen, daily: s.daily, contracts: s.contracts, achievements: s.achievements, freeBadgesAt: s.freeBadgesAt }, immediate)
   }
 }

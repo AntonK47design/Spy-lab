@@ -1,3 +1,4 @@
+import { PRESTIGE } from '../config/prestige.ts'
 /**
  * Academy rules (Kickoff-style loop):
  *   cadets arrive -> wait at the bakery counter -> the hero (or the clerk) signs them up ->
@@ -41,7 +42,8 @@ export interface HeroInput {
 // ---------- derived values ----------
 export function income(s: GameState, id: RoomId): number {
   const r = s.rooms[id]
-  return ROOMS[id].baseIncome * r.level * milestoneMult(r.level)
+  // Legacy Medals from prestige: +10 % each
+  return ROOMS[id].baseIncome * r.level * milestoneMult(r.level) * (1 + s.medals * PRESTIGE.incomePerMedal) * (s.incomeBoost || 1)
 }
 
 export function cycleTime(s: GameState, id: RoomId): number {

@@ -3,12 +3,14 @@ import { t, lang } from '../i18n/i18n'
 import { formatNumber } from '../core/format'
 import { game } from '../game/actions'
 import { mgHud } from '../minigames/Minigame'
-import { missionUi } from './uiState'
+import { missionUi, vaultLoot } from './uiState'
 import { AdButton, Btn, Stars } from './common'
 import { openPause } from './panels'
-import { IconAd, IconBulb, IconArrowLeft, IconArrowRight, IconBag, IconBolt, IconCash, IconCoat, IconEye, IconGlasses, IconHand, IconHat, IconHome, IconIntel, IconPause, IconRetry, IconTimer } from './icons'
+import { IconAd, IconBadge, IconBulb, IconArrowLeft, IconArrowRight, IconBag, IconBolt, IconCash, IconCoat, IconEye, IconGlasses, IconHand, IconHat, IconHome, IconIntel, IconPause, IconRetry, IconTimer } from './icons'
 import type { MoleClue } from '../minigames/Minigame'
-import { missionById } from '../config/missions'
+import { resolveMission } from '../sim/ops'
+import { state } from '../game/store'
+import { OFFERS } from '../config/ads'
 import { CODE } from '../config/minigames'
 
 const fmt = (n: number) => formatNumber(n, lang.value)
@@ -92,6 +94,32 @@ function Clues(props: { clues: MoleClue[] }) {
   )
 }
 
+/** Boss missions: stage chips (done / current / next). */
+function BossStages() {
+  const ui = missionUi.value
+  if (!ui || (ui.phase !== 'playing' && ui.phase !== 'stage') || ui.stage === undefined) return null
+  const m = resolveMission(state, ui.mission)
+  if (!m?.stages) return null
+  return (
+    <div class="boss-stages" data-testid="boss-stages">
+      <span class="boss-tag typewriter">{t('boss.label')}</span>
+      {m.stages.map((st, i) => (
+        <span class={`boss-stage ${i < ui.stage! ? 'done' : i === ui.stage ? 'now' : ''}`}>{t(`minigame.${st.minigame}`)}</span>
+      ))}
+    </div>
+  )
+}
+
+function StageClear() {
+  const ui = missionUi.value
+  if (!ui || ui.phase !== 'stage') return null
+  return (
+    <div class="stage-clear" data-testid="stage-clear">
+      <div class="stamp-big typewriter">{t('boss.stageClear')}</div>
+    </div>
+  )
+}
+
 function PlayingHud() {
   const h = mgHud.value
   if (!h) return null
@@ -118,6 +146,9 @@ function PlayingHud() {
           <IconTimer />
           <div class="timer-bar"><div class={`timer-fill ${timeShare < 0.25 ? 'low' : ''}`} style={{ width: `${timeShare * 100}%` }} /></div>
         </div>
+      )}
+      {missionUi.value?.mission === 'vault' && (
+        <div class="vault-loot" data-testid="vault-loot"><IconCash /> {fmt(vaultLoot.value)}</div>
       )}
       {h.clues && <Clues clues={h.clues} />}
       {h.chase !== undefined && (
@@ -162,15 +193,24 @@ function PlayingHud() {
 function Result() {
   const ui = missionUi.value
   if (!ui || ui.phase !== 'result') return null
+  const boss = !!resolveMission(state, ui.mission)?.boss
   return (
     <div class="modal-backdrop">
       <section class="folder result" data-testid="panel-result" role="dialog" aria-label={t('result.title')}>
-        <div class="folder-tab typewriter">{t(`region.${missionById(ui.mission)?.region ?? 'harbor'}`)}</div>
-        <div class="stamp-big typewriter">{t('result.title')}</div>
+        <div class="folder-tab typewriter">{t(`region.${resolveMission(state, ui.mission)?.region ?? 'harbor'}`)}</div>
+        {boss ? (
+          <>
+            <div class="boss-name typewriter">{t(`target.${ui.mission}`)}</div>
+            <div class="stamp-big red typewriter">{t('boss.captured')}</div>
+          </>
+        ) : (
+          <div class="stamp-big typewriter">{t('result.title')}</div>
+        )}
         <Stars n={ui.stars} size="2.6em" stamp />
         <div class="reward-row big">
           <span class="reward"><IconCash /> {fmt(ui.cash)}</span>
           <span class="reward"><IconIntel /> {fmt(ui.intel)}</span>
+          {!!ui.badges && <span class="reward" data-testid="reward-badges"><IconBadge /> {fmt(ui.badges)}</span>}
         </div>
         {!ui.doubled && ui.freeDouble && (
           <>
@@ -188,10 +228,28 @@ function Result() {
   )
 }
 
+function VaultSummary() {
+  const ui = missionUi.value
+  if (!ui || ui.phase !== 'vault') return null
+  return (
+    <div class="modal-backdrop">
+      <section class="folder result" data-testid="panel-vault-result" role="dialog" aria-label={t('vault.title')}>
+        <div class="folder-tab typewriter">{t('vault.title')}</div>
+        <div class={`stamp-big typewriter ${ui.cracked ? '' : 'red'}`}>{t(ui.cracked ? 'vault.cracked' : 'fail.alarm')}</div>
+        <div class="reward-row big">
+          <span class="reward"><IconCash /> {fmt(ui.loot)}</span>
+        </div>
+        {ui.canRetry && <AdButton testid="btn-vault-retry" label={t('vault.retry')} onClick={() => void game().vaultRetry()} />}
+        <Btn testid="btn-vault-collect" onClick={() => game().vaultCollect()}>{t('welcome.collect')}</Btn>
+      </section>
+    </div>
+  )
+}
+
 function Fail() {
   const ui = missionUi.value
   if (!ui || ui.phase !== 'fail') return null
-  const m = missionById(ui.mission)
+  const m = resolveMission(state, ui.mission)
   return (
     <div class="modal-backdrop">
       <section class="folder fail" data-testid="panel-fail" role="dialog" aria-label={t(`fail.${ui.reason}`)}>
@@ -199,6 +257,9 @@ function Fail() {
         <div class="stamp-big red typewriter">{t(`fail.${ui.reason}`)}</div>
         <div class="center muted">{t('fail.text')}</div>
         {ui.canRevive && <AdButton testid="btn-revive" label={t('fail.revive')} onClick={() => void game().revive()} />}
+        {m && !m.boss && m.id !== 'alert' && m.id !== 'endless' && (state.missions[m.id]?.fails ?? 0) >= OFFERS.skipAfterFails && (
+          <AdButton testid="btn-skip" label={t('fail.skip')} onClick={() => void game().skipMission()} />
+        )}
         <Btn testid="btn-retry" onClick={() => void game().retry()} icon={<IconRetry />}>{t('fail.retry')}</Btn>
         <Btn testid="btn-giveup" kind="secondary" onClick={() => game().endMission()} icon={<IconHome />}>{t('fail.back')}</Btn>
       </section>
@@ -212,8 +273,12 @@ export function MissionLayer() {
   return (
     <>
       {ui.phase === 'playing' && <PlayingHud />}
+      <BossStages />
+      <StageClear />
+      {ui.phase === 'captured' && <div class="captured-stamp typewriter" data-testid="captured">{t('boss.captured')}</div>}
       <Result />
       <Fail />
+      <VaultSummary />
     </>
   )
 }

@@ -11,9 +11,10 @@ import { StaticBatch } from '../render/geometry'
 import { flatMat } from '../render/materials'
 import { propGeometry } from '../render/assets'
 import { PAL, ROOM_FLOOR } from '../render/palette'
+import { shopOf } from '../config/prestige'
 import { MODELS, type ModelId } from '../config/models'
 import {
-  AREAS, AREA_ORDER, DOCKS, FERRY, GARAGE, ISLAND, LAYOUT, OFFICE, PLAZAS, ROOMS, ROOM_AREA, ROOM_ORDER, slotOf, upgradeSpotOf, cashSpotOf, crateOf, gateOf,
+  AREAS, AREA_ORDER, DOCKS, TEASER, FERRY, GARAGE, ISLAND, LAYOUT, OFFICE, PLAZAS, ROOMS, ROOM_AREA, ROOM_ORDER, slotOf, upgradeSpotOf, cashSpotOf, crateOf, gateOf,
   type AreaId, type RoomId,
 } from '../config/rooms'
 import type { GameState } from '../sim/state'
@@ -91,13 +92,37 @@ export class World {
   async init(): Promise<void> {
     const geos = await Promise.all(USED.map((id) => propGeometry(id)))
     USED.forEach((id, i) => (this.p[id] = geos[i] ?? null))
-    const base = new Mesh(this.buildBase(), flatMat)
-    base.receiveShadow = true
-    base.castShadow = true
-    this.scene.add(base)
+    this.rebuildBase()
     const street = new Mesh(this.buildStreet(), flatMat)
     street.receiveShadow = true
     this.scene.add(street)
+  }
+
+  /** Cover shop look (changes with every prestige relocation). */
+  private shop = shopOf(0)
+  private baseMesh: Mesh | null = null
+
+  setShop(prestige: number): void {
+    const next = shopOf(prestige)
+    if (next.id === this.shop.id && this.baseMesh) return
+    this.shop = next
+    this.rebuildBase()
+  }
+
+  private rebuildBase(): void {
+    if (this.baseMesh) {
+      this.scene.remove(this.baseMesh)
+      this.baseMesh.geometry.dispose()
+      // the base's colliders are re-added by buildBase
+      for (let i = this.colliders.length - 1; i >= 0; i--) if (this.colliders[i]!.id === 'base' || this.colliders[i]!.id === 'street_edge') this.colliders.splice(i, 1)
+    }
+    const n = this.colliders.length
+    const base = new Mesh(this.buildBase(), flatMat)
+    for (let i = n; i < this.colliders.length; i++) this.colliders[i]!.id ??= 'base'
+    base.receiveShadow = true
+    base.castShadow = true
+    this.scene.add(base)
+    this.baseMesh = base
   }
 
   /** Baked prop geometry (for dynamic props such as cars). */
@@ -143,13 +168,13 @@ export class World {
     this.colliders.push({ minX: plotMaxX - 0.2, maxX: plotMaxX + 1, minZ: front, maxZ: plotMaxZ, id: 'street_edge' })
 
     // ---- bakery
-    this.tiles(b, x0, back, bk.w, bk.d, PAL.bakeryA, PAL.bakeryB)
-    this.wallX(b, x0, -LAYOUT.corridorWidth / 2, back, BACK_WALL, PAL.bakeryWall, PAL.bakeryTrim)
-    this.wallX(b, LAYOUT.corridorWidth / 2, x0 + bk.w, back, BACK_WALL, PAL.bakeryWall, PAL.bakeryTrim)
-    this.wallZ(b, x0, back, front, 1.4, PAL.bakeryWall, PAL.bakeryTrim)
-    this.wallZ(b, x0 + bk.w, back, front, 1.4, PAL.bakeryWall, PAL.bakeryTrim)
-    this.wallX(b, x0, -1.3, front, STUB, PAL.bakeryWall, PAL.bakeryTrim)
-    this.wallX(b, 1.3, x0 + bk.w, front, STUB, PAL.bakeryWall, PAL.bakeryTrim)
+    this.tiles(b, x0, back, bk.w, bk.d, this.shop.floorA, this.shop.floorB)
+    this.wallX(b, x0, -LAYOUT.corridorWidth / 2, back, BACK_WALL, this.shop.wall, this.shop.trim)
+    this.wallX(b, LAYOUT.corridorWidth / 2, x0 + bk.w, back, BACK_WALL, this.shop.wall, this.shop.trim)
+    this.wallZ(b, x0, back, front, 1.4, this.shop.wall, this.shop.trim)
+    this.wallZ(b, x0 + bk.w, back, front, 1.4, this.shop.wall, this.shop.trim)
+    this.wallX(b, x0, -1.3, front, STUB, this.shop.wall, this.shop.trim)
+    this.wallX(b, 1.3, x0 + bk.w, front, STUB, this.shop.wall, this.shop.trim)
     // striped awning stubs + shop sign over the street door
     for (let i = 0; i < 12; i++) if (Math.abs(x0 + (i + 0.5) * (bk.w / 12)) > 2.7) b.rbox(bk.w / 12 - 0.02, 0.14, 0.9, x0 + (i + 0.5) * (bk.w / 12), 0.55, front + 0.45, i % 2 ? PAL.white : PAL.coral, 0.04)
     // street door: a small full-height facade (pillars + lintel + sign + awning) so the
@@ -158,7 +183,7 @@ export class World {
     const H = 2.7
     for (const sd of [-1, 1]) {
       const cx = sd * 2.0
-      b.rbox(1.24, H, 0.36, cx, H / 2, front, PAL.bakeryWall, 0.05)
+      b.rbox(1.24, H, 0.36, cx, H / 2, front, this.shop.wall, 0.05)
       b.rbox(1.3, 0.2, 0.42, cx, 0.1, front, PAL.wallSkirt, 0.04)
       b.rbox(0.2, H, 0.44, sd * 1.36, H / 2, front, DOOR, 0.05)
       // open leaf: frame + glass + handle, lying on the pillar's street face
@@ -169,9 +194,9 @@ export class World {
     b.rbox(5.3, 0.5, 0.44, 0, H + 0.2, front, DOOR, 0.06)
     b.rbox(4.6, 0.8, 0.2, 0, H + 0.85, front + 0.08, DOOR, 0.06)
     b.rbox(4.3, 0.56, 0.06, 0, H + 0.85, front + 0.2, PAL.white, 0.03)
-    b.rbox(3.8, 0.1, 0.07, 0, H + 0.68, front + 0.23, PAL.coral, 0.02)
-    for (let i = 0; i < 5; i++) b.rbox(0.62, 0.1, 0.8, -1.24 + i * 0.62, H - 0.15, front + 0.55, i % 2 ? PAL.white : PAL.coral, 0.03)
-    b.rbox(2.3, 0.03, 1.1, 0, 0.02, front + 0.7, PAL.coral, 0.02)
+    b.rbox(3.8, 0.1, 0.07, 0, H + 0.68, front + 0.23, this.shop.trim, 0.02)
+    for (let i = 0; i < 5; i++) b.rbox(0.62, 0.1, 0.8, -1.24 + i * 0.62, H - 0.15, front + 0.55, i % 2 ? PAL.white : this.shop.awning, 0.03)
+    b.rbox(2.3, 0.03, 1.1, 0, 0.02, front + 0.7, this.shop.trim, 0.02)
     b.rbox(2.0, 0.035, 0.85, 0, 0.025, front + 0.7, 0x9c3b2f, 0.02)
 
     // back wall: pastry kitchen in the left corner; the middle of the wall is the hidden
@@ -199,7 +224,7 @@ export class World {
     // posts framing the passage
     for (const sx of [-1, 1]) {
       b.rbox(0.5, BACK_WALL + 0.3, 0.5, sx * (pw2 + 0.05), (BACK_WALL + 0.3) / 2, back, 0x7a3e2b, 0.06)
-      b.rbox(0.62, 0.16, 0.62, sx * (pw2 + 0.05), BACK_WALL + 0.36, back, PAL.bakeryTrim, 0.04)
+      b.rbox(0.62, 0.16, 0.62, sx * (pw2 + 0.05), BACK_WALL + 0.36, back, this.shop.trim, 0.04)
     }
 
     return b.build()
@@ -244,7 +269,29 @@ export class World {
     // across the street (outside the island): parked car + harbour skyline
     b.prop(P.dumpster, 13.5, st.road1 + 0.8, 0, 1, -0.6)
     const blds: ModelId[] = ['buildingA', 'buildingB', 'buildingC', 'buildingD']
-    for (let i = 0; i < 8; i++) b.prop(P[blds[i % 4]!], -24 + i * 7, st.road1 + 7, Math.PI, 1, -0.6)
+    for (let i = 0; i < 8; i++) if (i !== 4) b.prop(P[blds[i % 4]!], -24 + i * 7, st.road1 + 7, Math.PI, 1, -0.6)
+    // teaser: construction site "Coming soon" right across from the shop (sign label: Game)
+    const tx = TEASER.x
+    const tz = TEASER.z
+    b.box(6, 0.06, 5, tx, 0.0, tz, 0x8a7a60)
+    for (let k = 0; k < 6; k++) b.rbox(0.95, 1.3, 0.08, tx - 2.5 + k, 0.65, tz - 2.5, k % 2 ? 0xffd23f : 0xfff3e0, 0.02)
+    for (let k = 0; k < 3; k++) b.rbox(0.3, 0.12, 0.08, tx - 2.2 + k * 2, 0.95, tz - 2.56, 0x22283a, 0.02)
+    b.box(0.08, 1.3, 5, tx - 3, 0.65, tz, 0xfff3e0)
+    b.box(0.08, 1.3, 5, tx + 3, 0.65, tz, 0xfff3e0)
+    // tower crane
+    b.box(0.35, 6.2, 0.35, tx + 1.8, 3.1, tz + 1.2, 0xffd23f)
+    b.box(5.2, 0.3, 0.3, tx + 0.6, 6.2, tz + 1.2, 0xffd23f)
+    b.box(1.0, 0.6, 0.6, tx + 3.6, 6.0, tz + 1.2, 0x5d6779)
+    b.box(0.04, 1.6, 0.04, tx - 1.4, 5.3, tz + 1.2, 0x22283a)
+    b.rbox(0.9, 0.5, 0.5, tx - 1.4, 4.3, tz + 1.2, 0x2f6bff, 0.04)
+    // stacked material + barrels + cones
+    b.prop(P.pallet, tx - 1.2, tz + 0.5, 0.3, 1)
+    b.prop(P.barrel, tx + 0.4, tz - 1.2, 0, 0.9)
+    b.prop(P.boxB, tx - 0.2, tz + 1.6, 0.5, 1)
+    for (const cxx of [-2.2, -0.6, 1.0, 2.4]) {
+      b.cone(0.18, 0.5, tx + cxx, 0.25, tz - 2.9, PAL.orange, 10)
+      b.cyl(0.19, 0.19, 0.06, tx + cxx, 0.3, tz - 2.9, PAL.white, 10)
+    }
     return b.build()
   }
 
@@ -430,7 +477,8 @@ export class World {
         m.geometry.dispose()
       }
       for (let i = this.colliders.length - 1; i >= 0; i--) if (this.colliders[i]!.id?.startsWith(`room:${id}`)) this.colliders.splice(i, 1)
-      const built = this.buildRoom(id, r.unlocked, r.stations, r.crate)
+      // the Gadget Lab has no training stations: it always shows its three workbenches
+      const built = this.buildRoom(id, r.unlocked, id === 'gadget' ? 3 : r.stations, r.crate)
       const out: Mesh[] = []
       const m = new Mesh(built.solid, flatMat)
       m.castShadow = true

@@ -88,6 +88,9 @@ export const LAYOUT = {
   maxSlots: 6,
 } as const
 
+/** "Coming soon" construction site across the street, opposite the shop (teaser for updates). */
+export const TEASER = { x: 4, z: LAYOUT.street.road1 + 7 } as const
+
 const W = LAYOUT.roomW
 const D = LAYOUT.roomD
 const cx = LAYOUT.corridorWidth / 2 + W / 2

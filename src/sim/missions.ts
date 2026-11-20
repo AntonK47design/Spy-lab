@@ -7,11 +7,16 @@ import type { Agent, GameState } from './state.ts'
 export type MissionLock = 'ok' | 'agent' | 'room' | 'previous' | 'region' | 'soon'
 
 export function missionLock(s: GameState, m: MissionDef): MissionLock {
+  if (m.id === 'alert' || m.id === 'endless') {
+    if (!s.rooms[m.room].unlocked) return 'room'
+    return s.agents.length ? 'ok' : 'agent'
+  }
   // the mission before (in a new region: the last mission of the previous region)
   const prev = MISSIONS[MISSIONS.indexOf(m) - 1]
   if (prev && !((s.missions[prev.id]?.wins ?? 0) > 0)) return prev.region === m.region ? 'previous' : 'region'
-  if (!s.rooms[m.room].unlocked) return 'room'
-  if (!PLAYABLE_MINIGAMES.includes(m.minigame)) return 'soon'
+  const parts = m.stages ?? [m]
+  if (parts.some((p) => !s.rooms[p.room].unlocked)) return 'room'
+  if (parts.some((p) => !PLAYABLE_MINIGAMES.includes(p.minigame))) return 'soon'
   if (s.agents.length === 0) return 'agent'
   return 'ok'
 }
@@ -25,7 +30,7 @@ export function bestAgent(s: GameState, m: MissionDef): Agent | null {
 }
 
 export function missionReward(s: GameState, m: MissionDef, stars: number): { cash: number; intel: number } {
-  const replay = (s.missions[m.id]?.wins ?? 0) > 0
+  const replay = m.id !== 'alert' && m.id !== 'endless' && (s.missions[m.id]?.wins ?? 0) > 0
   const mult = (replay ? MISSION_REWARDS.replayShare : 1) * (1 + MISSION_REWARDS.perStar * Math.max(0, stars - 1))
   return { cash: Math.round(m.cash * mult), intel: Math.round(m.intel * mult) }
 }
@@ -38,18 +43,28 @@ export function recordWin(
   agent: Agent | null,
   ev: SimEvents = {},
 ): void {
-  const p = (s.missions[m.id] ??= { stars: 0, wins: 0, fails: 0 })
-  p.wins++
-  p.stars = Math.max(p.stars, stars)
   s.cash += reward.cash
   s.intel += reward.intel
   s.stats.earned += reward.cash
   s.stats.missionsWon++
+  if (m.id === 'alert') {
+    // Villain Alert: badges every time, the alert is gone
+    s.badges += m.badges ?? 0
+    s.alert = null
+  } else if (m.id === 'endless') {
+    s.endless++
+  } else {
+    const p = (s.missions[m.id] ??= { stars: 0, wins: 0, fails: 0 })
+    p.wins++
+    p.stars = Math.max(p.stars, stars)
+    if (m.badges && p.wins === 1) s.badges += m.badges
+  }
   if (agent) agent.level++
   addXp(s, ECONOMY.academyXp.missionWin, ev)
 }
 
 export function recordFail(s: GameState, m: MissionDef): void {
+  if (m.id === 'alert' || m.id === 'endless') return
   const p = (s.missions[m.id] ??= { stars: 0, wins: 0, fails: 0 })
   p.fails++
 }

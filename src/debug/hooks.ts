@@ -4,7 +4,7 @@
 import type { Game } from '../game/Game'
 import type { createRenderer } from '../render/renderer'
 import { state, persist } from '../game/store'
-import { createAgent } from '../sim/academy'
+import { createAgent, levelCost } from '../sim/academy'
 import { mgHud } from '../minigames/Minigame'
 import { timeWarp as warp, now } from '../core/time'
 import { bootMarks } from '../platform/bridge'
@@ -127,6 +127,15 @@ export function installDebugHooks(g: { renderer: ReturnType<typeof createRendere
     mgTarget: (wrong = false) => (game.minigame as unknown as { debugTarget?: (w: boolean) => { x: number; y: number } | null } | null)?.debugTarget?.(wrong) ?? null,
     mgAllClues: () => (game.minigame as unknown as { debugAllClues?: () => boolean } | null)?.debugAllClues?.() ?? null,
     mgHud: () => mgHud.peek(),
+    /** QA: next academy frame spawns a Villain Alert. */
+    /** QA: drone + VIP recruit on the next academy frame. */
+    spawnOffers: () => game.debugOffers(),
+    levelCost: (room: RoomId) => levelCost(state, room),
+    spawnAlert: () => {
+      state.alertIn = 0
+    },
+    /** End the running minigame with a win / fail (boss flow tests). */
+    mgFinish: (success = true) => game.debugFinish(success),
     /** Circuit Hack: screen position of a tile to turn next (planner). */
     mgNextTap: () => (game.minigame as unknown as { debugNextTap?: () => { x: number; y: number } | null } | null)?.debugNextTap?.() ?? null,
     mgInput: (cmd: 'sym' | 'del' | 'ok', arg?: number) => game.minigameInput(cmd, arg),

@@ -10,6 +10,7 @@ async function setup(page: Page): Promise<void> {
     for (const k of Object.keys(s.rooms)) s.rooms[k].unlocked = true
     for (const k of Object.keys(s.areas)) s.areas[k] = true
     for (let i = 1; i <= 10; i++) s.missions[`harbor_${String(i).padStart(2, '0')}`] = { stars: 3, wins: 1, fails: 0 }
+    s.missions.harbor_boss = { stars: 3, wins: 1, fails: 0 }
     for (let i = 1; i <= 4; i++) s.missions[`snowpeak_0${i}`] = { stars: 3, wins: 1, fails: 0 }
   })
 }
