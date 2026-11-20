@@ -15,9 +15,10 @@
   /* sizing relative to the short side */
   --u: min(1vw, 1vh);
   --u: min(1vw, 1dvh);
-  --fs: clamp(14px, calc(var(--u) * 2.9), 20px);
-  --tap: clamp(48px, calc(var(--u) * 10), 62px);
-  --gap: clamp(6px, calc(var(--u) * 1.6), 14px);
+  /* compact: the game often runs in a small frame (portal / QA tool); buttons stay >= 44 px */
+  --fs: clamp(13px, calc(var(--u) * 2.3), 18px);
+  --tap: clamp(40px, calc(var(--u) * 7.4), 54px);
+  --gap: clamp(5px, calc(var(--u) * 1.2), 12px);
   --radius: clamp(8px, calc(var(--u) * 2), 16px);
   --sa-top: max(env(safe-area-inset-top, 0px), var(--bridge-sa-top, 0px));
   --sa-bottom: max(env(safe-area-inset-bottom, 0px), var(--bridge-sa-bottom, 0px));
@@ -1363,3 +1364,9 @@ button {
 .pad-title { font-size: max(11px, 0.8em); padding: 0.22em 0.8em; }
 .wlabel.pad { transition: opacity 0.25s; }
 .wlabel.pad.far { opacity: 0; pointer-events: none; }
+
+/* ---------- compact HUD: coach bubble + objective smaller ---------- */
+.coach.objective, .orders.objective { max-width: min(54vw, 360px); min-height: calc(var(--tap) * 0.95); }
+.coach.objective .coach-line, .orders.objective .orders-item { font-size: 0.98em; }
+/* every button keeps a 44 px touch target */
+.btn-round, .action-round, .btn-close { min-width: 44px; min-height: 44px; }

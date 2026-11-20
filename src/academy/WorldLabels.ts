@@ -44,9 +44,18 @@ export class WorldLabels {
     if (i >= 0) this.labels.splice(i, 1)
   }
 
+  private blocker: DOMRect | null = null
+
   update(cam: FollowCamera, w: number, h: number): void {
     const band = Math.min(110, Math.max(70, h * 0.12))
     const measure = this.frame++ % 20 === 0
+    // the coach bubble covers part of the world: labels behind it fade too
+    if (measure) {
+      const coach = document.querySelector('[data-testid="coach"]')
+      const r = coach?.getBoundingClientRect()
+      const root = this.root.getBoundingClientRect()
+      this.blocker = r && r.width > 0 ? new DOMRect(r.x - root.x, r.y - root.y, r.width, r.height) : null
+    }
     for (const l of this.labels) {
       if (!l.visible) {
         if (l.el.style.display !== 'none') l.el.style.display = 'none'
@@ -65,7 +74,11 @@ export class WorldLabels {
         const x = half * 2 < w ? Math.min(w - half, Math.max(half, p.x)) : p.x
         l.el.style.transform = `translate(${Math.round(x)}px, ${Math.round(p.y)}px) translate(-50%, -100%)`
         // labels that slide under the top HUD band fade out (never fight the HUD for attention)
-        const under = p.y - (l.h ?? 0) * 0.6 < band
+        const b = this.blocker
+        const lw = l.w ?? 0
+        const lh = l.h ?? 0
+        const behindCoach = !!b && x + lw / 2 > b.x && x - lw / 2 < b.x + b.width && p.y > b.y && p.y - lh < b.y + b.height
+        const under = p.y - lh * 0.6 < band || behindCoach
         if (under !== l.el.classList.contains('under-hud')) l.el.classList.toggle('under-hud', under)
         const f = this.focus
         let far = false
