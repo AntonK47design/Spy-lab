@@ -220,3 +220,9 @@ Beat Sheet OK (Laser Gym 1:45, erste Automatisierung, Hafen 7:52), Level 10 bei 
 - Leuchtturm-Tor 250 k → 120 k, Fahrsimulator 450 k → 200 k, Hack Lab 4 M → 600 k. Sim (fokussiert): Leuchtturm 29:57 (Ziel 30), Fahrsimulator 32:37 (35), Hack Lab 43:19 (40); Tempo-Fenster unverändert grün, erster Umzug 45:11.
 - Gesamt-Tempo (Sim 3 h, Median fokussiert/abgelenkt): längste Lücke ohne Kauf 0–5 Min 16/25 s, 5–10 Min 12/17 s, 10–60 Min 16–20/25–32 s, 1–3 h 19–20/29–32 s; echtes Warten nach Minute 5 immer 0 s.
 - Aufgeräumt: große Ziel-Karte rechts oben entfernt (der Leitpfeil zeigt immer den nächsten Schritt); Feld-Beschriftungen nur noch im Umkreis von 9 m um den Helden (plus das Pfeilziel), weiter entfernte blenden aus; Preise/Schilder kleiner; Raum-Schreibtisch heißt „UPGRADE Lv n" statt „BÜRO" (Verwechslung mit dem Agentur-Büro); Coach-Zeile verschwindet zuverlässig nach dem Tutorial.
+
+## Phase 6 · Release-Kandidat als Entwurf hochgeladen — 2026-11-20
+- Auf Antons OK: Archiv `spy-lab-0.0.1-f66e65d` (4,5 MB) in die Playgama-Konsole hochgeladen (nur Entwurf, nichts veröffentlicht). Build-Check PASSED, Bridge SDK 2.4.3 gefunden.
+- QA-Link: https://developer.playgama.com/qa-tool/cmwoq1fea1nelm30hpnkn9740
+- Offen in der Konsole: Cover (quadratisch/hoch/quer), Zertifizierung im QA-Tool (Anton), Formular. Selbstprüfung: `docs/SELF_CHECK.md`.
+- Leistung: 25–51 Draw Calls in der Akademie (Budget 150), ~87 MB JS-Heap, 60-fps-Deckel; Rundkanten-Kisten mit Dreiecks-Budget (−30 % Dreiecke).
