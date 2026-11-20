@@ -6,6 +6,7 @@
 import { ECONOMY } from '../config/economy'
 import { LAYOUT, OFFICE, ROOMS, cashSpotOf, crateOf, padOf, slotOf, staffPadOf } from '../config/rooms'
 import type { GameState } from '../sim/state'
+import type { PadTarget } from '../sim/academy'
 
 export interface TutorialStep {
   id: string
@@ -13,15 +14,17 @@ export interface TutorialStep {
   /** World target for the guide arrow (null = no arrow). */
   target: (s: GameState) => { x: number; z: number } | null
   done: (s: GameState) => boolean
+  /** Purchase steps: the pad (while it is not affordable the arrow shows the next chore instead). */
+  buy?: PadTarget
 }
 
 const v = (s: GameState) => s.rooms.vault
 
 export const TUTORIAL: TutorialStep[] = [
   { id: 'cash', line: 'coach.cash', target: () => LAYOUT.welcomeSpot, done: (s) => s.welcome <= 0 },
-  { id: 'counter', line: 'coach.counter', target: () => LAYOUT.serveSpot, done: (s) => s.counter },
-  { id: 'station', line: 'coach.station', target: () => slotOf('vault', 0), done: (s) => v(s).stations > 0 },
-  { id: 'crate', line: 'coach.crate', target: () => crateOf('vault'), done: (s) => v(s).crate },
+  { id: 'counter', line: 'coach.counter', target: () => LAYOUT.serveSpot, done: (s) => s.counter, buy: { kind: 'counter' } },
+  { id: 'station', line: 'coach.station', target: () => slotOf('vault', 0), done: (s) => v(s).stations > 0, buy: { kind: 'station', room: 'vault' } },
+  { id: 'crate', line: 'coach.crate', target: () => crateOf('vault'), done: (s) => v(s).crate, buy: { kind: 'crate', room: 'vault' } },
   { id: 'serve', line: 'coach.serve', target: () => LAYOUT.serveSpot, done: (s) => s.stats.served > 0 },
   {
     id: 'kits',
@@ -30,12 +33,12 @@ export const TUTORIAL: TutorialStep[] = [
     done: (s) => s.stats.delivered > 0,
   },
   { id: 'fees', line: 'coach.fees', target: () => cashSpotOf('vault'), done: (s) => s.stats.collects > 1 },
-  { id: 'station2', line: 'coach.station2', target: () => slotOf('vault', 1), done: (s) => v(s).stations > 1 },
+  { id: 'station2', line: 'coach.station2', target: () => slotOf('vault', 1), done: (s) => v(s).stations > 1, buy: { kind: 'station', room: 'vault' } },
   { id: 'graduate', line: 'coach.graduate', target: () => null, done: (s) => s.graduatedTotal > 0 },
   // graduates wait in the agency office (no pop-up): hire the first one for Mission 1
   { id: 'hire', line: 'coach.hire', target: () => OFFICE.laptopPad, done: (s) => s.agents.length > 0 },
   { id: 'mission', line: 'coach.mission', target: () => padOf('mission_control'), done: (s) => (s.missions.harbor_01?.wins ?? 0) > 0 },
-  { id: 'unlock', line: 'coach.unlock', target: (s) => (s.rooms.laser.unlocked ? null : padOf('laser')), done: (s) => s.rooms.laser.unlocked },
+  { id: 'unlock', line: 'coach.unlock', target: (s) => (s.rooms.laser.unlocked ? null : padOf('laser')), done: (s) => s.rooms.laser.unlocked, buy: { kind: 'unlock', room: 'laser' } },
   {
     id: 'runner',
     line: 'coach.runner',

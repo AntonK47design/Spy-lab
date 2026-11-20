@@ -28,6 +28,7 @@ import { OFFERS } from '../config/ads'
 import { gadgetFor, type GadgetId } from '../config/gadgets'
 import { craftGadget, rushGadget, takeGadget, tickGadgets } from '../sim/gadgets'
 import { relocate } from '../sim/prestige'
+import { guideGoal } from '../sim/guide'
 import { LEADERBOARD_ID } from '../config/prestige'
 import { openSupply, vipRecruit } from '../sim/offers'
 import { claimAchievement, claimContract, claimDaily, dailyIndex, ensureContracts } from '../sim/meta'
@@ -59,6 +60,10 @@ import { formatNumber } from '../core/format'
 import { DEBUG } from '../debug/flags'
 import { lang, t } from '../i18n/i18n'
 
+/** After a purchase, the next pad under the hero starts taking money after this pause. */
+const PAD_REARM_MS = 1500
+/** Mission Control re-opens for a player who stays on it while a new mission waits. */
+const PAD_REOPEN_MS = 2500
 const SIM_DT = 1 / 60
 const MAX_STEPS = 15
 const ROOM_KIT_COLOR: Partial<Record<RoomId, number>> = { vault: 0xf2b134, laser: 0xff5a4e, cipher: 0x7be07a, disguise: 0xf7c6d0, driving: 0x46c2cb, hack: 0x8a7bff }
@@ -91,6 +96,8 @@ export class Game {
   private kitT = 0
   private acc = 0
   private revTimer = 0
+  private builtAt = 0
+  private panelClosedAt = 0
   private saveDirtyTimer = 0
   private guide: GuideArrow
   private hiddenAt = 0
@@ -170,6 +177,7 @@ export class Game {
         // rebuild pads right away so a standing hero never pays into the NEXT pad by accident
         this.pads.sync(state)
         this.padOpened = 'just-built'
+        this.builtAt = performance.now()
         if (what === 'counter') {
           this.world.syncCounter(true)
           this.world.playBuild(state, 'counter', null)
@@ -515,8 +523,12 @@ export class Game {
       return
     }
     if (pad.target) {
-      // after a purchase the hero must step off before the next pad on the same spot takes money
-      if (this.padOpened === 'just-built') return
+      // after a purchase the next pad on the same spot waits a moment (no accidental double buy),
+      // then pours in, so a player who just stays where the arrow pointed is never stuck
+      if (this.padOpened === 'just-built') {
+        if (performance.now() - this.builtAt < PAD_REARM_MS) return
+        this.padOpened = null
+      }
       const price = padPrice(state, pad.target)
       if (!price) return
       const rate = Math.max(1, price.cost / padFillSeconds(price.cost))
@@ -532,6 +544,12 @@ export class Game {
     }
     const key = `${pad.kind}:${pad.room}`
     if (this.padOpened !== key && !panel.value) this.openPad(pad, key)
+    // still standing on Mission Control while the arrow points at a new mission: open it again after
+    // a moment (the arrow hides on its target, so the player would not know to step off and on)
+    else if (
+      !panel.value && pad.kind === 'missions' && performance.now() - this.panelClosedAt > PAD_REOPEN_MS &&
+      !!this.debugGuide()?.kind.includes('mission')
+    ) this.openPad(pad, key)
   }
 
   private updateServe(): void {
@@ -644,10 +662,36 @@ export class Game {
 
   /** Current objective: the tutorial target, else the next room unlock the player can pay for. */
   private objectiveTarget(): { x: number; z: number } | null {
-    if (tutorialActive(state)) return TUTORIAL[state.tutorial]?.target(state) ?? null
-    const next = nextUnlock(state)
-    if (next && canUnlock(state, next) && state.cash >= ROOMS[next].unlockCost - state.rooms[next].paid) return padOf(next)
-    return null
+    if (tutorialActive(state)) return this.tutorialGoal()?.at ?? null
+    // after the tutorial: always the next useful step (buy, collect, kits, sign-up, mission)
+    return guideGoal(state)?.at ?? null
+  }
+
+  /**
+   * Tutorial arrow: the step's target, but while a purchase step is not affordable yet (or a step
+   * has no target, e.g. "wait for the first graduate") the next chore: collect, kits, sign-up.
+   */
+  private tutorialGoal(): { at: { x: number; z: number }; kind: string } | null {
+    const step = TUTORIAL[state.tutorial]
+    if (!step) return null
+    const at = step.target(state)
+    const price = step.buy ? padPrice(state, step.buy) : null
+    const short = price ? price.cost - price.paid > state.cash : false
+    if (at && !short) return { at, kind: `tut:${step.id}` }
+    // purchase steps save up (chores only); steps without a target allow any next step
+    const g = guideGoal(state, !!step.buy)
+    if (g) return { at: g.at, kind: `tut-wait:${g.kind}` }
+    return at ? { at, kind: `tut:${step.id}` } : null
+  }
+
+  /** QA: where the arrow points now (null = nothing to do). */
+  debugGuide(): { x: number; z: number; kind: string } | null {
+    if (tutorialActive(state)) {
+      const g = this.tutorialGoal()
+      return g ? { ...g.at, kind: g.kind } : null
+    }
+    const g = guideGoal(state)
+    return g ? { ...g.at, kind: g.kind } : null
   }
 
   private updateGuide(dt: number): void {
@@ -1279,6 +1323,7 @@ export class Game {
 
   /** Continue from result / give up from fail: back to the academy (natural pause). */
   endMission(): void {
+    this.panelClosedAt = performance.now()
     const boss = !!this.mission?.boss && missionUi.value?.phase === 'result'
     this.mg?.dispose()
     this.mg = null
@@ -1304,6 +1349,7 @@ export class Game {
 
   closePanel(p: Panel | null): void {
     panel.value = null
+    this.panelClosedAt = performance.now()
     if (p?.kind === 'levelup') {
       showInterstitial('level_up')
       this.offerVault()

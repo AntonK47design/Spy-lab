@@ -7,7 +7,7 @@
  */
 import { newGame, type GameState } from '../src/sim/state.ts'
 import {
-  setRng, tick, collect, collectWelcome, pickKits, dropKits, payPad, padPrice, upgradeLevel, levelCost,
+  totalRate,   setRng, tick, collect, collectWelcome, pickKits, dropKits, payPad, padPrice, upgradeLevel, levelCost,
   trainingRooms, nextUnlock, nextArea, serveBlocker, resolveGraduate, nextStationCost, nextStaff, type PadTarget, type HeroInput,
 } from '../src/sim/academy.ts'
 import { missionLock, missionReward, recordWin, recordFail, bestAgent } from '../src/sim/missions.ts'
@@ -15,9 +15,12 @@ import { MISSIONS } from '../src/config/missions.ts'
 import { LAYOUT, OFFICE, ROOMS, ROOM_ORDER, cashSpotOf, crateOf, gateOf, padOf, slotOf, staffPadOf, upgradeSpotOf, type RoomId } from '../src/config/rooms.ts'
 import { ECONOMY, padFillSeconds } from '../src/config/economy.ts'
 import { createRng } from '../src/core/rng.ts'
+import { allPads, cheapestPrice, guideGoal, padPos } from '../src/sim/guide.ts'
 
 type P = { x: number; z: number }
 const DT = 1 / 30
+/** A mission incl. briefing + result: Safe Cracker tier 1 has a hard 35 s limit, later minigames 30-60 s. */
+const MISSION_SECONDS = 40
 const PATH_FACTOR = 1.25 // real paths go around walls
 
 interface Run {
@@ -26,39 +29,10 @@ interface Run {
   purchases: number[]
   longestUnaffordable: number
   firstAutomation: number | null
-}
-
-function padPos(t: PadTarget, s: GameState): P {
-  switch (t.kind) {
-    case 'counter': return LAYOUT.serveSpot
-    case 'clerk': return LAYOUT.clerkPad
-    case 'officeClerk': return OFFICE.clerkPad
-    case 'unlock': return padOf(t.room)
-    case 'station': return slotOf(t.room, s.rooms[t.room].stations)
-    case 'staff': return staffPadOf(t.room)
-    case 'crate': return crateOf(t.room)
-    case 'gate': return gateOf(t.area)
-  }
-}
-
-function allPads(s: GameState): PadTarget[] {
-  const out: PadTarget[] = [{ kind: 'counter' }, { kind: 'clerk' }, { kind: 'officeClerk' }]
-  const nu = nextUnlock(s)
-  if (nu) out.push({ kind: 'unlock', room: nu })
-  const na = nextArea(s)
-  if (na) out.push({ kind: 'gate', area: na })
-  for (const id of trainingRooms(s)) out.push({ kind: 'station', room: id }, { kind: 'crate', room: id }, { kind: 'staff', room: id })
-  return out.filter((t) => padPrice(s, t))
-}
-
-function cheapestPrice(s: GameState): number {
-  let min = Infinity
-  for (const t of allPads(s)) {
-    const p = padPrice(s, t)!
-    min = Math.min(min, p.cost - p.paid)
-  }
-  for (const id of trainingRooms(s)) if (s.rooms[id].stations > 0) min = Math.min(min, levelCost(s, id))
-  return min
+  /** Progress beats: purchases, room upgrades, finished missions. */
+  progress: number[]
+  /** Stretches where the bot found nothing at all to do [start, end]. */
+  idles: [number, number][]
 }
 
 function runBot(seed: number, efficiency: number, seconds: number): Run {
@@ -77,6 +51,13 @@ function runBot(seed: number, efficiency: number, seconds: number): Run {
     if (!(k in marks)) marks[k] = t()
   }
   let lastPurchases = 0
+  let lastUpgrades = 0
+  let nextLog = 0
+  const progress: number[] = []
+  const idles: [number, number][] = []
+  let idleStart = -1
+  let idleEnd = 0
+  let wasIdle = false
   const ev = {
     graduate: () => mark('first_payoff'),
     levelUp: (l: number) => mark(`level_${l}`),
@@ -91,12 +72,18 @@ function runBot(seed: number, efficiency: number, seconds: number): Run {
   const step = (sec: number) => {
     for (let x = 0; x < sec; x += DT) {
       tick(s, DT, heroIn, ev)
+      if (s.stats.upgrades > lastUpgrades) {
+        lastUpgrades = s.stats.upgrades
+        progress.push(t())
+      }
       if (s.stats.purchases > lastPurchases) {
+        progress.push(t())
         for (let i = lastPurchases; i < s.stats.purchases; i++) purchases.push(t())
         lastPurchases = s.stats.purchases
         mark('first_unlock')
         if (purchases.length >= 3) mark('three_unlocks')
       }
+      if (TRACE && t() >= nextLog && (nextLog += 10)) console.log('  t', Math.floor(t()), 'cash', Math.floor(s.cash), 'cheapest', Math.floor(cheapestPrice(s)), 'rate', totalRate(s).toFixed(2), 'cadets', s.cadets.map((c) => `${c.phase}${c.room ? ':' + c.room : ''}`).join('/'), 'stacks', trainingRooms(s).map((id) => Math.floor(s.rooms[id].stack)).join('/'), 'agents', s.agents.length, 'pending', s.pending.length, 'lvlcost', trainingRooms(s).map((id) => `${id}:${Math.floor(levelCost(s, id))}`).join(','))
       if (playing || cheapestPrice(s) <= s.cash) lastAffordable = t()
       longestUnaffordable = Math.max(longestUnaffordable, t() - lastAffordable)
     }
@@ -111,6 +98,11 @@ function runBot(seed: number, efficiency: number, seconds: number): Run {
   let playing = false
   const missionTime: [number, number][] = []
   while (t() < seconds) {
+    if (!wasIdle && idleStart >= 0) {
+      idles.push([idleStart, idleEnd])
+      idleStart = -1
+    }
+    wasIdle = false
     if (efficiency < 1 && rng() > efficiency) {
       step(1.5) // distracted: looks around
       continue
@@ -139,9 +131,10 @@ function runBot(seed: number, efficiency: number, seconds: number): Run {
       mark(`mission_${first.id}`)
       const m0 = t()
       playing = true
-      step(55)
+      step(MISSION_SECONDS)
       playing = false
       missionTime.push([m0, t()])
+      progress.push(t())
       if (rng() < 0.7) {
         const stars = 1 + Math.floor(rng() * 3)
         recordWin(s, first, stars, missionReward(s, first, stars), bestAgent(s, first), ev)
@@ -176,6 +169,13 @@ function runBot(seed: number, efficiency: number, seconds: number): Run {
       if (TRACE) console.log(fmt(t()), 'pad', JSON.stringify(buy.p), buy.left)
       continue
     }
+    // 2b. the guide arrow points at a cash pile that pays for the next purchase: go collect it
+    const g = guideGoal(s)
+    if (g && g.kind === 'cash') {
+      walkTo(g.at)
+      collect(s, g.room)
+      continue
+    }
     // 3. sign up waiting cadets
     if (!s.clerk && serveBlocker(s) === null) {
       walkTo(LAYOUT.serveSpot)
@@ -188,7 +188,8 @@ function runBot(seed: number, efficiency: number, seconds: number): Run {
     // 4. resupply stations with a cadet waiting for kits
     const needy = trainingRooms(s).find((id) => {
       const r = s.rooms[id]
-      return !r.runner && r.crate && s.cadets.some((c) => c.room === id && c.phase === 'train' && (r.supply[c.slot] ?? 0) === 0)
+      // like the tutorial: fill the basket while the cadet is still walking there
+      return !r.runner && r.crate && s.cadets.some((c) => c.room === id && (c.phase === 'train' || c.phase === 'walk') && (r.supply[c.slot] ?? 0) === 0)
     })
     if (needy) {
       walkTo(crateOf(needy))
@@ -216,9 +217,10 @@ function runBot(seed: number, efficiency: number, seconds: number): Run {
       mark(`mission_${m.id}`)
       const m0 = t()
       playing = true
-      step(55)
+      step(MISSION_SECONDS)
       playing = false
       missionTime.push([m0, t()])
+      progress.push(t())
       if (rng() < 0.7) {
         const stars = 1 + Math.floor(rng() * 3)
         recordWin(s, m, stars, missionReward(s, m, stars), bestAgent(s, m), ev)
@@ -233,9 +235,14 @@ function runBot(seed: number, efficiency: number, seconds: number): Run {
       upgradeLevel(s, up, ev)
       continue
     }
+    // nothing useful to do right now: the player waits
+    if (idleStart < 0) idleStart = t()
+    wasIdle = true
     step(0.5)
+    idleEnd = t()
   }
-  return { marks, purchases, longestUnaffordable, firstAutomation, missionTime }
+  if (idleStart >= 0) idles.push([idleStart, idleEnd])
+  return { marks, purchases, longestUnaffordable, firstAutomation, missionTime, progress, idles }
 }
 
 // ---------------------------------------------------------------- report
@@ -248,6 +255,15 @@ const median = (xs: number[]) => {
 }
 const worst = (xs: number[]) => Math.max(...xs.map((x) => (Number.isFinite(x) ? x : Infinity)))
 const fmt = (x: number) => (!Number.isFinite(x) ? '  —  ' : `${Math.floor(x / 60)}:${String(Math.floor(x % 60)).padStart(2, '0')}`)
+
+/** Pace windows [from, to, longest allowed gap between progress beats (s)]: fast start, small drop later. */
+const PACE_WINDOWS: [number, number, number][] = [
+  [0, 300, 20],
+  [300, 600, 25],
+  [600, 900, 30],
+  [900, 1500, 30],
+  [1500, 3600, 40],
+]
 
 const BEATS: [string, string, number, number][] = [
   // key, label, target (s), allowed worst (s)
@@ -270,7 +286,12 @@ const BEATS: [string, string, number, number][] = [
 ]
 
 if (TRACE) {
-  runBot(1000, 1, 200)
+  const arg = (k: string, d: number) => Number(process.argv.find((a) => a.startsWith(`--${k}=`))?.split('=')[1] ?? d)
+  const r = runBot(1000 + arg('seed', 0), arg('eff', 1), arg('secs', 330))
+  const f = (x: number) => `${Math.floor(x / 60)}:${String(Math.floor(x % 60)).padStart(2, '0')}`
+  console.log('progress', r.progress.map(f).join(' '))
+  console.log('missions', r.missionTime.map(([a, b]) => `${f(a)}-${f(b)}`).join(' '))
+  console.log('idle', r.idles.map(([a, b]) => `${f(a)}+${(b - a).toFixed(1)}`).join(' '))
   process.exit(0)
 }
 let failed = false
@@ -302,6 +323,25 @@ for (const [profile, eff] of [['focused', 1], ['distracted', 0.7]] as const) {
   const dead = runs.map((r) => r.longestUnaffordable)
   console.log(`Nichts bezahlbar, längste Phase: median ${median(dead).toFixed(0)}s, worst ${worst(dead).toFixed(0)}s (Ziel ≤ ${eff < 1 ? 85 : 60})`)
   if (eff === 1 && worst(gaps.map((g) => g.max)) > 35 * 1.2) failed = true
+  // pace per window: longest gap between progress beats (mission play counts as active) + longest pure idle
+  console.log('Tempo        längste Lücke (median/worst)   längstes Nichtstun (median/worst)')
+  for (const [a, b, gapGoal] of PACE_WINDOWS) {
+    if (a >= SECONDS) break
+    const gs = runs.map((r) => {
+      const inMission = (x: number, y: number) => r.missionTime.reduce((acc, [m0, m1]) => acc + Math.max(0, Math.min(y, m1) - Math.max(x, m0)), 0)
+      const ev = [a, ...r.progress.filter((x) => x > a && x <= b), Math.min(b, SECONDS)]
+      let mx = 0
+      for (let i = 1; i < ev.length; i++) mx = Math.max(mx, ev[i]! - ev[i - 1]! - inMission(ev[i - 1]!, ev[i]!))
+      return mx
+    })
+    const ids = runs.map((r) => r.idles.reduce((m, [x, y]) => Math.max(m, Math.min(y, b) - Math.max(x, a)), 0))
+    if (process.argv.includes('--idles')) runs.forEach((r, i) => { const big = r.idles.filter(([x, y]) => y - x > 10 && x < b && y > a); if (big.length) console.log(`   seed ${i}: ${big.map(([x, y]) => `${fmt(x)}+${(y - x).toFixed(0)}s`).join(' ')}`) })
+    const goal = gapGoal * (eff < 1 ? 1 / eff : 1)
+    // waiting (nothing to do) must stay at 10 s or less in the first 5 minutes
+    const ok = median(gs) <= goal && (a >= 300 || worst(ids) <= 10 * (eff < 1 ? 1 / eff : 1))
+    if (eff === 1 && a < 300 && !ok) failed = true
+    console.log(`${fmt(a)}-${fmt(b)}    ${median(gs).toFixed(1).padStart(5)}s / ${worst(gs).toFixed(1).padStart(5)}s (Ziel ≤ ${goal.toFixed(0)}s)   ${median(ids).toFixed(1).padStart(5)}s / ${worst(ids).toFixed(1).padStart(5)}s  ${ok ? 'ok' : '!!'}`)
+  }
 }
 console.log(failed ? '\nBeat sheet: NICHT erfüllt' : '\nBeat sheet (erste 3 Min): OK')
 if (process.argv.includes('--strict') && failed) process.exit(1)

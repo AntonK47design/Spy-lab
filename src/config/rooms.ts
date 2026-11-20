@@ -217,11 +217,11 @@ export const ROOMS: Record<RoomId, RoomDef> = {
   },
   vault: {
     id: 'vault', kind: 'training', skill: 'finesse', minigame: 'safe', unlockCost: 0, unlockLevel: 1,
-    baseIncome: 6, upgradeBaseCost: 12, cycleSeconds: 4, instructorCost: 900, stationBase: 15, runnerCost: 200,
+    baseIncome: 8, upgradeBaseCost: 10, cycleSeconds: 3, instructorCost: 900, stationBase: 12, runnerCost: 200,
     rect: { x: cx, z: rowZ(0, 0), w: W, d: D }, side: 1, floor: 0x3d6b8f, accent: 0xf2b134,
   },
   laser: {
-    id: 'laser', kind: 'training', skill: 'stealth', minigame: 'laser', unlockCost: 90, unlockLevel: 1,
+    id: 'laser', kind: 'training', skill: 'stealth', minigame: 'laser', unlockCost: 80, unlockLevel: 1,
     baseIncome: 14, upgradeBaseCost: 70, cycleSeconds: 6, instructorCost: 1600, stationBase: 70, runnerCost: 700,
     rect: { x: -cx, z: rowZ(0, 0), w: W, d: D }, side: -1, floor: 0x5a3d7a, accent: 0xf2665c,
   },

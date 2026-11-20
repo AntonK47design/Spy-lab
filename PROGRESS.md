@@ -190,3 +190,28 @@ Plan: https://claude.ai/artifact/3VK5u4uetgNAqxG6wv9qhA (Fähre, Dead Drops, Sei
 - Nur noch positive Hinweise: Der Maulwurf trägt immer Hut, Brille, Aktenkoffer und eine Jackenfarbe; die Hinweise nennen davon 2–4 („Gelber Hut", „Weiße Jacke", „Aktenkoffer") – kein „Kein Hut" mehr.
 - Größere Hüte, Brillen und Koffer. Weniger Reisende (10 → 28 statt 14 → 36) und weniger Doppelgänger (Ähnlichkeit 0,1 → 0,45), schnellere Hinweise.
 - Falsch angetippte Verdächtige verlassen die Halle (−5 s bleibt), damit sie nicht erneut verwirren.
+
+## Tempo-Prüfung neuer Spieler (Antons Auftrag: erste 5 Min ohne Warten) — 2026-11-20
+**Messung, zwei Wege:**
+1. `npm run sim`: Bot mit echter Spiellogik + Laufwegen, 10 Seeds, fokussiert und abgelenkt (70 %). Neu gemessen pro Zeitfenster: längste Lücke zwischen Fortschritten (Kauf, Upgrade, Missionssieg; Spielzeit in Missionen zählt als aktiv) und längstes echtes Warten (nichts zu tun).
+2. `tests/pace.spec.ts`: Playwright spielt das **echte Spiel** 5 Minuten wie ein neuer Spieler – folgt nur dem Leitpfeil (Tutorial, danach „nächster sinnvoller Schritt"), wartet die echte Laufzeit (Distanz × 1,25 / 6,5 m/s), beantwortet alle Popups, spielt Missionen. Grenzwerte: Warten ≤ 10 s, Lücke ≤ 25 s, ≥ 25 Fortschritte.
+
+**Gefundene und behobene Probleme (im echten Spiel):**
+- Tutorial blieb bei „zweite Station bauen" hängen: Pfeil zeigte auf das Feld, Geld fehlte, Kits leer → Spieler wartete ewig. Jetzt: Kaufschritte, die noch nicht bezahlbar sind, zeigen bis dahin auf Geldstapel/Kits/Anmeldung.
+- Schritt „Warte auf den ersten Absolventen" hatte keinen Pfeil, während die Kadetten ohne Kits standen (Sackgasse) → zeigt jetzt die nächste Pflicht.
+- Nach dem Tutorial zeigte der Pfeil nur auf den nächsten Raum (meist nichts) → jetzt immer der nächste sinnvolle Schritt: bezahlbarer Kauf → Geldstapel, der den nächsten Kauf bezahlt → Kits → Anmeldung → bereite Mission.
+- Nach einem Kauf musste man vom Feld heruntergehen, bevor das nächste Feld am selben Platz Geld nahm; der Pfeil war dabei ausgeblendet → Spieler stand ratlos. Jetzt beginnt das nächste Feld nach 1,5 s von selbst.
+- Tuning Start: Vault-Einkommen 6 → 8, Zyklus 4 → 3 s, Upgrade 12 → 10, Station 15 → 12, Kadetten laufen 2,6 → 3,2 m/s, erster Absolvent nach 6 statt 8 Zyklen, Laser Gym 90 → 80. Sim-Missionsdauer realistisch 40 s (Safe Cracker Stufe 1 hat max. 35 s).
+
+**Ergebnis echtes Spiel (5 Min):** 53 Fortschritte (≈ alle 5,7 s), längstes Warten 0 s, längste Lücke 24 s (bei 0:28, während der erste Absolvent trainiert – der Spieler sammelt/liefert Kits).
+**Ergebnis Sim (fokussiert / abgelenkt, Median):**
+
+| Fenster | längste Lücke | längstes Warten |
+|---|---|---|
+| 0–5 Min | 13 s / 26 s | 7 s / 2 s |
+| 5–10 Min | 15 s / 19 s | 0 / 0 |
+| 10–15 Min | 16 s / 28 s | 0 / 0 |
+| 15–25 Min | 19 s / 27 s | 0 / 0 |
+| 25–60 Min | 19 s / 32 s | 0 / 0 |
+
+Beat Sheet OK (Laser Gym 1:45, erste Automatisierung, Hafen 7:52), Level 10 bei 23:50, erster Umzug bei 43:56 (abgelenkt 55:40).

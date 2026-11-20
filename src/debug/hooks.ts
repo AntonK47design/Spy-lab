@@ -130,6 +130,8 @@ export function installDebugHooks(g: { renderer: ReturnType<typeof createRendere
     /** QA: next academy frame spawns a Villain Alert. */
     /** QA: drone + VIP recruit on the next academy frame. */
     spawnOffers: () => game.debugOffers(),
+    /** Where the guide arrow points (tutorial or next useful step). */
+    guide: () => game.debugGuide(),
     levelCost: (room: RoomId) => levelCost(state, room),
     spawnAlert: () => {
       state.alertIn = 0

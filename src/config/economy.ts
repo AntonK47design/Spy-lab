@@ -46,11 +46,11 @@ export const ECONOMY = {
   recruit: {
     /** Seconds between new cadets at the bakery (while a slot is free). */
     interval: 6,
-    walkSpeed: 2.6,
+    walkSpeed: 3.2,
   },
   graduation: {
     /** Cycles until the very first cadet graduates (tutorial pacing ~0:40). */
-    firstCycles: 8,
+    firstCycles: 6,
     cycles: 10,
     rosterStart: 6,
     rosterMax: 12,
