@@ -1370,3 +1370,10 @@ button {
 .coach.objective .coach-line, .orders.objective .orders-item { font-size: 0.98em; }
 /* every button keeps a 44 px touch target */
 .btn-round, .action-round, .btn-close { min-width: 44px; min-height: 44px; }
+
+/* ---------- readable floor for small (and nested small) text: never under 10 px ---------- */
+.small, .skill-chip, .agent-skill, .ac-skill, .ac-level, .ac-sk { font-size: max(10.5px, 0.85em); }
+.mc-num, .mc-lock, .dt-day { font-size: max(10.5px, 0.8em); }
+.ac-rarity { font-size: max(10.5px, 0.75em); }
+.daily-tile { font-size: max(11px, 0.9em); }
+.daily-tile * { font-size: max(10.5px, 1em); }
