@@ -5,7 +5,7 @@
  */
 import { test, expect, type Page } from '@playwright/test'
 import { boot, spy } from './helpers'
-import { SIZES, assertLayout } from './matrix.spec'
+import { SIZES, assertLayout } from './layout'
 
 async function shot(page: Page, screen: string, name: string, w: number, h: number) {
   await page.screenshot({ path: `tests/screenshots/${screen}-${name}-${w}x${h}.jpg`, type: 'jpeg', quality: 60 })
