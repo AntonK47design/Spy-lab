@@ -69,7 +69,7 @@ Legende: ✅ geprüft (mit Beleg) · ➖ trifft nicht zu · ❓ hier nicht prüf
 | 3.3.4–3.3.5 | ✅ | `isAudioEnabled` beim Start, Bridge-Events, Sichtbarkeit (`tests/ads.spec.ts` „platform pause/mute"). |
 | 3.4.1–3.4.3 | ✅ | EN Standard/Fallback; Sprache nur aus `bridge.platform.language` oder Spielerwahl; 7 Sprachen vollständig (Prüfskript: alle statischen und dynamischen Schlüssel vorhanden). |
 | 3.4.4 | ✅ | Zahnrad → Globus, Sprachen in eigener Schreibweise. |
-| 3.5.1 | ❓ | Titel im Spiel „Spy Lab" – muss im Veröffentlichungsantrag identisch sein. |
+| 3.5.1 | ❓ | Titel im Spiel „Spy Lab Academy Tycoon" – muss im Veröffentlichungsantrag identisch sein. |
 
 ## 4 Inhalt
 
@@ -91,5 +91,5 @@ Legende: ✅ geprüft (mit Beleg) · ➖ trifft nicht zu · ❓ hier nicht prüf
 
 ## Offen / von Anton zu prüfen
 - 1.7.3 andere Browser und echte Geräte (QA-Tool).
-- 3.5.1 Titel im Antrag = „Spy Lab".
+- 3.5.1 Titel im Antrag = „Spy Lab Academy Tycoon".
 - 4.2.1 Rechte an Logo/Cover.

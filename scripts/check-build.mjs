@@ -92,8 +92,8 @@ if (fs.existsSync(indexPath)) {
   const ext = [...html.matchAll(/(?:src|href)="(https?:)?\/\/[^"]+"/g)].map((m) => m[0])
   if (ext.length) errors.push(`external resources in index.html: ${ext.join(', ')}`)
   else ok('no external resources in index.html')
-  if (!/<title>Spy Lab<\/title>/.test(html)) errors.push('<title> is not exactly "Spy Lab"')
-  else ok('title "Spy Lab"')
+  if (!/<title>Spy Lab Academy Tycoon<\/title>/.test(html)) errors.push('<title> is not exactly "Spy Lab Academy Tycoon"')
+  else ok('title "Spy Lab Academy Tycoon"')
 }
 // game JS: no external fetch targets (the Bridge runtime itself is allowed to talk to platforms)
 const ownJs = files.filter((f) => f.endsWith('.js') && !f.endsWith('playgama-bridge.js'))

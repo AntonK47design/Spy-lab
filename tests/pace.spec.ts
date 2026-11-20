@@ -22,7 +22,7 @@ async function ui(page: Page) {
   })
 }
 
-const TUT_STEPS = 14
+const TUT_STEPS = 6
 
 async function clickIf(page: Page, id: string): Promise<boolean> {
   const l = page.getByTestId(id)

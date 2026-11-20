@@ -4,14 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#14213d" />
-    <title>Spy Lab</title>
+    <title>Spy Lab Academy Tycoon</title>
     <style>
       html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #14213d;
         touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
       #loader { position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column; align-items: center;
         justify-content: center; gap: min(4vw, 4vh); background: radial-gradient(circle at 50% 40%, #1f5f6b, #14213d 70%);
         transition: opacity .25s; }
-      #loader .logo { font: 700 min(13vw, 11vh)/1 'Courier New', Courier, monospace; color: #fff3e0; letter-spacing: .06em;
+      #loader .logo { max-width: 92vw; text-align: center; font: 700 min(7.2vw, 9vh)/1.1 'Courier New', Courier, monospace; color: #fff3e0; letter-spacing: .06em;
         text-transform: uppercase; text-shadow: 0 .06em 0 #f2665c; }
       #loader .stamp { font: 700 min(3.6vw, 3vh)/1 'Courier New', Courier, monospace; color: #f2b134; letter-spacing: .3em;
         border: 3px solid #f2b134; padding: .4em .8em; transform: rotate(-4deg); }
@@ -25,7 +25,7 @@
       <div id="ui"></div>
     </div>
     <div id="loader" aria-busy="true">
-      <div class="logo">Spy Lab</div>
+      <div class="logo">Spy Lab<br>Academy Tycoon</div>
       <div class="stamp" aria-hidden="true">&#9679;&nbsp;&#9679;&nbsp;&#9679;</div>
       <div class="bar"><div class="fill" id="loader-fill"></div></div>
     </div>

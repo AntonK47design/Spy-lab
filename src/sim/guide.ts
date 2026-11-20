@@ -56,6 +56,7 @@ export type Goal =
   | { kind: 'kits'; room: RoomId; at: Spot }
   | { kind: 'serve'; at: Spot }
   | { kind: 'mission'; at: Spot }
+  | { kind: 'hire'; at: Spot }
 
 export function guideGoal(s: GameState, choresOnly = false): Goal | null {
   // 1. something affordable: the next room first, else the cheapest pad
@@ -66,6 +67,8 @@ export function guideGoal(s: GameState, choresOnly = false): Goal | null {
   if (pads[0]) return { kind: 'pad', target: pads[0].p, at: padPos(pads[0].p, s) }
   const lv = choresOnly ? undefined : trainingRooms(s).filter((id) => s.rooms[id].stations > 0 && levelCost(s, id) <= s.cash).sort((a, b) => levelCost(s, a) - levelCost(s, b))[0]
   if (lv) return { kind: 'level', room: lv, at: upgradeSpotOf(lv) }
+  // the first graduate waits in the agency office: hire them (missions need an agent)
+  if (!choresOnly && !s.agents.length && s.pending.length) return { kind: 'hire', at: OFFICE.laptopPad }
   // a new mission is waiting: the fun part (and the big rewards) comes before chores
   if (!choresOnly && s.agents.length && MISSIONS.some((m) => missionLock(s, m) === 'ok' && !((s.missions[m.id]?.wins ?? 0) > 0))) return { kind: 'mission', at: padOf('mission_control') }
   // 2. a cash pile that pays for the next purchase (or the biggest one, if it covers at least a third)
