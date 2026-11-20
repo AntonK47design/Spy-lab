@@ -32,7 +32,6 @@ export const AUDIO = {
     keypad_beep: { core: false, volume: 0.6 },
     scooter: { core: false, volume: 0.5 },
     whoosh: { core: false, volume: 0.6 },
-    crowd_ambient: { core: false, volume: 0.35 },
     drone: { core: false, volume: 0.5 },
     crate_open: { core: false, volume: 0.8 },
   },

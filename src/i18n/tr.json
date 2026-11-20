@@ -319,7 +319,7 @@
   "supply.badges": "İkmal sandığı: altın rozet!",
   "supply.gadget": "İkmal sandığı: alet!",
   "vip.title": "Dükkânda VIP aday",
-  "vip.short": "VIP",
+  "vip.short": "VIP aday",
   "vip.joined": "Bir VIP aday geldi – ofise bak!",
   "daily.title": "Günlük",
   "daily.short": "Günlük",
@@ -356,5 +356,6 @@
   "lb.text": "Ajanslar Miras Madalyalarına göre – sende {n}.",
   "lb.empty": "Henüz kayıt yok.",
   "lb.agent": "Ajan",
-  "pad.upgrade": "GELİŞTİR"
+  "pad.upgrade": "GELİŞTİR",
+  "supply.short": "Sandık"
 }

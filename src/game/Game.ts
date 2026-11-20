@@ -1026,6 +1026,7 @@ export class Game {
     state.flags.supplyFreeUsed = true
     const r = openSupply(state)
     this.supplyLeft = 0
+    AudioManager.play('crate_open')
     AudioManager.play(r.kind === 'cash' ? 'coin' : 'upgrade')
     this.popText({ x: this.player.x, z: this.player.z }, r.kind === 'cash' ? `+${formatNumber(r.amount, lang.value)}` : r.kind === 'badges' ? `+${r.amount}` : t(`gadget.${r.id}`), 'cash')
     showToast(`supply.${r.kind}`)

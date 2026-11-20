@@ -319,7 +319,7 @@
   "supply.badges": "Supply crate: a Gold Badge!",
   "supply.gadget": "Supply crate: a gadget!",
   "vip.title": "VIP recruit at the shop",
-  "vip.short": "VIP",
+  "vip.short": "VIP recruit",
   "vip.joined": "A VIP recruit joined - see the office!",
   "daily.title": "Daily",
   "daily.short": "Daily",
@@ -356,5 +356,6 @@
   "lb.text": "Agencies ranked by Legacy Medals - you have {n}.",
   "lb.empty": "No entries yet.",
   "lb.agent": "Agent",
-  "pad.upgrade": "UPGRADE"
+  "pad.upgrade": "UPGRADE",
+  "supply.short": "Crate"
 }

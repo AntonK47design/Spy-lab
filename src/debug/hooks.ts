@@ -196,7 +196,10 @@ export function installDebugHooks(g: { renderer: ReturnType<typeof createRendere
         const m = o as unknown as { isMesh?: boolean; geometry?: { index: { count: number } | null; getAttribute(n: string): { count: number } }; name: string; count?: number; isInstancedMesh?: boolean }
         if (!m.isMesh || !m.geometry) return
         const t = (m.geometry.index ? m.geometry.index.count : m.geometry.getAttribute('position').count) / 3
-        rows.push([`${o.type}:${o.name || o.parent?.name || ''}`, Math.round(t * (m.isInstancedMesh ? (m.count ?? 1) : 1))])
+        const g = (m as unknown as { geometry: { boundingSphere: { center: { x: number; z: number }; radius: number } | null; computeBoundingSphere(): void } }).geometry
+        if (!g.boundingSphere) g.computeBoundingSphere()
+        const c = g.boundingSphere!
+        rows.push([`${o.type}:${o.name || o.parent?.name || ''}@${Math.round(c.center.x)},${Math.round(c.center.z)} r${Math.round(c.radius)} ${o.userData.key ?? ''}`, Math.round(t * (m.isInstancedMesh ? (m.count ?? 1) : 1))])
       })
       return rows.sort((a, b) => b[1] - a[1]).slice(0, 12)
     },

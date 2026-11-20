@@ -319,7 +319,7 @@
   "supply.badges": "Versorgungskiste: ein Gold Badge!",
   "supply.gadget": "Versorgungskiste: ein Gadget!",
   "vip.title": "VIP-Rekrut am Laden",
-  "vip.short": "VIP",
+  "vip.short": "VIP-Rekrut",
   "vip.joined": "Ein VIP-Rekrut ist da – schau ins Büro!",
   "daily.title": "Täglich",
   "daily.short": "Täglich",
@@ -356,5 +356,6 @@
   "lb.text": "Agenturen nach Vermächtnis-Medaillen – du hast {n}.",
   "lb.empty": "Noch keine Einträge.",
   "lb.agent": "Agent",
-  "pad.upgrade": "UPGRADE"
+  "pad.upgrade": "UPGRADE",
+  "supply.short": "Kiste"
 }

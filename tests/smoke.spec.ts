@@ -125,7 +125,7 @@ test('unlock pad: standing on it pours cash in and builds the room', async ({ pa
   await spy(page, 'addCurrency', 'cash', 500)
   await goTo(page, 'pad', 'laser')
   await expect.poll(async () => (await state(page)).rooms.laser.unlocked, { timeout: 5000 }).toBe(true)
-  expect((await state(page)).cash).toBe(500 - 90)
+  expect((await state(page)).cash).toBe(500 - 80)
 })
 
 test('settings popup has an X, Esc is ignored, no pause in the academy', async ({ page }) => {

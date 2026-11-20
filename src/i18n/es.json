@@ -319,7 +319,7 @@
   "supply.badges": "Caja: ¡una insignia de oro!",
   "supply.gadget": "Caja: ¡un gadget!",
   "vip.title": "Recluta VIP en la tienda",
-  "vip.short": "VIP",
+  "vip.short": "Recluta VIP",
   "vip.joined": "¡Llegó un recluta VIP! Mira la oficina.",
   "daily.title": "Diario",
   "daily.short": "Diario",
@@ -356,5 +356,6 @@
   "lb.text": "Agencias por medallas de legado: tienes {n}.",
   "lb.empty": "Aún no hay entradas.",
   "lb.agent": "Agente",
-  "pad.upgrade": "MEJORA"
+  "pad.upgrade": "MEJORA",
+  "supply.short": "Caja"
 }

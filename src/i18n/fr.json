@@ -319,7 +319,7 @@
   "supply.badges": "Caisse : un badge d'or !",
   "supply.gadget": "Caisse : un gadget !",
   "vip.title": "Recrue VIP devant la boutique",
-  "vip.short": "VIP",
+  "vip.short": "Recrue VIP",
   "vip.joined": "Une recrue VIP est arrivée, va au bureau !",
   "daily.title": "Quotidien",
   "daily.short": "Jour",
@@ -356,5 +356,6 @@
   "lb.text": "Agences classées par médailles d'héritage – tu en as {n}.",
   "lb.empty": "Pas encore d'entrées.",
   "lb.agent": "Agent",
-  "pad.upgrade": "AMÉLIORER"
+  "pad.upgrade": "AMÉLIORER",
+  "supply.short": "Caisse"
 }

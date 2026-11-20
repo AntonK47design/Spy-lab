@@ -319,7 +319,7 @@
   "supply.badges": "Ящик: золотой значок!",
   "supply.gadget": "Ящик: гаджет!",
   "vip.title": "VIP-новобранец у лавки",
-  "vip.short": "VIP",
+  "vip.short": "VIP-новичок",
   "vip.joined": "Пришёл VIP-новобранец – загляни в офис!",
   "daily.title": "Ежедневно",
   "daily.short": "День",
@@ -356,5 +356,6 @@
   "lb.text": "Агентства по медалям наследия – у тебя {n}.",
   "lb.empty": "Пока нет записей.",
   "lb.agent": "Агент",
-  "pad.upgrade": "УЛУЧШЕНИЕ"
+  "pad.upgrade": "УЛУЧШЕНИЕ",
+  "supply.short": "Ящик"
 }

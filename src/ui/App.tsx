@@ -164,7 +164,7 @@ function OfferButtons() {
       {o.supply !== null && (
         <button class="action-round offer" data-testid="bar-supply" aria-label={t('supply.title')} onClick={() => { click(); void game().openSupply() }}>
           {o.supplyFree ? <IconGadget /> : <IconAd />}
-          <span class="action-label fit">{o.supplyFree ? t('supply.free') : `0:${String(o.supply).padStart(2, '0')}`}</span>
+          <span class="action-label fit">{o.supplyFree ? t('supply.free') : t('supply.short')}</span>
         </button>
       )}
       {o.vip !== null && (

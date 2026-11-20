@@ -21,6 +21,16 @@ const v = new Vector3()
 const sc = new Vector3(1, 1, 1)
 
 /**
+ * Rounded box with a triangle budget: tiny details (rounding invisible) are plain boxes (12 tris),
+ * small parts get one bevel segment (~108 tris), only big pieces two (~300 tris).
+ */
+function bevelBox(w: number, h: number, d: number, r: number): BufferGeometry {
+  const rr = Math.min(r, w / 2 - 0.001, h / 2 - 0.001, d / 2 - 0.001)
+  if (rr < 0.02 || Math.min(w, h, d) < 0.1) return new BoxGeometry(w, h, d)
+  return new RoundedBoxGeometry(w, h, d, Math.max(w, h, d) > 2 ? 2 : 1, Math.max(0.005, rr))
+}
+
+/**
  * Collects colored primitives and merges them into ONE vertex-colored geometry
  * (one draw call with the shared flat material). Placeholder art until real models land.
  */
@@ -55,14 +65,12 @@ export class StaticBatch {
 
   /** Bevelled box (architecture, devices) — never "primitive-looking". */
   rbox(w: number, h: number, d: number, x: number, y: number, z: number, color: number, r = 0.06, rotY = 0): this {
-    const rr = Math.min(r, w / 2 - 0.001, h / 2 - 0.001, d / 2 - 0.001)
-    return this.push(new RoundedBoxGeometry(w, h, d, 2, Math.max(0.005, rr)), x, y, z, color, rotY)
+    return this.push(bevelBox(w, h, d, r), x, y, z, color, rotY)
   }
 
   /** Bevelled box with full rotation (e.g. a tilted laptop screen). */
   rboxRot(w: number, h: number, d: number, x: number, y: number, z: number, color: number, r: number, rotY: number, rotX: number, rotZ: number): this {
-    const rr = Math.min(r, w / 2 - 0.001, h / 2 - 0.001, d / 2 - 0.001)
-    return this.push(new RoundedBoxGeometry(w, h, d, 2, Math.max(0.005, rr)), x, y, z, color, rotY, rotX, rotZ)
+    return this.push(bevelBox(w, h, d, r), x, y, z, color, rotY, rotX, rotZ)
   }
 
   cyl(rTop: number, rBot: number, h: number, x: number, y: number, z: number, color: number, seg = 10, rotX = 0, rotZ = 0): this {

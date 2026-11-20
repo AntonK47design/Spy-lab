@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 import { boot, expectClean, goTo, park, solveSafe, spy, startFirstMission, watch } from './helpers'
 
-const SIZES: [string, number, number][] = [
+export const SIZES: [string, number, number][] = [
   ['phone-s', 360, 640],
   ['phone-m', 390, 844],
   ['phone-l', 430, 932],
@@ -34,7 +34,7 @@ function overlap(a: R, b: R): boolean {
   return a.x < b.x + b.w - 0.5 && b.x < a.x + a.w - 0.5 && a.y < b.y + b.h - 0.5 && b.y < a.y + a.h - 0.5
 }
 
-async function assertLayout(page: Page, w: number, h: number, selector: string) {
+export async function assertLayout(page: Page, w: number, h: number, selector: string) {
   const scroll = await page.evaluate(() => ({
     sw: document.documentElement.scrollWidth,
     sh: document.documentElement.scrollHeight,
@@ -76,10 +76,11 @@ async function shot(page: Page, lang: string, name: string, screen: string, w: n
 for (const lang of ['en', 'de', 'ru']) {
   for (const [name, w, h] of SIZES) {
     test(`${lang} ${name} ${w}x${h}`, async ({ page }) => {
-      test.setTimeout(240_000)
+      test.setTimeout(w > 2000 ? 600_000 : 240_000)
       const wt = watch(page)
       await page.setViewportSize({ width: w, height: h })
-      await boot(page, '', lang === 'en' ? 'auto' : 'low')
+      // the software renderer of the test machine is very slow at QHD: low quality keeps the run in time
+      await boot(page, '', lang === 'en' && w < 2000 ? 'auto' : 'low')
       if (lang !== 'en') {
         await page.getByTestId('bar-settings').click()
         await page.getByTestId(`lang-${lang}`).click()

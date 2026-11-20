@@ -299,6 +299,7 @@ export class ScooterPursuit implements Minigame {
   // ---------------------------------------------------------------- loop
   start(): void {
     this.running = true
+    AudioManager.play('scooter')
   }
   pause(): void {
     this.running = false
