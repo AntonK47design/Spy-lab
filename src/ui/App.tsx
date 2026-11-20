@@ -248,16 +248,9 @@ function MoveHint() {
   )
 }
 
+/** Decluttered: after the tutorial the guide arrow and the pad labels show the next goal. */
 function Orders() {
-  const next = nextUnlock(state)
-  if (!next) return null
-  const left = ROOMS[next].unlockCost - state.rooms[next].paid
-  return (
-    <aside class="orders objective" data-testid="orders" aria-label={t('orders.title')}>
-      <span class="obj-ico cash"><IconCash /></span>
-      <div class="orders-item">{t('orders.unlock', { room: t(`room.${next}`), price: fmt(left) })}</div>
-    </aside>
-  )
+  return null
 }
 
 export function App() {

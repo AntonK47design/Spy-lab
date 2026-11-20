@@ -355,5 +355,6 @@
   "lb.title": "Classement",
   "lb.text": "Agences classées par médailles d'héritage – tu en as {n}.",
   "lb.empty": "Pas encore d'entrées.",
-  "lb.agent": "Agent"
+  "lb.agent": "Agent",
+  "pad.upgrade": "AMÉLIORER"
 }

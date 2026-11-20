@@ -156,7 +156,7 @@ export const GARAGE = { x0: cx - W / 2, x1: cx + W / 2, z: rowZ(1, 0), d: D, doo
 export const AREAS: Record<AreaId, AreaDef> = {
   hq: { id: 'hq', zFront: LAYOUT.backDoor.z, zBack: HQ_BACK, gateCost: 0, gateLevel: 1, from: 'hq' },
   harbor: { id: 'harbor', zFront: DOCKS.z1, zBack: DOCKS.z0, gateCost: 3000, gateLevel: 2, from: 'hq' },
-  lighthouse: { id: 'lighthouse', zFront: ISLAND.z1, zBack: ISLAND.z0, gateCost: 250000, gateLevel: 4, from: 'hq' },
+  lighthouse: { id: 'lighthouse', zFront: ISLAND.z1, zBack: ISLAND.z0, gateCost: 120000, gateLevel: 4, from: 'hq' },
 }
 export const AREA_ORDER: AreaId[] = ['hq', 'harbor', 'lighthouse']
 
@@ -241,12 +241,12 @@ export const ROOMS: Record<RoomId, RoomDef> = {
     rect: { x: DOCKS.street.x1 + W / 2, z: 1, w: W, d: D }, side: 1, floor: 0x6b5a2f, accent: 0xf2b134,
   },
   driving: {
-    id: 'driving', kind: 'training', skill: 'agility', minigame: 'scooter', unlockCost: 450000, unlockLevel: 5,
+    id: 'driving', kind: 'training', skill: 'agility', minigame: 'scooter', unlockCost: 200000, unlockLevel: 5,
     baseIncome: 1100, upgradeBaseCost: 28000, cycleSeconds: 9, instructorCost: 420000, stationBase: 50000, runnerCost: 300000,
     rect: { x: ISLAND.path.x0 - W / 2, z: L_ROW0, w: W, d: D }, side: -1, floor: 0x3a5a3a, accent: 0xbfe8d6,
   },
   hack: {
-    id: 'hack', kind: 'training', skill: 'tech', minigame: 'circuit', unlockCost: 4000000, unlockLevel: 6,
+    id: 'hack', kind: 'training', skill: 'tech', minigame: 'circuit', unlockCost: 600000, unlockLevel: 6,
     baseIncome: 5000, upgradeBaseCost: 210000, cycleSeconds: 10, instructorCost: 3000000, stationBase: 400000, runnerCost: 2500000,
     rect: { x: ISLAND.path.x1 + W / 2, z: L_ROW0, w: W, d: D }, side: 1, floor: 0x1f3d5a, accent: 0x46c2cb,
   },

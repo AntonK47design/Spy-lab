@@ -355,5 +355,6 @@
   "lb.title": "Leaderboard",
   "lb.text": "Agencies ranked by Legacy Medals - you have {n}.",
   "lb.empty": "No entries yet.",
-  "lb.agent": "Agent"
+  "lb.agent": "Agent",
+  "pad.upgrade": "UPGRADE"
 }

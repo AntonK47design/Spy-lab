@@ -16,6 +16,11 @@ export class WorldLabels {
   readonly root: HTMLDivElement
   private labels: WorldLabel[] = []
   private frame = 0
+  /**
+   * Declutter: pad labels (class "pad") further than r from the hero fade out; the label at the
+   * guide target always stays. null = show all.
+   */
+  focus: { x: number; z: number; r: number; tx?: number; tz?: number } | null = null
 
   constructor(parent: HTMLElement) {
     this.root = document.createElement('div')
@@ -62,6 +67,13 @@ export class WorldLabels {
         // labels that slide under the top HUD band fade out (never fight the HUD for attention)
         const under = p.y - (l.h ?? 0) * 0.6 < band
         if (under !== l.el.classList.contains('under-hud')) l.el.classList.toggle('under-hud', under)
+        const f = this.focus
+        let far = false
+        if (f && l.el.classList.contains('pad')) {
+          const target = f.tx !== undefined && (l.x - f.tx) ** 2 + (l.z - (f.tz ?? 0)) ** 2 < 2.5
+          far = !target && (l.x - f.x) ** 2 + (l.z - f.z) ** 2 > f.r * f.r
+        }
+        if (far !== l.el.classList.contains('far')) l.el.classList.toggle('far', far)
       }
     }
   }

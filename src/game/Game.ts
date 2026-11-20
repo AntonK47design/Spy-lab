@@ -61,6 +61,8 @@ import { DEBUG } from '../debug/flags'
 import { lang, t } from '../i18n/i18n'
 
 /** After a purchase, the next pad under the hero starts taking money after this pause. */
+/** Pad labels further away than this (m) fade out, except the arrow's target. */
+const LABEL_RADIUS = 9
 const PAD_REARM_MS = 1500
 /** Mission Control re-opens for a player who stays on it while a new mission waits. */
 const PAD_REOPEN_MS = 2500
@@ -390,6 +392,7 @@ export class Game {
       this.pads.sync(state)
       const finished = advanceTutorial(state)
       if (finished.length) this.onTutorialStep(finished)
+      else if (!tutorialActive(state) && coachLine.value) this.updateCoach()
       while (this.minuteIdx < MINUTE_MARKS.length && state.stats.playSeconds >= MINUTE_MARKS[this.minuteIdx]! * 60) {
         track('minute_mark', { minute: MINUTE_MARKS[this.minuteIdx]! })
         this.minuteIdx++
@@ -461,6 +464,9 @@ export class Game {
     }
     this.updateServe()
     this.updateGuide(dt)
+    // declutter: only pads around the hero (and the arrow's target) show their labels
+    const goal = this.mode === 'academy' ? this.objectiveTarget() : null
+    this.labels.focus = { x: this.player.x, z: this.player.z, r: LABEL_RADIUS, tx: goal?.x, tz: goal?.z }
     this.labels.update(this.cam, this.w, this.h)
   }
 

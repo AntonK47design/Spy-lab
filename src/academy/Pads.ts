@@ -242,7 +242,7 @@ export class Pads {
       const afford = s.cash >= cost
       key = `g${s.rooms[p.room].level}${afford}`
       if (key !== p.key || force)
-        html = `<div class="pad-title"><b>${t('pad.office')}</b> ${t('upgrade.lv', { n: s.rooms[p.room].level })}</div><div class="pad-price ${afford ? 'ok' : 'dim'}"><span class="ico-up"></span>${formatNumber(cost, lang.value)}</div>`
+        html = `<div class="pad-title"><b>${t('pad.upgrade')}</b> ${t('upgrade.lv', { n: s.rooms[p.room].level })}</div><div class="pad-price ${afford ? 'ok' : 'dim'}"><span class="ico-up"></span>${formatNumber(cost, lang.value)}</div>`
     } else if (price) {
       p.active = true
       const what =

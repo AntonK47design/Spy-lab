@@ -140,7 +140,7 @@ export function UpgradePanel(props: { room: RoomId }) {
   const ct = cycleTime(state, id)
   const nextInc = (inc / r.level) * (r.level + 1) * (ECONOMY.milestones.includes((r.level + 1) as never) ? 2 : 1)
   return (
-    <Folder title={t(`room.${id}`)} testid="panel-upgrade" onClose={closePanel} tab={t('pad.office')}>
+    <Folder title={t(`room.${id}`)} testid="panel-upgrade" onClose={closePanel} tab={t('pad.upgrade')}>
       <div class="room-sub">
         <span class={`skill-chip skill-${def.skill}`}>{t(`skill.${def.skill}`)}</span>
         <span>{t('upgrade.lv', { n: r.level })}</span>

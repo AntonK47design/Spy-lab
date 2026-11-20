@@ -215,3 +215,8 @@ Plan: https://claude.ai/artifact/3VK5u4uetgNAqxG6wv9qhA (Fähre, Dead Drops, Sei
 | 25–60 Min | 19 s / 32 s | 0 / 0 |
 
 Beat Sheet OK (Laser Gym 1:45, erste Automatisierung, Hafen 7:52), Level 10 bei 23:50, erster Umzug bei 43:56 (abgelenkt 55:40).
+
+## Späte Räume günstiger + aufgeräumte Oberfläche — 2026-11-20
+- Leuchtturm-Tor 250 k → 120 k, Fahrsimulator 450 k → 200 k, Hack Lab 4 M → 600 k. Sim (fokussiert): Leuchtturm 29:57 (Ziel 30), Fahrsimulator 32:37 (35), Hack Lab 43:19 (40); Tempo-Fenster unverändert grün, erster Umzug 45:11.
+- Gesamt-Tempo (Sim 3 h, Median fokussiert/abgelenkt): längste Lücke ohne Kauf 0–5 Min 16/25 s, 5–10 Min 12/17 s, 10–60 Min 16–20/25–32 s, 1–3 h 19–20/29–32 s; echtes Warten nach Minute 5 immer 0 s.
+- Aufgeräumt: große Ziel-Karte rechts oben entfernt (der Leitpfeil zeigt immer den nächsten Schritt); Feld-Beschriftungen nur noch im Umkreis von 9 m um den Helden (plus das Pfeilziel), weiter entfernte blenden aus; Preise/Schilder kleiner; Raum-Schreibtisch heißt „UPGRADE Lv n" statt „BÜRO" (Verwechslung mit dem Agentur-Büro); Coach-Zeile verschwindet zuverlässig nach dem Tutorial.

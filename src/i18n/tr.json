@@ -355,5 +355,6 @@
   "lb.title": "Liderlik tablosu",
   "lb.text": "Ajanslar Miras Madalyalarına göre – sende {n}.",
   "lb.empty": "Henüz kayıt yok.",
-  "lb.agent": "Ajan"
+  "lb.agent": "Ajan",
+  "pad.upgrade": "GELİŞTİR"
 }

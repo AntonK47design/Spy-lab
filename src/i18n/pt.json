@@ -355,5 +355,6 @@
   "lb.title": "Classificação",
   "lb.text": "Agências por medalhas de legado – você tem {n}.",
   "lb.empty": "Ainda sem entradas.",
-  "lb.agent": "Agente"
+  "lb.agent": "Agente",
+  "pad.upgrade": "MELHORIA"
 }

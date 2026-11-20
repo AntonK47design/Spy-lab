@@ -355,5 +355,6 @@
   "lb.title": "Bestenliste",
   "lb.text": "Agenturen nach Vermächtnis-Medaillen – du hast {n}.",
   "lb.empty": "Noch keine Einträge.",
-  "lb.agent": "Agent"
+  "lb.agent": "Agent",
+  "pad.upgrade": "UPGRADE"
 }

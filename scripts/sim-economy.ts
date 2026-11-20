@@ -307,6 +307,7 @@ const BEATS: [string, string, number, number][] = [
   // prestige becomes possible (brief: first relocation after 40-60 min)
   ['level_15', 'Akademie-Level 15 (Umzug)', 3000, 3600],
   ['area_lighthouse', 'Leuchtturm-Insel offen', 1800, 3600],
+  ['unlock_driving', 'Fahrsimulator', 2100, 3600],
   ['unlock_hack', 'Hack Lab', 2400, 4800],
   ['level_20', 'Akademie-Level 20', 5400, 9000],
   ['level_25', 'Akademie-Level 25', 7200, 10800],

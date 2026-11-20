@@ -1356,3 +1356,10 @@ button {
 .lab-row.claimed { opacity: 0.6; }
 .action-round .dot { position: absolute; top: 4px; right: 4px; width: 12px; height: 12px; border-radius: 50%; background: var(--coral); border: 2px solid #fff; }
 .action-round { position: relative; }
+
+/* ---------- declutter: smaller pad labels, far pads fade out ---------- */
+.pad-price, .pad-price.ok { font-size: 1.45em; -webkit-text-stroke: 4px var(--line-c); }
+.pad-price.dim { font-size: 1.05em; }
+.pad-title { font-size: max(11px, 0.8em); padding: 0.22em 0.8em; }
+.wlabel.pad { transition: opacity 0.25s; }
+.wlabel.pad.far { opacity: 0; pointer-events: none; }
