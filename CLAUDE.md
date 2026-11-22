@@ -5,6 +5,7 @@ Live-Doku (Playgama-MCP) schlägt den Brief; Widersprüche melden.
 
 ## Arbeitsweise
 - Phase für Phase (Brief §15). Nach jeder Phase: Tests, Screenshots, PROGRESS.md, Zahlen, **anhalten**.
+- Drafts: vor jedem Upload `version` in package.json erhöhen (0.x.y: Fix = y+1, größere Änderung = x+1), Archivname = `spy-lab-<version>`; Version in PROGRESS.md notieren.
 - **Testen vorerst nur über GitHub Pages** (Workflow `.github/workflows/pages.yml`). Kein Playgama-Upload, bis Anton es sagt.
 - Nie ohne Antons ausdrückliches Ja: `publish_sandbox`, `start_sandbox_traffic`, `send_playgama_catalog_update`, `replace_in_app_products`, Archiv-Uploads.
 - Fragen nur bei Produktentscheidungen; Technik selbst entscheiden und begründen.

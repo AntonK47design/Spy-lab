@@ -226,3 +226,9 @@ Beat Sheet OK (Laser Gym 1:45, erste Automatisierung, Hafen 7:52), Level 10 bei 
 - QA-Link: https://developer.playgama.com/qa-tool/cmwoq1fea1nelm30hpnkn9740
 - Offen in der Konsole: Cover (quadratisch/hoch/quer), Zertifizierung im QA-Tool (Anton), Formular. Selbstprüfung: `docs/SELF_CHECK.md`.
 - Leistung: 25–51 Draw Calls in der Akademie (Budget 150), ~87 MB JS-Heap, 60-fps-Deckel; Rundkanten-Kisten mit Dreiecks-Budget (−30 % Dreiecke).
+
+## Entwürfe 0.0.2–0.5.1, Titel, Cover, kurzes Tutorial — 2026-11-22
+- Titel jetzt **Spy Lab Academy Tycoon** (Spiel, Ladebildschirm, check-build, Formular). Cover (800×800, 1080×1920, 1920×1080) aus Antons Artwork mit Titel, in der Konsole; Trailer (39 s Gameplay) in der Konsole; Formulartexte gespeichert (Kategorie Management).
+- Tutorial auf die erste Runde gekürzt (Cash, Anmeldetresen, Tresor, Kit-Kiste, Anmeldung, Kits); danach nur noch Leitpfeil-Hinweise (neu: Laptop im Büro, wenn der erste Absolvent wartet). Pfeil zeigt beim Sparen nur noch Aufgaben, Coach nennt das fehlende Cash. Tempo-Test: 32 Käufe in 5 Min, max. 2,4 s Warten.
+- Rewarded-Ads pausieren und muten jetzt ab der Anfrage (nicht erst ab `opened`).
+- Versionsschema: package.json-Version, Archiv `spy-lab-<version>`. Entwürfe: `spy-lab-0.0.2-006871b` (kompakte UI), `spy-lab-academy-tycoon-0.0.3-83c71b3` (Titel, kurzes Tutorial), **`spy-lab-0.5.1`** (Rewarded-Mute-Fix).
