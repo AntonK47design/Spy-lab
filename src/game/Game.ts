@@ -870,6 +870,7 @@ export class Game {
     mg.onResult = (r) => this.onResult(r)
     this.mg = mg
     this.mode = 'minigame'
+    this.guide.hide() // the academy's guide arrow / edge pointer has no meaning inside a minigame
     this.input.enabled = false
     missionUi.value = { phase: 'playing', mission: m.id, stage: m.stages ? this.stage : undefined }
     if (this.stage === 0) platform.sendMessage('level_started', { world: m.region, level: m.id })
@@ -1195,6 +1196,7 @@ export class Game {
     }
     this.mg = mg
     this.mode = 'minigame'
+    this.guide.hide() // the academy's guide arrow / edge pointer has no meaning inside a minigame
     this.input.enabled = false
     missionUi.value = { phase: 'playing', mission: 'vault' }
     AudioManager.playMusic('music_mission')

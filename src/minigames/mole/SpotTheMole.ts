@@ -46,6 +46,8 @@ interface Npc {
   hand: Bone | null
   /** Sent away by a hint: walks to the exit, then hidden. */
   leaving: boolean
+  /** 0 = to the doorway in front of the exit, 1 = through the door (then hidden). */
+  exitLeg: number
   gone: boolean
   /** Already tapped as a wrong suspect. */
   wrong: boolean
@@ -155,7 +157,7 @@ export class SpotTheMole implements Minigame {
       const model = MODELS[(i * 7 + rnd(MODELS.length)) % MODELS.length]!
       const ch = new Character({ model, tint: { shirt: MOLE.shirts[looks.shirt]! }, scale: 0.85 })
       const p = this.randomSpot()
-      const n: Npc = { ch, looks, x: p.x, z: p.z, tx: p.x, tz: p.z, wait: Math.random() * 2, speed: this.tier.speed * (0.8 + Math.random() * 0.4), head: null, hand: null, leaving: false, gone: false, wrong: false }
+      const n: Npc = { ch, looks, x: p.x, z: p.z, tx: p.x, tz: p.z, wait: Math.random() * 2, speed: this.tier.speed * (0.8 + Math.random() * 0.4), head: null, hand: null, leaving: false, exitLeg: 0, gone: false, wrong: false }
       ch.root.position.set(p.x, 0, p.z)
       ch.root.rotation.y = Math.random() * Math.PI * 2
       this.scene.add(ch.root)
@@ -212,6 +214,16 @@ export class SpotTheMole implements Minigame {
         b.box(0.08, 0.42, 0.08, x, 0.21, z + 0.6, 0x5d6779)
       }
     }
+    // exit doorways in the middle of both sides (wrong suspects leave through them)
+    for (const sx of [-1, 1]) {
+      const x = sx * (W / 2 + 1.35)
+      b.rbox(0.5, 2.5, 1.9, x + sx * 0.15, 1.25, 0, 0xf3eee6, 0.05) // wall piece
+      b.box(0.08, 2.0, 1.2, x - sx * 0.12, 1.0, 0, 0x1d2233) // dark opening
+      b.rbox(0.16, 0.16, 1.5, x - sx * 0.16, 2.08, 0, 0xc98b4f, 0.03) // lintel
+      for (const z of [-0.66, 0.66]) b.rbox(0.16, 2.1, 0.16, x - sx * 0.16, 1.05, z, 0xc98b4f, 0.03) // posts
+      b.rbox(0.06, 0.28, 0.56, x - sx * 0.2, 2.42, 0, 0x2fa36b, 0.04) // green exit sign
+      b.box(0.02, 0.12, 0.2, x - sx * 0.24, 2.42, 0.06, 0xf3fff7) // its arrow
+    }
     // pillars at the corners
     for (const [x, z] of [[-W / 2 - 0.6, -D / 2 - 0.5], [W / 2 + 0.6, -D / 2 - 0.5]] as const) b.cyl(0.3, 0.34, 3.2, x, 1.6, z, 0xe8dfcf, 12)
     const geo = b.build()
@@ -243,10 +255,10 @@ export class SpotTheMole implements Minigame {
     ])!
     this.glasses = mk(glassGeo, 0x15151c)
     const bagGeo = mergeGeometries([
-      new BoxGeometry(0.56, 0.4, 0.16).translate(0, -0.2, 0),
-      new BoxGeometry(0.14, 0.05, 0.04).translate(0, 0.02, 0),
+      new BoxGeometry(0.18, 0.5, 0.66).translate(0, -0.25, 0),
+      new BoxGeometry(0.05, 0.08, 0.24).translate(0, 0.04, 0),
     ])!
-    this.bags = mk(bagGeo, 0x6b4226)
+    this.bags = mk(bagGeo, 0x9a5b2a)
     const white = new Color()
     for (let i = 0; i < n; i++) {
       const c = MOLE.hats[this.npcs[i]!.looks.hat]
@@ -286,11 +298,13 @@ export class SpotTheMole implements Minigame {
         this.m4.compose(this.v.clone().add(off), this.q, this.sc.set(s, s, s))
         this.glasses.setMatrixAt(i, this.m4)
       } else this.glasses.setMatrixAt(i, this.zero)
-      if (n.looks.bag && n.hand) {
-        n.hand.matrixWorld.decompose(this.v, this.q, this.sc)
-        off.set(-0.06 * s, -0.42 * s, 0).applyQuaternion(this.q)
+      if (n.looks.bag) {
+        // carried in the right hand at hip height beside the body (the arm bone's own pivot is
+        // the shoulder: following it put the case at knee height inside the legs)
         const body = n.ch.root.quaternion
-        this.m4.compose(this.v.clone().add(off), body, this.sc.set(s, s, s))
+        off.set(-0.46 * s, 0.5 * s, 0.04 * s).applyQuaternion(body)
+        this.v.copy(n.ch.root.position).add(off)
+        this.m4.compose(this.v, body, this.sc.set(s, s, s))
         this.bags.setMatrixAt(i, this.m4)
       } else this.bags.setMatrixAt(i, this.zero)
     })
@@ -315,11 +329,7 @@ export class SpotTheMole implements Minigame {
     this.mistakes++
     n.wrong = true
     // a wrong suspect walks out, so he cannot confuse you twice
-    n.leaving = true
-    n.tx = n.x < 0 ? -this.hallW / 2 - 3 : this.hallW / 2 + 3
-    n.tz = n.z
-    n.wait = 0
-    n.speed = Math.max(n.speed, 1.8)
+    this.leave(n, 1.8)
     this.time = Math.max(0, this.time - MOLE.wrongPenalty)
     this.flash = 'miss'
     this.flashT = 0.35
@@ -364,6 +374,21 @@ export class SpotTheMole implements Minigame {
     this.publish()
   }
 
+  /** Exit doorways on both sides of the hall, between the benches (z = 0). */
+  private exitX(n: Npc): number {
+    return n.x < 0 ? -1 : 1
+  }
+
+  /** Walk to the nearer side door (inside the hall first), then out through it. */
+  private leave(n: Npc, speed: number): void {
+    n.leaving = true
+    n.exitLeg = 0
+    n.tx = this.exitX(n) * (this.hallW / 2 - 0.6)
+    n.tz = 0
+    n.wait = 0
+    n.speed = Math.max(n.speed, speed)
+  }
+
   /** k wrong suspects (the most confusing first) walk out of the hall. */
   private sendAway(k: number): void {
     const wrong = this.npcs.filter((n) => n !== this.mole && !n.leaving && !n.gone)
@@ -371,11 +396,7 @@ export class SpotTheMole implements Minigame {
     const score = (n: Npc) => this.clues.slice(0, this.shown).filter((c) => n.looks[c.attr] === c.value).length
     wrong.sort((a, b) => score(b) - score(a) || Math.random() - 0.5)
     for (const n of wrong.slice(0, k)) {
-      n.leaving = true
-      n.tx = n.x < 0 ? -this.hallW / 2 - 3 : this.hallW / 2 + 3
-      n.tz = n.z
-      n.wait = 0
-      n.speed = Math.max(n.speed, 1.6)
+      this.leave(n, 1.6)
     }
   }
 
@@ -434,6 +455,13 @@ export class SpotTheMole implements Minigame {
     if (d < 0.05) {
       n.ch.walking = 0
       if (n.leaving) {
+        if (n.exitLeg === 0) {
+          // in front of the door: now through it
+          n.exitLeg = 1
+          n.tx = Math.sign(n.x || 1) * (this.hallW / 2 + 1.35)
+          n.tz = 0
+          return
+        }
         n.gone = true
         n.ch.root.visible = false
         return
@@ -505,12 +533,32 @@ export class SpotTheMole implements Minigame {
     const depthOnScreen = this.hallD * Math.sin(tilt) + 2.2 * Math.cos(tilt)
     const distD = depthOnScreen / usable / 2 / Math.tan(vfov / 2)
     const distW = (this.hallW + 1.6) / 2 / Math.tan(vfov / 2) / this.camera.aspect
-    const dist = Math.max(distD, distW) + this.hallD / 2 * Math.cos(tilt) * 0.3
+    let dist = Math.max(distD, distW) + this.hallD / 2 * Math.cos(tilt) * 0.3
     // aim slightly above the floor centre and push the view down below the clue chips
     const shift = portrait ? 0.9 : 0.7
-    this.camera.position.set(0, Math.sin(tilt) * dist, Math.cos(tilt) * dist + shift)
-    this.camera.lookAt(0, 0.6, shift - 0.2)
-    this.camera.updateProjectionMatrix()
+    const place = () => {
+      this.camera.position.set(0, Math.sin(tilt) * dist, Math.cos(tilt) * dist + shift)
+      this.camera.lookAt(0, 0.6, shift - 0.2)
+      this.camera.updateProjectionMatrix()
+      this.camera.updateMatrixWorld()
+    }
+    place()
+    // perspective: the front edge is nearer and wider than the middle. Back off until the front
+    // corners of the walkable floor (plus a character's height) and both exit doors are on screen.
+    const W = this.hallW / 2
+    const D = this.hallD / 2
+    const pts: [number, number, number][] = [
+      [-W, 0, D], [W, 0, D], [-W, 1.6, D], [W, 1.6, D], [-W - 1.4, 2.4, 0], [W + 1.4, 2.4, 0],
+    ]
+    for (let k = 0; k < 40; k++) {
+      const out = pts.some(([x, y, z]) => {
+        const p = this.v.set(x, y, z).project(this.camera)
+        return Math.abs(p.x) > 0.96 || p.y < -0.92
+      })
+      if (!out) break
+      dist *= 1.04
+      place()
+    }
   }
 
   private publish(): void {

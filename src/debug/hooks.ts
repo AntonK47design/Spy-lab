@@ -130,6 +130,8 @@ export function installDebugHooks(g: { renderer: ReturnType<typeof createRendere
     mgTarget: (wrong = false) => (game.minigame as unknown as { debugTarget?: (w: boolean) => { x: number; y: number } | null } | null)?.debugTarget?.(wrong) ?? null,
     mgAllClues: () => (game.minigame as unknown as { debugAllClues?: () => boolean } | null)?.debugAllClues?.() ?? null,
     mgHud: () => mgHud.peek(),
+    /** QA: the running minigame object (inspection only). */
+    mg: () => game.minigame,
     /** QA: next academy frame spawns a Villain Alert. */
     /** QA: drone + VIP recruit on the next academy frame. */
     spawnOffers: () => game.debugOffers(),
