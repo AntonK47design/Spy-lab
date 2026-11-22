@@ -237,3 +237,9 @@ Beat Sheet OK (Laser Gym 1:45, erste Automatisierung, Hafen 7:52), Level 10 bei 
 - Neue Spieler: kein Interstitial bis die erste Mission vorbei ist, auch nicht an ihrem Ende (`INTERSTITIAL_RULES.adFreeMissions` in `src/config/ads.ts`); ab der zweiten Mission gelten die normalen Pausenpunkte.
 - `performance_sample` nur aus aktivem Spiel, kurzes Abschluss-Sample beim Verstecken (≥ 5 s), dazu Fehler-, Kontextverlust-, Asset-Fehler-, Speicher-, Szene-, Qualitäts-, Geräte- und Draw-Call-Felder. `rewarded_offer_shown` je Placement, `milestone_reached` (8 Stufen). Übersicht: `docs/TELEMETRY.md`.
 - Entwurf **`spy-lab-0.6.0`** hochgeladen (nichts veröffentlicht). Tests: 70 grün (zwei Ad-Tests auf wiederkehrende Spieler umgestellt).
+
+## 0.6.1–0.6.4 und Sandbox — 2026-11-22
+- Interstitials nur noch nach echtem Spiel (mission_end, boss_end, level_up, prestige); Menü öffnen/schließen ist kein Werbepunkt. Hinweis: das QA-Tool schaltet den Mindestabstand der Bridge ab und zeigt jede Anfrage.
+- Spot the Mole: falsche Verdächtige gehen durch Ausgangstüren statt ins Leere, Aktenkoffer sichtbar an der Hüfte, Kamera zeigt die ganze Halle; Leitpfeil im Minispiel ausgeblendet.
+- Alle Tutorial-Hände und Hinweis-Texte in den Minispielen entfernt (auf Antons Wunsch); der Tipp-Knopf bleibt.
+- Entwurf **`spy-lab-0.6.4`** hochgeladen und auf Antons Ja **in der Sandbox veröffentlicht**: https://playgama.ai/play/akwwyo3nrjgs7s
