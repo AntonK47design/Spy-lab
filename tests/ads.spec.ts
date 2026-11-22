@@ -13,10 +13,13 @@ test('rewarded: reward only on `rewarded`, game paused + muted while open', asyn
   expect(during.running).toBe(false)
   expect(during.audible).toBe(false)
   expect(['suspended', 'none']).toContain(during.audio.ctx)
+  expect(during.audio.master).toBe(0)
+  expect(during.audio.output).toBe(false) // output disconnected: silent even if a browser ignores suspend/gain
   expect(await pending).toBe('rewarded')
   const after = await state(page)
   expect(after.running).toBe(true)
   expect(after.adOpen).toBe(false)
+  await expect.poll(async () => (await state(page)).audio.output).toBe(true)
   expectClean(w)
 })
 

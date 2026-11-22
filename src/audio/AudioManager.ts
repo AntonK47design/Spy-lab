@@ -71,10 +71,11 @@ class AudioManagerImpl {
     window.addEventListener('keydown', unlock, true)
   }
 
-  get state(): { ctx: string; master: number; unlocked: boolean; music: string | null } {
+  get state(): { ctx: string; master: number; unlocked: boolean; music: string | null; output: boolean } {
     return {
       ctx: this.ctx?.state ?? 'none',
       master: this.ctx ? this.master.gain.value : 0,
+      output: this.outputConnected,
       unlocked: this.unlocked,
       music: this.music?.id ?? null,
     }
@@ -85,17 +86,36 @@ class AudioManagerImpl {
     g.gain.setTargetAtTime(v, this.ctx.currentTime, 0.05)
   }
 
+  private outputConnected = true
+
+  /**
+   * Mute = three independent locks, so no browser quirk can leak sound under an ad:
+   * the gain is set to 0 with ALL automation cancelled (Safari ignores a plain `.value = 0`
+   * while an earlier fade is still in the timeline), the output is disconnected, and the
+   * context is suspended.
+   */
   private applyMaster(audible: boolean): void {
     const ctx = this.ctx
     if (!ctx) return
+    const g = this.master.gain
+    const now = ctx.currentTime
     if (audible && this.unlocked) {
+      if (!this.outputConnected) {
+        this.master.connect(ctx.destination)
+        this.outputConnected = true
+      }
       if (ctx.state !== 'running') void ctx.resume().catch(() => {})
-      this.master.gain.cancelScheduledValues(ctx.currentTime)
-      this.master.gain.setTargetAtTime(1, ctx.currentTime, AUDIO_SETTINGS.fadeSeconds / 3)
+      g.cancelScheduledValues(0)
+      g.setValueAtTime(0, now)
+      g.setTargetAtTime(1, now, AUDIO_SETTINGS.fadeSeconds / 3)
     } else {
-      this.master.gain.cancelScheduledValues(ctx.currentTime)
-      this.master.gain.value = 0
-      // Suspending guarantees silence in background tabs and during ads.
+      g.cancelScheduledValues(0)
+      g.setValueAtTime(0, now)
+      g.value = 0
+      if (this.outputConnected) {
+        this.master.disconnect()
+        this.outputConnected = false
+      }
       if (ctx.state === 'running') void ctx.suspend().catch(() => {})
     }
   }
