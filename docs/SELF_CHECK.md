@@ -41,7 +41,7 @@ Legende: ✅ geprüft (mit Beleg) · ➖ trifft nicht zu · ❓ hier nicht prüf
 | Nr. | Status | Beleg |
 |---|---|---|
 | 2.1.1 | ✅ | Nur Bridge-Ads (`src/platform/ads.ts`). |
-| 2.1.2 | ✅ | 7 Interstitial-Punkte (mission_end, boss_end, map_close, level_up, panel_close, pause_resume, prestige). |
+| 2.1.2 | ✅ | 4 Interstitial-Punkte nach echtem Spiel (mission_end, boss_end, level_up, prestige); Menü öffnen/schließen ist kein Werbepunkt; erste Mission werbefrei. Abstand regelt die Bridge (QA-Tool zeigt jede Anfrage). |
 | 2.1.3 | ✅ | Nur an natürlichen Pausen; nie in Minispiel/Tutorial (`blockInterstitials`), Test „pause in a mission: resume never shows an interstitial". |
 | 2.1.4 | ✅ | Interstitials nur nach einem Tipp auf „Weiter"/Schließen, nicht unter dem Finger auf einem Ziel. |
 | 2.1.5 | ✅ | Bridge regelt die Ausrichtung. |

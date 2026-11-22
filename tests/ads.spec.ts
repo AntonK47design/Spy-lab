@@ -121,7 +121,7 @@ test('new player: no interstitial before or after the first mission, the second 
   await expect(page.getByTestId('panel-result')).toHaveCount(0)
   await page.waitForTimeout(500)
   const kinds = async () => (await page.evaluate(() => (window as any).__spylab.adLog)).filter((l: any) => l.kind === 'interstitial').map((l: any) => l.placement)
-  expect(await kinds()).toEqual([]) // no map_close before it, no mission_end after it
+  expect(await kinds()).toEqual([]) // nothing before it, no mission_end after it
   // second mission: the regular rules apply again
   await park(page)
   await page.getByTestId('bar-map').click()

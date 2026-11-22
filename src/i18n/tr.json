@@ -360,5 +360,7 @@
   "supply.short": "Sandık",
   "coach.laserStation": "Lazer Salonu'nda ilk lazer çerçevesini kur!",
   "coach.laserCrate": "Lazer Salonu'nun kit sandığını kur!",
-  "coach.need": "{n} para daha lazım: topla!"
+  "coach.need": "{n} para daha lazım: topla!",
+  "laser.ghostSwipe": "Kaydır veya ok tuşlarını kullan",
+  "laser.ghostWait": "Lazerin geçmesini bekle…"
 }

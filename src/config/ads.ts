@@ -4,10 +4,7 @@
 export const INTERSTITIAL_PLACEMENTS = [
   'mission_end',
   'boss_end',
-  'map_close',
   'level_up',
-  'panel_close',
-  'pause_resume',
   'prestige',
 ] as const
 

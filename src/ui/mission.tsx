@@ -181,9 +181,21 @@ function PlayingHud() {
           <span class="mg-tap-ring" />
         </button>
       )}
-      {h.ghost && (
-        <div class={`ghost-hand ${h.ghost.pulse ? 'press' : ''}`} style={{ transform: `translate(${h.ghost.x}px, ${h.ghost.y}px)` }} aria-hidden="true">
+      {h.ghost && h.ghost.hand !== false && (
+        <div
+          class={`ghost-hand ${h.ghost.swipe ? 'swipe' : h.ghost.pulse ? 'press' : ''}`}
+          style={{
+            transform: `translate(${h.ghost.x}px, ${h.ghost.y}px)`,
+            ...(h.ghost.swipe ? { '--sx': `${h.ghost.swipe.dx}px`, '--sy': `${h.ghost.swipe.dy}px` } : {}),
+          }}
+          aria-hidden="true"
+        >
           <IconHand size="64px" />
+        </div>
+      )}
+      {h.ghost?.label && (
+        <div class="ghost-caption" data-testid="ghost-caption" style={{ transform: `translate(calc(${h.ghost.x - 58}px - 50%), ${h.ghost.y + 80}px)` }}>
+          {t(h.ghost.label)}
         </div>
       )}
     </div>

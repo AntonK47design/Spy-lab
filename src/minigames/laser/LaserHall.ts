@@ -10,7 +10,7 @@ import {
   MeshBasicMaterial, MeshLambertMaterial, PerspectiveCamera, PlaneGeometry, Scene, Vector3,
 } from 'three'
 import { LASER, LASER_TIERS, type LaserTier } from '../../config/minigames'
-import { mgHud, type GameContext, type Minigame, type MinigameResult, type MissionModifiers } from '../Minigame'
+import { mgHud, type GameContext, type MinigameHud, type Minigame, type MinigameResult, type MissionModifiers } from '../Minigame'
 import { AudioManager } from '../../audio/AudioManager'
 import { Character } from '../../academy/Character'
 
@@ -609,13 +609,28 @@ export class LaserHall implements Minigame {
   }
 
   private v = new Vector3()
+  private screenOf(col: number, row: number): { x: number; y: number } {
+    this.v.copy(this.cellPos(col, row)).setY(0.3).project(this.camera)
+    return { x: ((this.v.x + 1) / 2) * this.w, y: ((1 - this.v.y) / 2) * this.h }
+  }
+
   private publish(): void {
-    let ghost: { x: number; y: number; pulse: boolean } | null = null
+    let ghost: MinigameHud['ghost'] = null
     if (this.firstTime && !this.finished && this.row < 5) {
+      // a swipe gesture from just below the hero toward the next safe cell (reads as an
+      // instruction, not as a stray cursor); while a laser has to pass: caption only
       const next = this.debugNextMove()
-      const [dc, dr] = next === 'wait' ? [0, 1] : DIRS[next]
-      this.v.copy(this.cellPos(this.col + dc, this.row + dr)).setY(0.3).project(this.camera)
-      ghost = { x: ((this.v.x + 1) / 2) * this.w, y: ((1 - this.v.y) / 2) * this.h, pulse: next !== 'wait' }
+      const here = this.screenOf(this.col, this.row)
+      // beside the hero (lower right), never on top of it
+      const x = here.x + 58
+      const y = here.y + 40
+      if (next === 'wait') ghost = { x, y, pulse: false, hand: false, label: 'laser.ghostWait' }
+      else {
+        const [dc, dr] = DIRS[next]
+        const to = this.screenOf(this.col + dc, this.row + dr)
+        const len = Math.hypot(to.x - here.x, to.y - here.y) || 1
+        ghost = { x, y, pulse: true, swipe: { dx: ((to.x - here.x) / len) * 70, dy: ((to.y - here.y) / len) * 70 }, label: 'laser.ghostSwipe' }
+      }
     }
     mgHud.value = {
       done: this.collected,

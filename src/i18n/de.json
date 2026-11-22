@@ -360,5 +360,7 @@
   "supply.short": "Kiste",
   "coach.laserStation": "Bau den ersten Laserrahmen im Laser-Studio!",
   "coach.laserCrate": "Bau die Kit-Kiste im Laser-Studio!",
-  "coach.need": "Noch {n} Cash nötig: sammle es ein!"
+  "coach.need": "Noch {n} Cash nötig: sammle es ein!",
+  "laser.ghostSwipe": "Wischen oder Pfeiltasten benutzen",
+  "laser.ghostWait": "Warte, bis der Laser vorbei ist…"
 }

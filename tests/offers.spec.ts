@@ -46,13 +46,15 @@ test('Income boost, supply drone (first free), VIP recruit', async ({ page }) =>
   expect(await adLog(page)).toContain('supply_drop')
 })
 
-test('Missing cash, mission skip after 2 fails, welcome double, map_close', async ({ page }) => {
+test('Missing cash, mission skip after 2 fails, welcome double; closing a menu shows no ad', async ({ page }) => {
   test.setTimeout(90_000)
   await setup(page)
-  // map_close interstitial (a natural pause, no rewarded in this flow yet)
+  // opening + closing the mission map (or any menu) is not an ad point
   await spy(page, 'openPanel', { kind: 'missions' })
   await page.getByTestId('btn-close').first().click()
-  expect(await adLog(page)).toContain('map_close')
+  await spy(page, 'openPanel', { kind: 'agents' })
+  await page.getByTestId('btn-close').first().click()
+  expect(await adLog(page)).not.toContain('interstitial')
   // missing cash in the upgrade folder: offered when at most 25 % are missing
   const cost = await spy<number>(page, 'levelCost', 'vault')
   await page.evaluate((c) => { (window as any).__spylab.raw().cash = Math.floor(c * 0.85) }, cost)

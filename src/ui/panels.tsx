@@ -3,7 +3,6 @@ import { LANGUAGES, type LangCode } from '../config/i18n-langs'
 import { userMuted, userPaused } from '../core/lifecycle'
 import { languageChoice, musicVolume, sfxVolume } from '../core/settings'
 import { formatNumber, formatDuration } from '../core/format'
-import { showInterstitial } from '../platform/ads'
 import { state, rev } from '../game/store'
 import { game } from '../game/actions'
 import { ROOMS, type RoomId } from '../config/rooms'
@@ -39,7 +38,6 @@ export function closePanel(): void {
   if (p?.kind === 'pause') {
     userPaused.value = false
     panel.value = null
-    showInterstitial('pause_resume')
     return
   }
   game().closePanel(p)

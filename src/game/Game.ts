@@ -1423,10 +1423,8 @@ export class Game {
       showInterstitial('level_up')
       this.offerVault()
     }
-    // natural pause: leaving the world map (missions folder)
-    if (p?.kind === 'missions') showInterstitial('map_close')
-    // natural pause: leaving the agents roster, the Gadget Lab or Field Ops (Bridge rate-limits)
-    if (p && (p.kind === 'agents' || p.kind === 'lab' || p.kind === 'fieldops')) showInterstitial('panel_close')
+    // closing a menu (map, roster, lab, field ops, pause) is NOT an ad point: interstitials only
+    // come after real play (mission/boss end, academy level-up, relocation)
     if (!nextPopup()) bump()
   }
 
