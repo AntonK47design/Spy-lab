@@ -219,7 +219,7 @@ function Result() {
           </>
         )}
         {!ui.doubled && !ui.freeDouble && (
-          <AdButton testid="btn-double-ad" label={t('result.doubleAd')} onClick={() => void game().doubleReward()} />
+          <AdButton placement="mission_double" testid="btn-double-ad" label={t('result.doubleAd')} onClick={() => void game().doubleReward()} />
         )}
         {ui.doubled && <div class="center doubled-tag">{t('result.doubled')}</div>}
         <Btn testid="btn-continue" kind="secondary" onClick={() => game().endMission()}>{t('result.continue')}</Btn>
@@ -239,7 +239,7 @@ function VaultSummary() {
         <div class="reward-row big">
           <span class="reward"><IconCash /> {fmt(ui.loot)}</span>
         </div>
-        {ui.canRetry && <AdButton testid="btn-vault-retry" label={t('vault.retry')} onClick={() => void game().vaultRetry()} />}
+        {ui.canRetry && <AdButton placement="vault_retry" testid="btn-vault-retry" label={t('vault.retry')} onClick={() => void game().vaultRetry()} />}
         <Btn testid="btn-vault-collect" onClick={() => game().vaultCollect()}>{t('welcome.collect')}</Btn>
       </section>
     </div>
@@ -256,9 +256,9 @@ function Fail() {
         <div class="folder-tab typewriter">{m ? `#${m.index + 1}` : ''}</div>
         <div class="stamp-big red typewriter">{t(`fail.${ui.reason}`)}</div>
         <div class="center muted">{t('fail.text')}</div>
-        {ui.canRevive && <AdButton testid="btn-revive" label={t('fail.revive')} onClick={() => void game().revive()} />}
+        {ui.canRevive && <AdButton placement="mission_revive" testid="btn-revive" label={t('fail.revive')} onClick={() => void game().revive()} />}
         {m && !m.boss && m.id !== 'alert' && m.id !== 'endless' && (state.missions[m.id]?.fails ?? 0) >= OFFERS.skipAfterFails && (
-          <AdButton testid="btn-skip" label={t('fail.skip')} onClick={() => void game().skipMission()} />
+          <AdButton placement="mission_skip" testid="btn-skip" label={t('fail.skip')} onClick={() => void game().skipMission()} />
         )}
         <Btn testid="btn-retry" onClick={() => void game().retry()} icon={<IconRetry />}>{t('fail.retry')}</Btn>
         <Btn testid="btn-giveup" kind="secondary" onClick={() => game().endMission()} icon={<IconHome />}>{t('fail.back')}</Btn>

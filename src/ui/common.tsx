@@ -1,4 +1,7 @@
 import type { ComponentChildren, JSX } from 'preact'
+import { useEffect } from 'preact/hooks'
+import type { RewardedPlacement } from '../config/ads'
+import { track } from '../analytics/telemetry'
 import { t } from '../i18n/i18n'
 import { AudioManager } from '../audio/AudioManager'
 import { rewardedSupported, rewardedBusy } from '../platform/ads'
@@ -42,8 +45,14 @@ export function Folder(props: {
 }
 
 /** Rewarded opt-in button: ad icon + reward text. Hidden when rewarded ads are unsupported. */
-export function AdButton(props: { label: string; onClick: () => void; testid: string; class?: string }) {
-  if (!rewardedSupported()) return null
+export function AdButton(props: { label: string; onClick: () => void; testid: string; class?: string; placement: RewardedPlacement }) {
+  const supported = rewardedSupported()
+  // offer impressions (once per appearance): with the Bridge's own rewarded events this gives
+  // the offer -> watched conversion per placement
+  useEffect(() => {
+    if (supported) track('rewarded_offer_shown', { placement: props.placement })
+  }, [supported, props.placement])
+  if (!supported) return null
   return (
     <button
       class={`btn-ad ${props.class ?? ''}`}

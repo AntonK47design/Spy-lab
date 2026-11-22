@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { boot, expectClean, spy, startFirstMission, state, watch } from './helpers'
+import { boot, expectClean, park, solveSafe, spy, startFirstMission, state, watch } from './helpers'
 
 test('rewarded: reward only on `rewarded`, game paused + muted while open', async ({ page }) => {
   const w = watch(page)
@@ -41,6 +41,9 @@ test('interstitial: forwarded at a pause, skipped right after a rewarded in the 
   // during the tutorial no interstitials at all
   expect(await spy(page, 'showInterstitial', 'mission_end')).toBe(false)
   await spy(page, 'skipTutorial')
+  // a new player: still ad-free until the first mission is over
+  expect(await spy(page, 'showInterstitial', 'mission_end')).toBe(false)
+  await spy(page, 'adGate', false)
   await spy(page, 'simulateAd', 'closed', 200)
   expect(await spy(page, 'showInterstitial', 'mission_end')).toBe(true)
   await page.waitForTimeout(400)
@@ -106,4 +109,28 @@ test('real Bridge path: rewarded pauses + mutes from the request on, before any 
   expect(r.running).toBe(false)
   expect(r.audible).toBe(false)
   await expect.poll(async () => (await state(page)).audio.ctx).not.toBe('running')
+})
+
+test('new player: no interstitial before or after the first mission, the second mission may show one', async ({ page }) => {
+  test.setTimeout(180_000)
+  await boot(page)
+  await startFirstMission(page)
+  await solveSafe(page)
+  await expect(page.getByTestId('panel-result')).toBeVisible({ timeout: 10_000 })
+  await page.getByTestId('btn-continue').click()
+  await expect(page.getByTestId('panel-result')).toHaveCount(0)
+  await page.waitForTimeout(500)
+  const kinds = async () => (await page.evaluate(() => (window as any).__spylab.adLog)).filter((l: any) => l.kind === 'interstitial').map((l: any) => l.placement)
+  expect(await kinds()).toEqual([]) // no map_close before it, no mission_end after it
+  // second mission: the regular rules apply again
+  await park(page)
+  await page.getByTestId('bar-map').click()
+  await page.getByTestId('mission-harbor_01').click()
+  await page.getByTestId('btn-start-mission').click()
+  await expect(page.getByTestId('mg-hud')).toBeVisible()
+  await solveSafe(page)
+  await expect(page.getByTestId('panel-result')).toBeVisible({ timeout: 10_000 })
+  await spy(page, 'simulateAd', 'closed', 200)
+  await page.getByTestId('btn-continue').click()
+  await expect.poll(kinds).toContain('mission_end')
 })

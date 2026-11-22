@@ -24,7 +24,7 @@ import { ECONOMY, padFillSeconds } from '../config/economy'
 import { LAYOUT, OFFICE, ROOMS, TEASER, ROOM_ORDER, cashSpotOf, crateOf, padOf, slotOf, upgradeSpotOf, type RoomId } from '../config/rooms'
 import { BOSSES, MISSIONS, REGION_LOOK, missionById, type MissionDef } from '../config/missions'
 import { VAULT_BONUS } from '../config/minigames'
-import { OFFERS } from '../config/ads'
+import { INTERSTITIAL_RULES, OFFERS } from '../config/ads'
 import { gadgetFor, type GadgetId } from '../config/gadgets'
 import { craftGadget, rushGadget, takeGadget, tickGadgets } from '../sim/gadgets'
 import { relocate } from '../sim/prestige'
@@ -46,7 +46,7 @@ import { elapsedSince, now } from '../core/time'
 import { AudioManager } from '../audio/AudioManager'
 import { leaderboards, platform } from '../platform/bridge'
 import { beginFlow, blockInterstitials, rewardedSupported, showInterstitial, showRewarded } from '../platform/ads'
-import { track } from '../analytics/telemetry'
+import { checkMilestones, track } from '../analytics/telemetry'
 import { SafeCracker } from '../minigames/safe/SafeCracker'
 import { LaserHall } from '../minigames/laser/LaserHall'
 import { SpotTheMole } from '../minigames/mole/SpotTheMole'
@@ -293,6 +293,7 @@ export class Game {
     if (state.medals > 0) void leaderboards.setScore(LEADERBOARD_ID, state.medals)
     this.updateCoach()
     blockInterstitials('tutorial', tutorialActive(state))
+    this.updateAdGate()
     // iframe portals often keep the keyboard: grab focus, and say so while we do not have it
     try {
       window.focus()
@@ -397,6 +398,7 @@ export class Game {
         track('minute_mark', { minute: MINUTE_MARKS[this.minuteIdx]! })
         this.minuteIdx++
       }
+      if (checkMilestones(state)) persist(['meta'])
     }
     this.saveDirtyTimer += dt
     if (this.saveDirtyTimer > 15) {
@@ -982,6 +984,7 @@ export class Game {
           this.supplyT = 0
           this.supplyLeft = OFFERS.supplyStays
           this.spawnDrone()
+          track('rewarded_offer_shown', { placement: 'supply_drop' })
         }
       } else {
         this.supplyLeft = Math.max(0, this.supplyLeft - dt)
@@ -993,6 +996,7 @@ export class Game {
           this.vipT = 0
           this.vipLeft = OFFERS.vipStays
           this.spawnVip()
+          track('rewarded_offer_shown', { placement: 'vip_recruit' })
         }
       } else {
         this.vipLeft = Math.max(0, this.vipLeft - dt)
@@ -1377,9 +1381,30 @@ export class Game {
     this.input.enabled = true
     blockInterstitials('mission', false)
     AudioManager.playMusic('music_academy')
+    this.updateAdGate()
     showInterstitial(boss ? 'boss_end' : 'mission_end')
     if (boss) this.offerVault()
     nextPopup()
+  }
+
+  /** performance_sample scene (bounded): academy, the running minigame id, or boss. */
+  perfScene(): string {
+    if (this.mode !== 'minigame' || !this.mission) return 'academy'
+    return this.mission.boss ? 'boss' : this.mission.minigame
+  }
+
+  /** New players: no interstitial until the first mission(s) are over (INTERSTITIAL_RULES). */
+  private updateAdGate(): void {
+    let ended = 0
+    for (const m of Object.values(state.missions)) ended += m.wins + m.fails
+    blockInterstitials('firstMissions', !this.adGateOff && ended <= INTERSTITIAL_RULES.adFreeMissions)
+  }
+
+  /** QA: switch the new-player ad-free gate off (tests of the regular interstitial points). */
+  adGateOff = false
+  setAdGate(on: boolean): void {
+    this.adGateOff = !on
+    this.updateAdGate()
   }
 
   // ---------------------------------------------------------------- popups

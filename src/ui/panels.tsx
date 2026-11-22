@@ -151,7 +151,7 @@ export function UpgradePanel(props: { room: RoomId }) {
       {(() => {
         const cost = r.level < ECONOMY.maxRoomLevel ? levelCost(state, id) : 0
         const miss = cost ? g.missingCashOffer(cost) : 0
-        return miss > 0 ? <AdButton testid="btn-missing-cash" label={t('upgrade.missing', { cash: fmt(miss) })} onClick={() => void g.missingCash(cost)} /> : null
+        return miss > 0 ? <AdButton placement="missing_cash" testid="btn-missing-cash" label={t('upgrade.missing', { cash: fmt(miss) })} onClick={() => void g.missingCash(cost)} /> : null
       })()}
       <UpRow icon={<IconSpeed />} label={t('upgrade.speed')} value={`${ct.toFixed(1)}s`}
         next={r.speed < ECONOMY.speed.max ? `${(ct * ECONOMY.speed.factorPerLevel).toFixed(1)}s` : undefined}
@@ -437,7 +437,7 @@ function GadgetSlot(props: { mission: string }) {
           {t('briefing.gadgetUse', { n: stock })}
         </button>
       ) : (
-        <AdButton testid="btn-gadget-trial" class="gs-ad" label={t('briefing.gadgetTrial')} onClick={() => void game().gadgetTrial(props.mission)} />
+        <AdButton placement="gadget_trial" testid="btn-gadget-trial" class="gs-ad" label={t('briefing.gadgetTrial')} onClick={() => void game().gadgetTrial(props.mission)} />
       )}
     </div>
   )
@@ -452,7 +452,7 @@ export function DailyPanel() {
   return (
     <Folder title={t('daily.title')} testid="panel-daily" onClose={closePanel} wide>
       {t0 - state.freeBadgesAt >= OFFERS.freeBadgesCooldown * 1000 ? (
-        <AdButton testid="btn-free-badges" label={t('shop.freeBadges', { n: OFFERS.freeBadges })} onClick={() => void game().freeBadges()} />
+        <AdButton placement="free_badges" testid="btn-free-badges" label={t('shop.freeBadges', { n: OFFERS.freeBadges })} onClick={() => void game().freeBadges()} />
       ) : (
         <div class="center muted small">{t('shop.freeBadgesWait', { time: formatDuration(Math.ceil((OFFERS.freeBadgesCooldown * 1000 - (t0 - state.freeBadgesAt)) / 1000)) })}</div>
       )}
@@ -471,7 +471,7 @@ export function DailyPanel() {
       </div>
       {today >= 0 ? (
         <div class="daily-actions">
-          <AdButton testid="btn-daily-double" label={t('daily.double')} onClick={() => void game().claimDaily(true)} />
+          <AdButton placement="daily_double" testid="btn-daily-double" label={t('daily.double')} onClick={() => void game().claimDaily(true)} />
           <Btn testid="btn-daily-claim" onClick={() => void game().claimDaily(false)}>{t('daily.claim')}</Btn>
         </div>
       ) : (
@@ -609,7 +609,7 @@ export function FieldOpsPanel() {
               ) : (
                 <div class="fo-right">
                   <span class="lab-time">{formatDuration(Math.ceil(left))}</span>
-                  <AdButton testid={`btn-fieldop-finish-${i}`} class="gs-ad" label={t('fieldops.finish')} onClick={() => void game().fieldOpFinish(i)} />
+                  <AdButton placement="fieldop_finish" testid={`btn-fieldop-finish-${i}`} class="gs-ad" label={t('fieldops.finish')} onClick={() => void game().fieldOpFinish(i)} />
                 </div>
               )}
             </div>
@@ -704,7 +704,7 @@ export function WelcomePanel(props: { amount: number; seconds: number }) {
     <Folder title={t('welcome.title')} testid="panel-welcome" onClose={() => take(false)}>
       <div class="center muted">{t('welcome.text', { time: formatDuration(props.seconds) })}</div>
       <div class="big-reward"><IconCash /> {fmt(props.amount)}</div>
-      <AdButton testid="btn-welcome-double" label={t('welcome.double')} onClick={() => void game().welcomeDouble(props.amount).then((ok) => ok && closePanel())} />
+      <AdButton placement="offline_double" testid="btn-welcome-double" label={t('welcome.double')} onClick={() => void game().welcomeDouble(props.amount).then((ok) => ok && closePanel())} />
       <Btn testid="btn-welcome-collect" onClick={() => take(false)}>{t('welcome.collect')}</Btn>
     </Folder>
   )

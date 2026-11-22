@@ -44,13 +44,19 @@ function loadFile(file: string): Promise<GLTF> {
   return p
 }
 
+/** Asset load failures so far (performance_sample reports the per-window delta). */
+export let assetErrors = 0
+
 /** Preload a set of files with progress (0..1). Failures are logged, never fatal. */
 export async function preload(files: string[], onProgress?: (p: number) => void): Promise<void> {
   let done = 0
   await Promise.all(
     files.map((f) =>
       loadFile(f)
-        .catch((e) => console.warn('[assets] failed', f, e))
+        .catch((e) => {
+          assetErrors++
+          console.warn('[assets] failed', f, e)
+        })
         .finally(() => onProgress?.(++done / files.length)),
     ),
   )
@@ -126,6 +132,7 @@ export async function propGeometry(id: ModelId): Promise<BufferGeometry | null> 
   try {
     gltf = await loadFile(def.file)
   } catch {
+    assetErrors++
     propCache.set(id, null)
     return null
   }
@@ -241,6 +248,7 @@ export function characterProto(id: CharacterId, tint?: Record<string, number>): 
   let p = charCache.get(key)
   if (!p) {
     p = buildCharacter(id, tint).catch((e) => {
+      assetErrors++
       console.warn('[assets] character failed', id, e)
       return null
     })

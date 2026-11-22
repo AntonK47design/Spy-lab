@@ -42,6 +42,8 @@ export function installDebugHooks(g: { renderer: ReturnType<typeof createRendere
       blockInterstitials('tutorial', false)
       persist(['meta'])
     },
+    /** QA: the new-player ad-free gate (on until the first mission is over). */
+    adGate: (on: boolean) => game.setAdGate(on),
     timeWarp: (minutes: number) => {
       warp(minutes)
       return new Date(now()).toISOString()

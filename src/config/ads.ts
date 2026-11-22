@@ -31,6 +31,15 @@ export const REWARDED_PLACEMENTS = [
 export type InterstitialPlacement = (typeof INTERSTITIAL_PLACEMENTS)[number]
 export type RewardedPlacement = (typeof REWARDED_PLACEMENTS)[number]
 
+/**
+ * Interstitial rules on top of the Bridge's own rate limit (product decision, not a timer):
+ * no interstitial until this many missions have ended AND not at the end of the last of them,
+ * so a new player's first mission (and everything before it) is ad-free.
+ */
+export const INTERSTITIAL_RULES = {
+  adFreeMissions: 1,
+}
+
 /** Rewarded offers with real value (brief 7.2). */
 export const OFFERS = {
   /** mission_skip: offered after this many fails of the same mission. */

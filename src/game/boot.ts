@@ -14,13 +14,14 @@ import { syncTime } from '../core/time'
 import { AudioManager } from '../audio/AudioManager'
 import { createRenderer } from '../render/renderer'
 import { addFrame, setFrameObserver, startLoop } from '../core/loop'
-import { initPerf, recentFps, recordFrame } from '../analytics/perf'
+import { flushPerf, initPerf, recentFps, recordFrame } from '../analytics/perf'
+import { isGameplayActive, onFlushRequest } from '../core/lifecycle'
 import { sendPerformanceSample } from '../analytics/telemetry'
 import { AUTO_QUALITY, type QualityTier } from '../config/quality'
 import { DEBUG } from '../debug/flags'
 import { Game } from './Game'
 import { World } from '../academy/World'
-import { preload, coreFiles, lazyFiles, characterProto } from '../render/assets'
+import { assetErrors, preload, coreFiles, lazyFiles, characterProto } from '../render/assets'
 import { setGame } from './actions'
 import { portrait } from '../ui/uiState'
 
@@ -81,11 +82,25 @@ export async function start(progress: (p: number) => void): Promise<void> {
   addFrame((dt) => game!.frame(dt))
 
   // Perf + automatic quality (never in the first AUTO_QUALITY.graceMs).
-  initPerf(BUILD_VERSION, sendPerformanceSample)
+  initPerf(BUILD_VERSION, sendPerformanceSample, {
+    scene: () => game?.perfScene() ?? 'academy',
+    quality: () => renderer.tier,
+    drawCalls: () => renderer.renderer.info.render.calls,
+    assetErrors: () => assetErrors + AudioManager.failed.length,
+    deviceType: () => {
+      try {
+        return device.type
+      } catch {
+        return 'unknown'
+      }
+    },
+  })
+  onFlushRequest(flushPerf)
   let readyAt = 0
   let lowSince = 0
   setFrameObserver((ms) => {
-    recordFrame(ms)
+    // only active gameplay counts (the in-game pause menu keeps the loop running)
+    if (isGameplayActive.value) recordFrame(ms)
     if (!readyAt) return
     const t = performance.now()
     if (t - readyAt < AUTO_QUALITY.graceMs) return

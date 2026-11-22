@@ -45,6 +45,7 @@ test('x2 after the demo needs a watched ad; closing early grants nothing', async
 test('Continue without a rewarded is an interstitial point (mission_end)', async ({ page }) => {
   await boot(page)
   await startFirstMission(page)
+  await spy(page, 'adGate', false) // past the ad-free first mission
   await solveSafe(page)
   await spy(page, 'simulateAd', 'closed', 200)
   await page.getByTestId('btn-continue').click()
