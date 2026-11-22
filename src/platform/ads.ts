@@ -5,6 +5,7 @@
 import { signal } from '@preact/signals-core'
 import type { InterstitialPlacement, RewardedPlacement } from '../config/ads'
 import { AD_SIM } from '../debug/flags'
+import { adOpen } from '../core/lifecycle'
 import { advertisement, type AdState } from './bridge'
 import { simulateAd } from './devAdSimulator'
 
@@ -69,6 +70,7 @@ export function showRewarded(placement: RewardedPlacement): Promise<RewardedResu
       } else if (s === 'closed' || s === 'failed') {
         off()
         rewardedBusy.value = false
+        if (AD_SIM !== 'on') adOpen.value = false
         if (granted) rewardedSeenInFlow = true
         resolve(granted ? 'rewarded' : s)
       }
@@ -76,8 +78,16 @@ export function showRewarded(placement: RewardedPlacement): Promise<RewardedResu
     if (AD_SIM === 'on') {
       simulateAd('rewarded', placement, handle)
     } else {
+      // pause + mute from the request on (not only from 'opened'): some platforms report
+      // 'opened' late or not at all, and the ad must never play over the game's sound.
+      // A rewarded request always ends in 'closed' or 'failed', which releases it.
+      adOpen.value = true
       off = advertisement.onRewardedState(handle)
-      advertisement.showRewarded(placement)
+      try {
+        advertisement.showRewarded(placement)
+      } catch {
+        handle('failed')
+      }
     }
   })
 }

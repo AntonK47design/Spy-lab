@@ -84,3 +84,23 @@ test('platform pause/mute (central handler) stops loop and audio', async ({ page
   expect(s.running).toBe(true)
   expect(s.audible).toBe(false)
 })
+
+test('real Bridge path: rewarded pauses + mutes from the request on, before any ad event', async ({ page }) => {
+  await boot(page, '&adsim=off')
+  await page.mouse.click(5, 300) // unlock audio
+  // a platform that is slow to report 'opened' (or never does): nothing arrives yet
+  const r = await page.evaluate(() => {
+    const a = (window as any).bridge.advertisement
+    Object.defineProperty(a, 'isRewardedSupported', { get: () => true, configurable: true })
+    a.showRewarded = () => {}
+    const L = (window as any).__spylab.lifecycle
+    const before = { adOpen: L.adOpen.value, audible: L.isAudible.value }
+    void (window as any).__spylab.showRewarded('mission_double')
+    return { before, adOpen: L.adOpen.value, running: L.isRunning.value, audible: L.isAudible.value }
+  })
+  expect(r.before.adOpen).toBe(false)
+  expect(r.adOpen).toBe(true)
+  expect(r.running).toBe(false)
+  expect(r.audible).toBe(false)
+  await expect.poll(async () => (await state(page)).audio.ctx).not.toBe('running')
+})
