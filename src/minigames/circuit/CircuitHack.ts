@@ -13,7 +13,7 @@ import {
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { CIRCUIT, CIRCUIT_TIERS, type CircuitTier } from '../../config/minigames'
 import { GADGET } from '../../config/gadgets'
-import { mgHud, type MinigameHud, type GameContext, type Minigame, type MinigameResult, type MissionModifiers } from '../Minigame'
+import { mgHud, type GameContext, type Minigame, type MinigameResult, type MissionModifiers } from '../Minigame'
 import { AudioManager } from '../../audio/AudioManager'
 
 // direction bits: N=1 E=2 S=4 W=8 (N = towards -z / up on screen)
@@ -468,7 +468,7 @@ export class CircuitHack implements Minigame {
     this.publish()
   }
 
-  // ---------------------------------------------------------------- planner (ghost hand + tests)
+  // ---------------------------------------------------------------- planner (tests)
   /** A tile the player should turn next (screen CSS px), or null when nothing is left. */
   debugNextTap(): { x: number; y: number } | null {
     const i = this.solutionPath().find((k) => this.mask[k] !== this.sol[k] && !this.locked[k])
@@ -502,11 +502,6 @@ export class CircuitHack implements Minigame {
   }
 
   private publish(): void {
-    let ghost: MinigameHud['ghost'] = null
-    if (this.firstTime && this.running && this.taps < 6) {
-      const p = this.debugNextTap()
-      if (p) ghost = { x: p.x - 8, y: p.y - 4, pulse: Math.sin(performance.now() / 160) > 0, label: 'circuit.ghostTap' }
-    }
     mgHud.value = {
       done: this.targets.filter((t) => this.powered[t]).length,
       total: this.targets.length,
@@ -515,7 +510,6 @@ export class CircuitHack implements Minigame {
       maxMistakes: 0,
       timeLeft: this.time,
       timeLimit: this.limit,
-      ghost,
       flash: this.flash,
       hint: { free: this.hintsLeft },
       noTap: true,

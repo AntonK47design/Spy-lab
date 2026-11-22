@@ -35,11 +35,6 @@ export interface MinigameHud {
   maxMistakes: number
   timeLeft: number
   timeLimit: number
-  /**
-   * Ghost hand (tutorial): screen position in CSS px, or null. `swipe` (px) animates a swipe
-   * gesture from there; `hand: false` shows only the caption; `label` = i18n caption key.
-   */
-  ghost: { x: number; y: number; pulse: boolean; swipe?: { dx: number; dy: number }; hand?: boolean; label?: string } | null
   /** Short feedback flash: 'hit' | 'miss' | null */
   flash: 'hit' | 'miss' | null
   /** What the progress icons stand for (safe: bolts, laser: intel chips). */

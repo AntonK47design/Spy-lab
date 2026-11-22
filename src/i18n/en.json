@@ -360,11 +360,5 @@
   "supply.short": "Crate",
   "coach.laserStation": "Build the first laser frame in the Laser Gym!",
   "coach.laserCrate": "Build the Laser Gym's kit crate!",
-  "coach.need": "{n} more cash needed: collect it!",
-  "laser.ghostSwipe": "Swipe or use the arrow keys",
-  "laser.ghostWait": "Wait for the laser to pass…",
-  "safe.ghostTap": "Tap when the needle is in the green zone",
-  "scooter.ghostTap": "Tap left or right (or use the arrow keys) to switch lanes",
-  "mole.ghostTap": "Tap the traveller who matches every clue",
-  "circuit.ghostTap": "Tap a tile to turn it and connect the power"
+  "coach.need": "{n} more cash needed: collect it!"
 }

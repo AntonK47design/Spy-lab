@@ -11,7 +11,7 @@ import {
 import { SCOOTER, SCOOTER_TIERS, type ScooterTier } from '../../config/minigames'
 import { GADGET } from '../../config/gadgets'
 import { REGION_LOOK } from '../../config/missions'
-import { mgHud, type MinigameHud, type GameContext, type Minigame, type MinigameResult, type MissionModifiers } from '../Minigame'
+import { mgHud, type GameContext, type Minigame, type MinigameResult, type MissionModifiers } from '../Minigame'
 import { AudioManager } from '../../audio/AudioManager'
 import { Character } from '../../academy/Character'
 import { findBone, propGeometry } from '../../render/assets'
@@ -440,7 +440,7 @@ export class ScooterPursuit implements Minigame {
     this.publish()
   }
 
-  // ---------------------------------------------------------------- planner (ghost hand + tests)
+  // ---------------------------------------------------------------- planner (tests)
   /** Lane the player should be in to pass the next rows; returns the move toward it or 'wait'. */
   debugNextMove(): 'left' | 'right' | 'wait' {
     const best = this.safeLane()
@@ -476,13 +476,6 @@ export class ScooterPursuit implements Minigame {
   }
 
   private publish(): void {
-    let ghost: MinigameHud['ghost'] = null
-    if (this.firstTime && this.running) {
-      const m = this.debugNextMove()
-      ghost = m === 'wait'
-        ? { x: this.w / 2, y: this.h * 0.62, pulse: false, hand: false, label: 'scooter.ghostTap' }
-        : { x: m === 'left' ? this.w * 0.18 : this.w * 0.78, y: this.h * 0.62, pulse: true, label: 'scooter.ghostTap' }
-    }
     mgHud.value = {
       done: 0,
       total: 0,
@@ -490,7 +483,6 @@ export class ScooterPursuit implements Minigame {
       maxMistakes: SCOOTER.maxCrashes,
       timeLeft: this.time,
       timeLimit: this.limit,
-      ghost,
       flash: this.flash,
       noTap: true,
       chase: 1 - this.gapLeft / this.tier.gap,

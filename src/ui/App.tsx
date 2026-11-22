@@ -19,7 +19,7 @@ import { PanelHost, closePanel, openPause } from './panels'
 import { MissionLayer } from './mission'
 import { click } from './common'
 import {
-  AvatarDirector, AvatarMarmalade, IconAgent, IconHand, IconBadge, IconCash, IconGear, IconIntel, IconMap, IconStar,
+  AvatarDirector, AvatarMarmalade, IconAgent, IconBadge, IconCash, IconGear, IconIntel, IconMap, IconStar,
   IconAlert, IconAd, IconGadget, IconCalendar,
 } from './icons'
 
@@ -245,7 +245,6 @@ function MoveHint() {
   if (!h) return null
   return (
     <div class={`move-hint ${h === 'hint.drag' ? 'touch' : ''}`} data-testid="move-hint" aria-live="polite">
-      {h === 'hint.drag' && <span class="finger" aria-hidden="true"><IconHand size="48px" /></span>}
       <span>{t(h)}</span>
     </div>
   )

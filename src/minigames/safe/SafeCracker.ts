@@ -8,7 +8,7 @@ import {
 } from 'three'
 import { SAFE, SAFE_TIERS, type SafeTier } from '../../config/minigames'
 import { GADGET } from '../../config/gadgets'
-import { mgHud, type MinigameHud, type GameContext, type Minigame, type MinigameResult, type MissionModifiers } from '../Minigame'
+import { mgHud, type GameContext, type Minigame, type MinigameResult, type MissionModifiers } from '../Minigame'
 import { AudioManager } from '../../audio/AudioManager'
 
 const R = 2
@@ -281,13 +281,6 @@ export class SafeCracker implements Minigame {
 
   private v = new Vector3()
   private publish(): void {
-    let ghost: MinigameHud['ghost'] = null
-    if (this.firstTime && this.done < 2 && !this.finished) {
-      this.v.set(0, -R * 1.2, 0.3).project(this.camera)
-      const zone = this.zones.find((z) => !z.fake)
-      const inZone = !!zone && angDist(zone.center, this.angle) <= zone.width / 2
-      ghost = { x: ((this.v.x + 1) / 2) * this.w, y: ((1 - this.v.y) / 2) * this.h, pulse: inZone, label: 'safe.ghostTap' }
-    }
     mgHud.value = {
       done: this.done,
       total: this.tier.bolts,
@@ -295,7 +288,6 @@ export class SafeCracker implements Minigame {
       maxMistakes: this.tier.maxMistakes,
       timeLeft: this.time,
       timeLimit: this.tier.timeLimit,
-      ghost,
       flash: this.flash,
     }
   }

@@ -456,11 +456,7 @@ export class CodeBreaker implements Minigame {
   }
 
   private publish(): void {
-    let suggest: number | undefined
-    if (this.firstTime && !this.finished && this.used < 2) {
-      const s = this.debugSuggest()
-      suggest = s === 'ok' ? -2 : s === null ? undefined : s
-    }
+    const suggest: number | undefined = undefined // no first-run key suggestions (Anton: no tutorial hints)
     mgHud.value = {
       done: 0,
       total: 0,
@@ -468,7 +464,6 @@ export class CodeBreaker implements Minigame {
       maxMistakes: this.attempts,
       timeLeft: this.time,
       timeLimit: this.tier.timeLimit,
-      ghost: null,
       flash: this.flash,
       keypad: {
         symbols: this.tier.symbols,

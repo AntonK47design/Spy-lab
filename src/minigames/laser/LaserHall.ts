@@ -10,7 +10,7 @@ import {
   MeshBasicMaterial, MeshLambertMaterial, PerspectiveCamera, PlaneGeometry, Scene, Vector3,
 } from 'three'
 import { LASER, LASER_TIERS, type LaserTier } from '../../config/minigames'
-import { mgHud, type GameContext, type MinigameHud, type Minigame, type MinigameResult, type MissionModifiers } from '../Minigame'
+import { mgHud, type GameContext, type Minigame, type MinigameResult, type MissionModifiers } from '../Minigame'
 import { AudioManager } from '../../audio/AudioManager'
 import { Character } from '../../academy/Character'
 
@@ -544,10 +544,10 @@ export class LaserHall implements Minigame {
   }
 
   useHint(): void {
-    /* the ghost hand covers hints on the first run */
+    /* the Laser Hall has no hint button */
   }
 
-  // ---------------------------------------------------------------- planner (ghost hand + tests)
+  // ---------------------------------------------------------------- planner (tests)
   /** Is (c, r) safe during [t0, t0 + span] (sampled)? */
   private safeDuring(c: number, r: number, t0: number, span: number): boolean {
     const hz = this.hazardAt.get(r)
@@ -557,7 +557,7 @@ export class LaserHall implements Minigame {
     return true
   }
 
-  /** Suggested next move for a careful player (tutorial ghost hand, automated tests). */
+  /** Suggested next move for a careful player (automated tests). */
   debugNextMove(): Dir | 'wait' {
     if (this.hop || this.stun > 0 || this.finished) return 'wait'
     const r = this.row
@@ -615,23 +615,6 @@ export class LaserHall implements Minigame {
   }
 
   private publish(): void {
-    let ghost: MinigameHud['ghost'] = null
-    if (this.firstTime && !this.finished && this.row < 5) {
-      // a swipe gesture from just below the hero toward the next safe cell (reads as an
-      // instruction, not as a stray cursor); while a laser has to pass: caption only
-      const next = this.debugNextMove()
-      const here = this.screenOf(this.col, this.row)
-      // beside the hero (lower right), never on top of it
-      const x = here.x + 58
-      const y = here.y + 40
-      if (next === 'wait') ghost = { x, y, pulse: false, hand: false, label: 'laser.ghostWait' }
-      else {
-        const [dc, dr] = DIRS[next]
-        const to = this.screenOf(this.col + dc, this.row + dr)
-        const len = Math.hypot(to.x - here.x, to.y - here.y) || 1
-        ghost = { x, y, pulse: true, swipe: { dx: ((to.x - here.x) / len) * 70, dy: ((to.y - here.y) / len) * 70 }, label: 'laser.ghostSwipe' }
-      }
-    }
     mgHud.value = {
       done: this.collected,
       total: this.chipTotal,
@@ -639,7 +622,6 @@ export class LaserHall implements Minigame {
       maxMistakes: this.tier.maxMistakes,
       timeLeft: this.time,
       timeLimit: this.tier.timeLimit,
-      ghost,
       flash: this.flash,
       icon: 'chip',
     }

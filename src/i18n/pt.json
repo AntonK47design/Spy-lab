@@ -360,11 +360,5 @@
   "supply.short": "Caixa",
   "coach.laserStation": "Construa a primeira moldura laser na Academia Laser!",
   "coach.laserCrate": "Construa a caixa de kits da Academia Laser!",
-  "coach.need": "Faltam {n} de dinheiro: colete!",
-  "laser.ghostSwipe": "Deslize ou use as setas",
-  "laser.ghostWait": "Espere o laser passar…",
-  "safe.ghostTap": "Toque quando a agulha estiver na zona verde",
-  "scooter.ghostTap": "Toque à esquerda ou à direita (ou use as setas) para mudar de faixa",
-  "mole.ghostTap": "Toque no viajante que combina com todas as pistas",
-  "circuit.ghostTap": "Toque num bloco para girá-lo e ligar a energia"
+  "coach.need": "Faltam {n} de dinheiro: colete!"
 }

@@ -1,4 +1,4 @@
-/** Mission overlays: minigame HUD (+ ghost hand), result with stars + x2, fail with revive. */
+/** Mission overlays: minigame HUD, result with stars + x2, fail with revive. */
 import { t, lang } from '../i18n/i18n'
 import { formatNumber } from '../core/format'
 import { game } from '../game/actions'
@@ -6,7 +6,7 @@ import { mgHud } from '../minigames/Minigame'
 import { missionUi, vaultLoot } from './uiState'
 import { AdButton, Btn, Stars } from './common'
 import { openPause } from './panels'
-import { IconAd, IconBadge, IconBulb, IconArrowLeft, IconArrowRight, IconBag, IconBolt, IconCash, IconCoat, IconEye, IconGlasses, IconHand, IconHat, IconHome, IconIntel, IconPause, IconRetry, IconTimer } from './icons'
+import { IconAd, IconBadge, IconBulb, IconArrowLeft, IconArrowRight, IconBag, IconBolt, IconCash, IconCoat, IconEye, IconGlasses, IconHat, IconHome, IconIntel, IconPause, IconRetry, IconTimer } from './icons'
 import type { MoleClue } from '../minigames/Minigame'
 import { resolveMission } from '../sim/ops'
 import { state } from '../game/store'
@@ -50,7 +50,6 @@ function Keypad(props: { k: NonNullable<ReturnType<typeof mgHud.peek>>['keypad']
         {Array.from({ length: k.symbols }, (_, i) => (
           <button class={`kp-key ${hint(i)}`} data-testid={`btn-sym-${i}`} aria-label={`${i + 1}`} onPointerDown={(e) => { e.stopPropagation(); g.minigameInput('sym', i) }}>
             <SymIcon i={i} />
-            {k.suggest === i && <span class="kp-hand" aria-hidden="true"><IconHand size="40px" /></span>}
           </button>
         ))}
       </div>
@@ -60,7 +59,6 @@ function Keypad(props: { k: NonNullable<ReturnType<typeof mgHud.peek>>['keypad']
         </button>
         <button class={`kp-ok ${hint(-2)}`} data-testid="btn-sym-ok" disabled={!k.canSubmit} onPointerDown={(e) => { e.stopPropagation(); g.minigameInput('ok') }}>
           {t('code.ok')}
-          {k.suggest === -2 && <span class="kp-hand" aria-hidden="true"><IconHand size="40px" /></span>}
         </button>
       </div>
     </div>
@@ -180,23 +178,6 @@ function PlayingHud() {
         <button class="mg-tap" data-testid="btn-mg-tap" aria-label="tap" onPointerDown={(e) => { e.stopPropagation(); game().minigameAction() }}>
           <span class="mg-tap-ring" />
         </button>
-      )}
-      {h.ghost && h.ghost.hand !== false && (
-        <div
-          class={`ghost-hand ${h.ghost.swipe ? 'swipe' : h.ghost.pulse ? 'press' : ''}`}
-          style={{
-            transform: `translate(${h.ghost.x}px, ${h.ghost.y}px)`,
-            ...(h.ghost.swipe ? { '--sx': `${h.ghost.swipe.dx}px`, '--sy': `${h.ghost.swipe.dy}px` } : {}),
-          }}
-          aria-hidden="true"
-        >
-          <IconHand size="64px" />
-        </div>
-      )}
-      {h.ghost?.label && (
-        <div class={`ghost-caption ${h.clues || h.chase !== undefined ? 'below-row' : ''}`} data-testid="ghost-caption">
-          {t(h.ghost.label)}
-        </div>
       )}
     </div>
   )

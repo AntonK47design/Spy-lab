@@ -660,28 +660,6 @@ button {
 .mg-tap:active { transform: translateX(-50%) translateY(4px); }
 .flash-hit .mg-tap { box-shadow: 0 0 30px #7be07a; }
 .flash-miss { animation: shake 0.3s; }
-.ghost-hand { position: absolute; left: -16px; top: -8px; pointer-events: none; animation: hover 1s ease-in-out infinite; z-index: 20; }
-.ghost-hand.press { animation: press 0.35s ease-in-out infinite; }
-/* swipe gesture: press, drag along (--sx, --sy), lift, repeat */
-.ghost-hand.swipe { animation: swipe-gesture 1.3s ease-in-out infinite; }
-.ghost-hand.swipe > svg { display: block; }
-@keyframes swipe-gesture {
-  0% { translate: 0 0; opacity: 0; scale: 1; }
-  12% { opacity: 1; scale: 0.88; }
-  60% { translate: var(--sx) var(--sy); opacity: 1; scale: 0.88; }
-  80%, 100% { translate: var(--sx) var(--sy); opacity: 0; scale: 1; }
-}
-.ghost-caption {
-  position: absolute; left: 50%; transform: translateX(-50%);
-  /* a fixed slot in the top HUD: under the timer (or under the clue chips / chase bar) */
-  top: calc(var(--sa-top) + var(--gap) * 3 + var(--tap) * 1.45);
-  width: max-content; max-width: min(86vw, 420px);
-  pointer-events: none; z-index: 20;
-  text-align: center; white-space: normal;
-  padding: 0.35em 0.9em; border-radius: 999px; background: var(--cream); color: var(--ink, #14213d);
-  box-shadow: 0 3px 0 var(--line-c);
-  border: var(--line) solid var(--line-c); font-weight: 800; font-size: max(12px, 0.9em);
-}
 .ui-root.in-mission .toast { top: auto; bottom: calc(var(--sa-bottom) + var(--tap) * 3); }
 
 @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
@@ -738,7 +716,6 @@ button {
   background: rgba(20,33,61,.9); border: 2px solid var(--mustard); font-weight: 900; pointer-events: none;
   white-space: nowrap; max-width: 92vw;
 }
-.move-hint .finger { animation: drag-hint 1.6s ease-in-out infinite; display: inline-block; }
 @keyframes drag-hint { 0%,100% { translate: -14px 0; } 50% { translate: 14px -6px; } }
 .info-card {
   position: absolute; left: 50%; top: calc(var(--sa-top) + var(--gap) * 2 + var(--tap) * 1.4); transform: translateX(-50%);
@@ -1031,7 +1008,6 @@ button {
   padding: 0.15em 0.7em;
   box-shadow: 0 3px 0 var(--line-c);
 }
-.ghost-caption.below-row { top: calc(var(--sa-top) + var(--gap) * 4 + var(--tap) * 1.45 + 48px); }
 .kits.empty { background: #fff; color: var(--coral); border-color: var(--coral); box-shadow: 0 3px 0 var(--coral-d); }
 .kits.empty .kit-ico { background: var(--coral); }
 .pop, .pop-static { font-size: 1.6em; -webkit-text-stroke: 5px var(--line-c); }
@@ -1185,10 +1161,8 @@ button {
 .kp-left { color: var(--cream); font-family: var(--font-display); font-weight: 600; }
 .kp-key:active, .kp-del:active, .kp-ok:active, .kp-hint:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--line-c); }
 .kp-key.suggest, .kp-del.suggest, .kp-ok.suggest { animation: kp-pulse 0.8s ease-in-out infinite; outline: 3px solid var(--mustard); outline-offset: 2px; }
-.kp-hand { position: absolute; right: -10px; bottom: -22px; pointer-events: none; animation: press 0.7s ease-in-out infinite; }
 @keyframes kp-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
-@media (prefers-reduced-motion: reduce) { .kp-key.suggest, .kp-del.suggest, .kp-ok.suggest, .kp-hand { animation: none; } }
-
+@media (prefers-reduced-motion: reduce) { .kp-key.suggest, .kp-del.suggest, .kp-ok.suggest { animation: none; } }
 /* ---------- Spot the Mole: clue chips + hint button ---------- */
 .mg-clues {
   position: absolute; top: calc(var(--sa-top) + var(--gap) * 3 + var(--tap) * 1.45); left: 50%; transform: translateX(-50%);
