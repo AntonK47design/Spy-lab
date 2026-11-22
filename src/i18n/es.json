@@ -362,5 +362,9 @@
   "coach.laserCrate": "¡Construye la caja de kits del Gimnasio Láser!",
   "coach.need": "Faltan {n} de dinero: ¡recógelo!",
   "laser.ghostSwipe": "Desliza o usa las flechas",
-  "laser.ghostWait": "Espera a que pase el láser…"
+  "laser.ghostWait": "Espera a que pase el láser…",
+  "safe.ghostTap": "Toca cuando la aguja esté en la zona verde",
+  "scooter.ghostTap": "Toca a la izquierda o a la derecha (o usa las flechas) para cambiar de carril",
+  "mole.ghostTap": "Toca al viajero que coincide con todas las pistas",
+  "circuit.ghostTap": "Toca una casilla para girarla y conectar la corriente"
 }

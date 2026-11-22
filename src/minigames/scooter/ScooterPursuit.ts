@@ -11,7 +11,7 @@ import {
 import { SCOOTER, SCOOTER_TIERS, type ScooterTier } from '../../config/minigames'
 import { GADGET } from '../../config/gadgets'
 import { REGION_LOOK } from '../../config/missions'
-import { mgHud, type GameContext, type Minigame, type MinigameResult, type MissionModifiers } from '../Minigame'
+import { mgHud, type MinigameHud, type GameContext, type Minigame, type MinigameResult, type MissionModifiers } from '../Minigame'
 import { AudioManager } from '../../audio/AudioManager'
 import { Character } from '../../academy/Character'
 import { findBone, propGeometry } from '../../render/assets'
@@ -476,10 +476,12 @@ export class ScooterPursuit implements Minigame {
   }
 
   private publish(): void {
-    let ghost: { x: number; y: number; pulse: boolean } | null = null
+    let ghost: MinigameHud['ghost'] = null
     if (this.firstTime && this.running) {
       const m = this.debugNextMove()
-      if (m !== 'wait') ghost = { x: m === 'left' ? this.w * 0.18 : this.w * 0.78, y: this.h * 0.62, pulse: true }
+      ghost = m === 'wait'
+        ? { x: this.w / 2, y: this.h * 0.62, pulse: false, hand: false, label: 'scooter.ghostTap' }
+        : { x: m === 'left' ? this.w * 0.18 : this.w * 0.78, y: this.h * 0.62, pulse: true, label: 'scooter.ghostTap' }
     }
     mgHud.value = {
       done: 0,

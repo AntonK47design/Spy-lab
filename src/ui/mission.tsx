@@ -194,7 +194,7 @@ function PlayingHud() {
         </div>
       )}
       {h.ghost?.label && (
-        <div class="ghost-caption" data-testid="ghost-caption" style={{ transform: `translate(calc(${h.ghost.x - 58}px - 50%), ${h.ghost.y + 80}px)` }}>
+        <div class={`ghost-caption ${h.clues || h.chase !== undefined ? 'below-row' : ''}`} data-testid="ghost-caption">
           {t(h.ghost.label)}
         </div>
       )}

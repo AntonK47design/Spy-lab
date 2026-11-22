@@ -362,5 +362,9 @@
   "coach.laserCrate": "Lazer Salonu'nun kit sandığını kur!",
   "coach.need": "{n} para daha lazım: topla!",
   "laser.ghostSwipe": "Kaydır veya ok tuşlarını kullan",
-  "laser.ghostWait": "Lazerin geçmesini bekle…"
+  "laser.ghostWait": "Lazerin geçmesini bekle…",
+  "safe.ghostTap": "İbre yeşil bölgedeyken dokun",
+  "scooter.ghostTap": "Şerit değiştirmek için sola ya da sağa dokun (veya ok tuşları)",
+  "mole.ghostTap": "Tüm ipuçlarına uyan yolcuya dokun",
+  "circuit.ghostTap": "Döndürüp elektriği bağlamak için bir kareye dokun"
 }

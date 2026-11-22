@@ -13,7 +13,7 @@ import {
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { MOLE, MOLE_TIERS, type MoleTier } from '../../config/minigames'
 import { GADGET } from '../../config/gadgets'
-import { mgHud, type GameContext, type Minigame, type MinigameResult, type MissionModifiers, type MoleClue } from '../Minigame'
+import { mgHud, type MinigameHud, type GameContext, type Minigame, type MinigameResult, type MissionModifiers, type MoleClue } from '../Minigame'
 import { AudioManager } from '../../audio/AudioManager'
 import { Character } from '../../academy/Character'
 import { findBone } from '../../render/assets'
@@ -569,10 +569,10 @@ export class SpotTheMole implements Minigame {
       shown: i < this.shown,
       progress: i === this.shown ? this.clueT / this.interval : i < this.shown ? 1 : 0,
     }))
-    let ghost: { x: number; y: number; pulse: boolean } | null = null
+    let ghost: MinigameHud['ghost'] = null
     if (this.firstTime && this.running && this.shown >= this.clues.length) {
       const p = this.screenOf(this.mole.x, 1.0, this.mole.z)
-      ghost = { x: p.x - 10, y: p.y - 6, pulse: Math.sin(performance.now() / 160) > 0 }
+      ghost = { x: p.x - 10, y: p.y - 6, pulse: Math.sin(performance.now() / 160) > 0, label: 'mole.ghostTap' }
     }
     mgHud.value = {
       done: 0,
