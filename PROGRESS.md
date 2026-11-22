@@ -232,3 +232,8 @@ Beat Sheet OK (Laser Gym 1:45, erste Automatisierung, Hafen 7:52), Level 10 bei 
 - Tutorial auf die erste Runde gekürzt (Cash, Anmeldetresen, Tresor, Kit-Kiste, Anmeldung, Kits); danach nur noch Leitpfeil-Hinweise (neu: Laptop im Büro, wenn der erste Absolvent wartet). Pfeil zeigt beim Sparen nur noch Aufgaben, Coach nennt das fehlende Cash. Tempo-Test: 32 Käufe in 5 Min, max. 2,4 s Warten.
 - Rewarded-Ads pausieren und muten jetzt ab der Anfrage (nicht erst ab `opened`).
 - Versionsschema: package.json-Version, Archiv `spy-lab-<version>`. Entwürfe: `spy-lab-0.0.2-006871b` (kompakte UI), `spy-lab-academy-tycoon-0.0.3-83c71b3` (Titel, kurzes Tutorial), `spy-lab-0.5.1` (Rewarded-Mute ab Anfrage), **`spy-lab-0.5.2`** (Mute dreifach: Automation weg + Ausgang getrennt + suspend). Im echten QA-Tool (Chrome) geprüft: während des Rewarded pausiert, Kontext suspended, Master 0.
+
+## 0.6.0 — kein Interstitial um die erste Mission, Telemetrie ausgebaut — 2026-11-22
+- Neue Spieler: kein Interstitial bis die erste Mission vorbei ist, auch nicht an ihrem Ende (`INTERSTITIAL_RULES.adFreeMissions` in `src/config/ads.ts`); ab der zweiten Mission gelten die normalen Pausenpunkte.
+- `performance_sample` nur aus aktivem Spiel, kurzes Abschluss-Sample beim Verstecken (≥ 5 s), dazu Fehler-, Kontextverlust-, Asset-Fehler-, Speicher-, Szene-, Qualitäts-, Geräte- und Draw-Call-Felder. `rewarded_offer_shown` je Placement, `milestone_reached` (8 Stufen). Übersicht: `docs/TELEMETRY.md`.
+- Entwurf **`spy-lab-0.6.0`** hochgeladen (nichts veröffentlicht). Tests: 70 grün (zwei Ad-Tests auf wiederkehrende Spieler umgestellt).
