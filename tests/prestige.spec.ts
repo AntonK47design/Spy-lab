@@ -4,6 +4,7 @@ import { boot, spy, reload } from './helpers'
 test('Relocate HQ: medals from lifetime cash, academy resets, agents/missions/badges stay, saved', async ({ page }) => {
   test.setTimeout(90_000)
   await boot(page)
+  await spy(page, 'adGate', false) // a returning player (past the ad-free first mission)
   await spy(page, 'skipTutorial')
   await spy(page, 'grantAgent')
   await page.evaluate(() => {

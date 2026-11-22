@@ -3,6 +3,7 @@ import { boot, spy } from './helpers'
 
 async function setup(page: Page): Promise<void> {
   await boot(page)
+  await spy(page, 'adGate', false) // a returning player (past the ad-free first mission)
   await spy(page, 'skipTutorial')
   await spy(page, 'grantAgent')
   await page.evaluate(() => {
