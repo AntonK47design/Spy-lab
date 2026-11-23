@@ -446,7 +446,7 @@ export class Game {
     const modal = panel.value !== null
     this.input.enabled = !modal
     this.input.update()
-    this.applyAutopilot()
+    this.applyAutopilot(dt)
     if (this.input.active && moveHint.value) moveHint.value = null
     const ride = this.ferry.update(dt, state.areas.lighthouse, this.player)
     if (ride) {
@@ -717,7 +717,7 @@ export class Game {
   autopilot: { x: number; z: number }[] | 'guide' | null = null
   private autoDwell = 0
 
-  private applyAutopilot(): void {
+  private applyAutopilot(dt: number): void {
     const a = this.autopilot
     if (!a) return
     let t: { x: number; z: number } | null | undefined
@@ -735,8 +735,10 @@ export class Game {
       this.input.move.y = 0
       return
     }
-    this.input.move.x = dx / d
-    this.input.move.y = dz / d
+    // never step past the target in one frame (low fps would make the hero swing across small pads)
+    const k = Math.min(1, d / Math.max(1e-3, this.player.speed * dt))
+    this.input.move.x = (dx / d) * k
+    this.input.move.y = (dz / d) * k
     void this.autoDwell
   }
 
