@@ -41,3 +41,22 @@ export const PALETTE = {
   locked: 0x5d6270,
   skin: 0xf1c27d,
 } as const
+
+/** Floor trail shown under the guide arrow while its target is behind a wall (route through doors). */
+export const GUIDE_TRAIL = {
+  /** Metres between two chevrons. */
+  spacing: 0.9,
+  /** Chevrons drift toward the target at this speed (m/s). */
+  flow: 1.6,
+  /** Maximum chevrons drawn (one instanced mesh). */
+  max: 48,
+  /** No chevrons this close to the hero / the target (m). */
+  skipHero: 0.8,
+  skipTarget: 1.0,
+  size: 0.6,
+  /** Height above y = 0 (floor tiles end at 0.05). */
+  lift: 0.08,
+  color: 0xf2b134,
+  /** Seconds between route re-plans while walking. */
+  replanSeconds: 0.2,
+} as const

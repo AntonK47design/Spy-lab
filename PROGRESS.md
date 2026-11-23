@@ -243,3 +243,9 @@ Beat Sheet OK (Laser Gym 1:45, erste Automatisierung, Hafen 7:52), Level 10 bei 
 - Spot the Mole: falsche Verdächtige gehen durch Ausgangstüren statt ins Leere, Aktenkoffer sichtbar an der Hüfte, Kamera zeigt die ganze Halle; Leitpfeil im Minispiel ausgeblendet.
 - Alle Tutorial-Hände und Hinweis-Texte in den Minispielen entfernt (auf Antons Wunsch); der Tipp-Knopf bleibt.
 - Entwurf **`spy-lab-0.6.4`** hochgeladen und auf Antons Ja **in der Sandbox veröffentlicht**: https://playgama.ai/play/akwwyo3nrjgs7s
+
+## 0.6.5 — Leitspur um Wände (erste Spielerdaten) — 2026-11-23
+**Telemetrie (Sandbox-Traffic seit 22.11. 21:10 UTC, 24 neue Spieler, ohne QA-Tool):** Bargeld 24 → Anmeldetresen 20 → **erster Tresor 13** → Tutorial fertig 8 → erster Absolvent 7 → erste Mission gewonnen 1. 7 Spieler kauften den Tresen und bauten nie den Tresor, 4 davon spielten noch 3–6 Min weiter (Geld war da: 20 vs. 12). Weitere Befunde: 25 % der Sitzungen ohne ersten Frame; Interstitials bei echten Spielern ≈ 0 (erst nach der ersten Mission, die kaum jemand erreicht); 13 von 24 Sitzungen senkten die Qualität automatisch, Einzel-Hänger > 1 s, ein Speicher-Ausreißer bis 748 MB (< 30 Sitzungen, noch nicht belastbar).
+**Ursache:** Der Leitpfeil zeigte in Luftlinie; nach dem Tresen liegt der Tresor hinter der Bäckerei-Rückwand. Wer dem Pfeil folgt, läuft gegen die Wand (Autopilot mit echter Kollision blieb sogar schon an der Vorderwand hängen).
+**Fix:** Pfeil bleibt auf dem Ziel. Neu: gelbe Bodenpfeile (`GuideTrail`, 1 Draw Call) auf dem begehbaren Weg (Raster-A* über die Kollisionsboxen, `NavGrid`, ~0,06 ms je Planung, 5×/s), nur wenn das Ziel nicht in gerader Linie erreichbar ist. Werte in `GUIDE_TRAIL` (`src/config/layout.ts`).
+**Tests:** neuer Test „nur Pfeil + Bodenspur folgen, echte Kollision, kein Teleport“ schafft das Tutorial; Test für Spur/Pfeil nach dem Tresen. Nach dem Release Trichter `tutorial_step` station/counter erneut vergleichen.

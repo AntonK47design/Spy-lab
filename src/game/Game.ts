@@ -6,6 +6,9 @@ import { Color, CylinderGeometry, Group, Mesh, PCFShadowMap, type Object3D, type
 import { StaticBatch } from '../render/geometry'
 import { PAL } from '../render/palette'
 import { GuideArrow } from '../academy/GuideArrow'
+import { NavGrid, type P as NavP } from '../academy/NavGrid'
+import { GuideTrail } from '../academy/GuideTrail'
+import { GUIDE_TRAIL } from '../config/layout'
 import { effect } from '@preact/signals-core'
 import { World } from '../academy/World'
 import { Player } from '../academy/Player'
@@ -102,6 +105,12 @@ export class Game {
   private panelClosedAt = 0
   private saveDirtyTimer = 0
   private guide: GuideArrow
+  /** Walkable grid + floor trail: while the arrow's target is behind a wall, chevrons show the way through the doors. */
+  private nav = new NavGrid()
+  private trail: GuideTrail
+  private navT = 0
+  private navFor: NavP | null = null
+  private navRoute: NavP[] | null = null
   private hiddenAt = 0
   private w = 1
   private h = 1
@@ -126,6 +135,7 @@ export class Game {
     this.traffic = new Traffic(world.dynamic, { taxi: world.propGeo('taxi'), sedan: world.propGeo('sedan'), wagon: world.propGeo('wagon') })
     world.dynamic.add(this.player.char.root)
     this.guide = new GuideArrow(world.dynamic, uiLayer)
+    this.trail = new GuideTrail(world.dynamic)
     this.serveLabel = this.labels.add('serve', LAYOUT.serveSpot.x, 2.4, LAYOUT.serveSpot.z, 'serve-progress')
     this.teaserLabel = this.labels.add('pad pad-soon', TEASER.x, 1.9, TEASER.z - 2.6, 'teaser')
 
@@ -711,8 +721,10 @@ export class Game {
     const a = this.autopilot
     if (!a) return
     let t: { x: number; z: number } | null | undefined
-    if (a === 'guide') t = this.objectiveTarget()
-    else t = a[0]
+    if (a === 'guide') {
+      const goal = this.objectiveTarget()
+      t = goal ? (this.routeTo(goal, 0)?.[1] ?? goal) : null
+    } else t = a[0]
     if (!t) return
     const dx = t.x - this.player.x
     const dz = t.z - this.player.z
@@ -745,6 +757,32 @@ export class Game {
     // standing on the target: no pointer needed
     const here = target && this.player.near(target.x, target.z, 1.2)
     this.guide.update(dt, here ? null : target, this.cam, this.w, this.h)
+    this.trail.update(dt, here || !target ? null : this.routeTo(target, dt))
+  }
+
+  /**
+   * Walkable route from the hero to `target` (corners only where a wall is in the way), or null
+   * when the target is in straight reach. Re-planned a few times per second and when the target changes.
+   */
+  private routeTo(target: NavP, dt: number): NavP[] | null {
+    this.navT -= dt
+    const changed = !this.navFor || this.navFor.x !== target.x || this.navFor.z !== target.z
+    if (changed || this.navT <= 0) {
+      this.navT = GUIDE_TRAIL.replanSeconds
+      this.navFor = { x: target.x, z: target.z }
+      this.nav.sync(this.world.colliders)
+      this.navRoute = this.nav.route({ x: this.player.x, z: this.player.z }, target)
+    }
+    if (this.navRoute) this.navRoute[0] = { x: this.player.x, z: this.player.z }
+    return this.navRoute
+  }
+
+  /** QA: the floor trail's route to the arrow target (null = straight reach) and chevrons drawn. */
+  debugGuideRoute(): { route: NavP[] | null; chevrons: number } {
+    const t = this.mode === 'academy' && !panel.value ? this.objectiveTarget() : null
+    if (!t) return { route: null, chevrons: this.trail.shown }
+    this.nav.sync(this.world.colliders)
+    return { route: this.nav.route({ x: this.player.x, z: this.player.z }, t), chevrons: this.trail.shown }
   }
 
   /** Rebuild pads from the state (debug / QA). */
@@ -871,6 +909,7 @@ export class Game {
     this.mg = mg
     this.mode = 'minigame'
     this.guide.hide() // the academy's guide arrow / edge pointer has no meaning inside a minigame
+    this.trail.hide()
     this.input.enabled = false
     missionUi.value = { phase: 'playing', mission: m.id, stage: m.stages ? this.stage : undefined }
     if (this.stage === 0) platform.sendMessage('level_started', { world: m.region, level: m.id })
@@ -1197,6 +1236,7 @@ export class Game {
     this.mg = mg
     this.mode = 'minigame'
     this.guide.hide() // the academy's guide arrow / edge pointer has no meaning inside a minigame
+    this.trail.hide()
     this.input.enabled = false
     missionUi.value = { phase: 'playing', mission: 'vault' }
     AudioManager.playMusic('music_mission')
@@ -1449,6 +1489,11 @@ export class Game {
     this.player.x = x
     this.player.z = z
     this.cam.snap(x, z)
+  }
+
+  /** Debug: hero position. */
+  debugHero(): { x: number; z: number } {
+    return { x: this.player.x, z: this.player.z }
   }
 
   get minigame(): Minigame | null {

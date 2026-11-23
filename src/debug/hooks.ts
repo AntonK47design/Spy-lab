@@ -141,6 +141,10 @@ export function installDebugHooks(g: { renderer: ReturnType<typeof createRendere
     autopilot: (p: { x: number; z: number }[] | 'guide' | null) => (game.autopilot = p),
     /** Where the guide arrow points (tutorial or next useful step). */
     guide: () => game.debugGuide(),
+    /** Floor-trail route to the arrow target (null while it is in straight reach) + chevrons drawn. */
+    guideRoute: () => game.debugGuideRoute(),
+    /** QA: hero position. */
+    hero: () => game.debugHero(),
     levelCost: (room: RoomId) => levelCost(state, room),
     spawnAlert: () => {
       state.alertIn = 0

@@ -50,3 +50,42 @@ test('short tutorial: cash -> desk -> safe -> crate -> sign-up -> kits, then the
   await reload(page)
   expect(await tut()).toBe(6) // never restarts
 })
+
+test('walking only along the arrow + floor trail (real collisions, no teleport) finishes the tutorial', async ({ page }) => {
+  test.setTimeout(120_000)
+  await boot(page)
+  await spy(page, 'autopilot', 'guide')
+  // a stuck hero (arrow pointing into a wall) would never get past a step
+  await expect.poll(async () => (await state(page)).tutorial, { timeout: 60_000, intervals: [500] }).toBe(6)
+  await spy(page, 'autopilot', null)
+})
+
+test('arrow stays on the vault station; a floor trail leads around the bakery wall to it', async ({ page }) => {
+  await boot(page)
+  await goTo(page, 'welcome', 'vault')
+  await goTo(page, 'serve', 'vault')
+  await expect.poll(async () => (await state(page)).tutorial).toBe(2)
+  const target = await spy<{ x: number; z: number; kind: string }>(page, 'guide')
+  const station = await spy<{ x: number; z: number }>(page, 'spot', 'station', 'vault', 0)
+  expect(target.kind).toBe('tut:station')
+  expect(Math.hypot(target.x - station.x, target.z - station.z)).toBeLessThan(0.5)
+  // the station is behind a wall: the trail bends (at least one corner) and is drawn
+  await expect.poll(async () => (await spy<any>(page, 'guideRoute')).chevrons).toBeGreaterThan(3)
+  const { route } = await spy<{ route: { x: number; z: number }[] }>(page, 'guideRoute')
+  expect(route.length).toBeGreaterThanOrEqual(3)
+  const end = route[route.length - 1]!
+  expect(Math.hypot(end.x - station.x, end.z - station.z)).toBeLessThan(0.5)
+  // standing in front of the station (straight reach): no trail
+  await goTo(page, 'station', 'vault')
+  await spy(page, 'teleport', station.x, station.z + 2)
+  await expect.poll(async () => (await spy<any>(page, 'guideRoute')).chevrons).toBe(0)
+  // cheap enough to re-plan several times per second (timed inside the page)
+  await goTo(page, 'serve', 'vault')
+  const ms = await page.evaluate(() => {
+    const s = (window as any).__spylab
+    const t0 = performance.now()
+    for (let i = 0; i < 50; i++) s.guideRoute()
+    return (performance.now() - t0) / 50
+  })
+  expect(ms).toBeLessThan(2)
+})
