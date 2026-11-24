@@ -11,6 +11,13 @@ if (!fs.existsSync(path.join(dist, 'index.html'))) {
   console.error('dist/index.html missing — run npm run build first')
   process.exit(1)
 }
+// the build must carry this version (telemetry build_version), else it is a stale dist/
+const assets = path.join(dist, 'assets')
+const stamped = fs.readdirSync(assets).filter((f) => f.endsWith('.js')).some((f) => fs.readFileSync(path.join(assets, f), 'utf8').includes(`\`${version}\``))
+if (!stamped) {
+  console.error(`dist/ was not built as ${version} (stale build?) — run npm run build first`)
+  process.exit(1)
+}
 const out = path.join(root, `spy-lab-v${version}.zip`)
 const output = fs.createWriteStream(out)
 const zip = new ZipArchive({ zlib: { level: 9 } })
