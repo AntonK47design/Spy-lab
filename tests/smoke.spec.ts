@@ -62,6 +62,7 @@ test('core loop: sign up a cadet, carry kits, station pays into the cash pile', 
 test('tap to explain shows a card without pausing', async ({ page }) => {
   await boot(page)
   await spy(page, 'quickStart')
+  await park(page) // next to the vault, so its crate is on screen
   await page.waitForTimeout(300)
   const pos = await page.evaluate(() => {
     const g = (window as any).__spylab

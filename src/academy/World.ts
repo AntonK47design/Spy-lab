@@ -261,7 +261,7 @@ export class World {
     b.rbox(0.8, 0.8, 0.08, sx + 2.2, 2.5, sz + 0.2, PAL.brandYellow, 0.2)
     this.colliders.push({ minX: sx - 1.6, maxX: sx + 1.6, minZ: sz - 0.8, maxZ: sz + 0.1, id: 'stop' })
     // sidewalk furniture
-    for (const x of [-12, 0.5, 12]) {
+    for (const x of [-12, 2.6, 12]) {
       b.prop(P.streetlight, x, st.road0 - 0.5)
       this.colliders.push({ minX: x - 0.2, maxX: x + 0.2, minZ: st.road0 - 0.7, maxZ: st.road0 - 0.3, id: 'lamp' })
     }

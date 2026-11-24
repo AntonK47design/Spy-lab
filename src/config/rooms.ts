@@ -83,8 +83,8 @@ export const LAYOUT = {
     { x: 3.0, z: 11.4 },
   ],
   clerkPad: { x: 9.0, z: 7.2 },
-  /** Walkable street in front of the bakery: sidewalk, road, taxi stop where cadets get out. */
-  street: { sidewalk0: 12.0, road0: 15.4, road1: 20.6, plotFront: 21.3, laneIn: 17.0, laneOut: 19.2, stopX: -9.5, stopZ: 15.9 },
+  /** Walkable street in front of the bakery: sidewalk, road, taxi stop where cadets get out (stopX keeps the old 9.5 m to the street door). */
+  street: { sidewalk0: 12.0, road0: 15.4, road1: 20.6, plotFront: 21.3, laneIn: 17.0, laneOut: 19.2, stopX: -2.6, stopZ: 15.9 },
   /** Max slots ever placed in a room (visual stations). */
   maxSlots: 6,
 } as const
@@ -316,7 +316,7 @@ export function arrivalPath(queueIndex: number): { x: number; z: number }[] {
   return [
     { x: st.stopX, z: st.stopZ },
     { x: st.stopX + 1.2, z: 13.8 },
-    { x: -0.4, z: 13.8 },
+    { x: LAYOUT.streetDoor.x - 0.4, z: 13.8 },
     { x: LAYOUT.streetDoor.x, z: LAYOUT.streetDoor.z },
     { x: LAYOUT.streetDoor.x + 0.6, z: 11.4 },
     q,

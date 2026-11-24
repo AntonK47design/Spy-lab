@@ -63,9 +63,10 @@ test('walking only along the arrow + floor trail (real collisions, no teleport) 
 test('arrow stays on the vault station; a floor trail leads around the bakery wall to it', async ({ page }) => {
   await boot(page)
   // on the sidewalk the desk is behind the shop front: the trail turns at the street door, marked
-  await spy(page, 'teleport', 4.2, 13.6) // off the door line: the shop front is in the way
-  await expect.poll(async () => (await spy<any>(page, 'guideRoute')).corners).toBeGreaterThan(0)
   await goTo(page, 'welcome', 'vault')
+  await expect.poll(async () => (await state(page)).tutorial).toBe(1)
+  await spy(page, 'teleport', 2.0, 14.2) // off the door line: the shop front is between hero and desk
+  await expect.poll(async () => (await spy<any>(page, 'guideRoute')).corners).toBeGreaterThan(0)
   await goTo(page, 'serve', 'vault')
   await expect.poll(async () => (await state(page)).tutorial).toBe(2)
   const target = await spy<{ x: number; z: number; kind: string }>(page, 'guide')
