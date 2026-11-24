@@ -57,6 +57,16 @@ export const GUIDE_TRAIL = {
   /** Height above y = 0 (floor tiles end at 0.05). */
   lift: 0.08,
   color: 0xf2b134,
+  /** Dark rim under every chevron so the trail reads on pale floors. */
+  outlineColor: 0x14213d,
+  outlineScale: 1.3,
+  /** Turns of the route (doorways): a bigger, brighter, pulsing chevron pointing along the next leg. */
+  cornerColor: 0xff9f1a,
+  cornerSize: 1.2,
+  cornerPulse: 0.18,
+  cornerPulseHz: 1.6,
+  /** No corner marker while the hero stands this close to it (m). */
+  cornerSkipHero: 0.6,
   /** Seconds between route re-plans while walking. */
   replanSeconds: 0.2,
 } as const

@@ -780,11 +780,11 @@ export class Game {
   }
 
   /** QA: the floor trail's route to the arrow target (null = straight reach) and chevrons drawn. */
-  debugGuideRoute(): { route: NavP[] | null; chevrons: number } {
+  debugGuideRoute(): { route: NavP[] | null; chevrons: number; corners: number } {
     const t = this.mode === 'academy' && !panel.value ? this.objectiveTarget() : null
-    if (!t) return { route: null, chevrons: this.trail.shown }
+    if (!t) return { route: null, chevrons: this.trail.shown, corners: this.trail.cornersShown }
     this.nav.sync(this.world.colliders)
-    return { route: this.nav.route({ x: this.player.x, z: this.player.z }, t), chevrons: this.trail.shown }
+    return { route: this.nav.route({ x: this.player.x, z: this.player.z }, t), chevrons: this.trail.shown, corners: this.trail.cornersShown }
   }
 
   /** Rebuild pads from the state (debug / QA). */

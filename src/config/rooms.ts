@@ -65,7 +65,8 @@ export const LAYOUT = {
   wall: 0.3,
   bakery: { x: 0, z: 9, w: 25, d: 6 },
   /** Bakery street door and back door into the secret corridor. */
-  streetDoor: { x: 0, z: 12.6 },
+  /** In line with the counter (x), so walking straight from the sidewalk to the desk goes through it. */
+  streetDoor: { x: 6.9, z: 12.6 },
   backDoor: { x: 0, z: 5.6 },
   /** The game starts on the sidewalk in front of the bakery (tutorial begins outside). */
   playerSpawn: { x: 2.6, z: 14.0 },

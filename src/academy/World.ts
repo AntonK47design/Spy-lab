@@ -173,31 +173,33 @@ export class World {
     this.wallX(b, LAYOUT.corridorWidth / 2, x0 + bk.w, back, BACK_WALL, this.shop.wall, this.shop.trim)
     this.wallZ(b, x0, back, front, 1.4, this.shop.wall, this.shop.trim)
     this.wallZ(b, x0 + bk.w, back, front, 1.4, this.shop.wall, this.shop.trim)
-    this.wallX(b, x0, -1.3, front, STUB, this.shop.wall, this.shop.trim)
-    this.wallX(b, 1.3, x0 + bk.w, front, STUB, this.shop.wall, this.shop.trim)
+    // the street door sits in line with the sign-up desk (walk straight in from the sidewalk)
+    const DX = LAYOUT.streetDoor.x
+    this.wallX(b, x0, DX - 1.3, front, STUB, this.shop.wall, this.shop.trim)
+    this.wallX(b, DX + 1.3, x0 + bk.w, front, STUB, this.shop.wall, this.shop.trim)
     // striped awning stubs + shop sign over the street door
-    for (let i = 0; i < 12; i++) if (Math.abs(x0 + (i + 0.5) * (bk.w / 12)) > 2.7) b.rbox(bk.w / 12 - 0.02, 0.14, 0.9, x0 + (i + 0.5) * (bk.w / 12), 0.55, front + 0.45, i % 2 ? PAL.white : PAL.coral, 0.04)
+    for (let i = 0; i < 12; i++) if (Math.abs(x0 + (i + 0.5) * (bk.w / 12) - DX) > 2.7) b.rbox(bk.w / 12 - 0.02, 0.14, 0.9, x0 + (i + 0.5) * (bk.w / 12), 0.55, front + 0.45, i % 2 ? PAL.white : PAL.coral, 0.04)
     // street door: a small full-height facade (pillars + lintel + sign + awning) so the
     // entrance reads at once, glass leaves folded open flat against the pillars
     const DOOR = 0x7a3e2b
     const H = 2.7
     for (const sd of [-1, 1]) {
-      const cx = sd * 2.0
+      const cx = DX + sd * 2.0
       b.rbox(1.24, H, 0.36, cx, H / 2, front, this.shop.wall, 0.05)
       b.rbox(1.3, 0.2, 0.42, cx, 0.1, front, PAL.wallSkirt, 0.04)
-      b.rbox(0.2, H, 0.44, sd * 1.36, H / 2, front, DOOR, 0.05)
+      b.rbox(0.2, H, 0.44, DX + sd * 1.36, H / 2, front, DOOR, 0.05)
       // open leaf: frame + glass + handle, lying on the pillar's street face
       b.rbox(1.1, 2.15, 0.07, cx + sd * 0.02, 1.1, front + 0.24, DOOR, 0.03)
       b.rbox(0.86, 1.75, 0.08, cx + sd * 0.02, 1.2, front + 0.25, 0xbfe3ff, 0.02)
       b.rbox(0.06, 0.34, 0.1, cx - sd * 0.38, 1.05, front + 0.3, PAL.brandYellow, 0.02)
     }
-    b.rbox(5.3, 0.5, 0.44, 0, H + 0.2, front, DOOR, 0.06)
-    b.rbox(4.6, 0.8, 0.2, 0, H + 0.85, front + 0.08, DOOR, 0.06)
-    b.rbox(4.3, 0.56, 0.06, 0, H + 0.85, front + 0.2, PAL.white, 0.03)
-    b.rbox(3.8, 0.1, 0.07, 0, H + 0.68, front + 0.23, this.shop.trim, 0.02)
-    for (let i = 0; i < 5; i++) b.rbox(0.62, 0.1, 0.8, -1.24 + i * 0.62, H - 0.15, front + 0.55, i % 2 ? PAL.white : this.shop.awning, 0.03)
-    b.rbox(2.3, 0.03, 1.1, 0, 0.02, front + 0.7, this.shop.trim, 0.02)
-    b.rbox(2.0, 0.035, 0.85, 0, 0.025, front + 0.7, 0x9c3b2f, 0.02)
+    b.rbox(5.3, 0.5, 0.44, DX, H + 0.2, front, DOOR, 0.06)
+    b.rbox(4.6, 0.8, 0.2, DX, H + 0.85, front + 0.08, DOOR, 0.06)
+    b.rbox(4.3, 0.56, 0.06, DX, H + 0.85, front + 0.2, PAL.white, 0.03)
+    b.rbox(3.8, 0.1, 0.07, DX, H + 0.68, front + 0.23, this.shop.trim, 0.02)
+    for (let i = 0; i < 5; i++) b.rbox(0.62, 0.1, 0.8, DX - 1.24 + i * 0.62, H - 0.15, front + 0.55, i % 2 ? PAL.white : this.shop.awning, 0.03)
+    b.rbox(2.3, 0.03, 1.1, DX, 0.02, front + 0.7, this.shop.trim, 0.02)
+    b.rbox(2.0, 0.035, 0.85, DX, 0.025, front + 0.7, 0x9c3b2f, 0.02)
 
     // back wall: pastry kitchen in the left corner; the middle of the wall is the hidden
     // passage into the courtyard (bread shelves slide aside, see syncSecretDoor)
@@ -242,10 +244,11 @@ export class World {
     b.rbox(half * 2, 0.06, rd, 0, 0.0, st.road0 + rd / 2, PAL.road, 0.02)
     b.rbox(half * 2, 0.16, 0.25, 0, 0.06, st.road0, PAL.curbTop, 0.04)
     b.rbox(half * 2, 0.16, 0.25, 0, 0.06, st.road1, PAL.curbTop, 0.04)
-    for (let x = -half + 1; x < half - 1; x += 2.4) if (Math.abs(x) > 2.2) b.rbox(1.2, 0.02, 0.14, x, 0.04, (st.laneIn + st.laneOut) / 2, PAL.roadLine, 0.01)
+    const DX = LAYOUT.streetDoor.x
+    for (let x = -half + 1; x < half - 1; x += 2.4) if (Math.abs(x - DX) > 2.2) b.rbox(1.2, 0.02, 0.14, x, 0.04, (st.laneIn + st.laneOut) / 2, PAL.roadLine, 0.01)
     // zebra: bars run along the road, spaced across it (walking direction = z)
     const bars = Math.floor((rd - 0.6) / 0.8)
-    for (let i = 0; i < bars; i++) b.rbox(3.0, 0.02, 0.42, 0, 0.035, st.road0 + 0.5 + i * 0.8 + 0.21, PAL.white, 0.01)
+    for (let i = 0; i < bars; i++) b.rbox(3.0, 0.02, 0.42, DX, 0.035, st.road0 + 0.5 + i * 0.8 + 0.21, PAL.white, 0.01)
     // taxi stop: bench, sign, shelter
     const sx = st.stopX
     const sz = st.road0 - 1.1
@@ -258,7 +261,7 @@ export class World {
     b.rbox(0.8, 0.8, 0.08, sx + 2.2, 2.5, sz + 0.2, PAL.brandYellow, 0.2)
     this.colliders.push({ minX: sx - 1.6, maxX: sx + 1.6, minZ: sz - 0.8, maxZ: sz + 0.1, id: 'stop' })
     // sidewalk furniture
-    for (const x of [-12, 6.5, 12]) {
+    for (const x of [-12, 0.5, 12]) {
       b.prop(P.streetlight, x, st.road0 - 0.5)
       this.colliders.push({ minX: x - 0.2, maxX: x + 0.2, minZ: st.road0 - 0.7, maxZ: st.road0 - 0.3, id: 'lamp' })
     }
