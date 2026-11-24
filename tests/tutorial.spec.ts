@@ -63,7 +63,7 @@ test('walking only along the arrow + floor trail (real collisions, no teleport) 
 test('arrow stays on the vault station; a floor trail leads around the bakery wall to it', async ({ page }) => {
   await boot(page)
   // on the sidewalk the desk is behind the shop front: the trail turns at the street door, marked
-  await spy(page, 'teleport', 4.2, 13.4)
+  await spy(page, 'teleport', 4.2, 13.6) // off the door line: the shop front is in the way
   await expect.poll(async () => (await spy<any>(page, 'guideRoute')).corners).toBeGreaterThan(0)
   await goTo(page, 'welcome', 'vault')
   await goTo(page, 'serve', 'vault')
@@ -92,4 +92,17 @@ test('arrow stays on the vault station; a floor trail leads around the bakery wa
     return (performance.now() - t0) / 50
   })
   expect(ms).toBeLessThan(2)
+})
+
+test('opening is one straight line: spawn -> starting cash -> street door -> sign-up desk', async ({ page }) => {
+  await boot(page)
+  // the arrow points at the cash; nothing in the way, so no floor-trail detour
+  expect((await spy<any>(page, 'guide')).kind).toBe('tut:cash')
+  expect((await spy<any>(page, 'guideRoute')).route).toBeNull()
+  // walk straight up (arrow key only) and the cash, then the desk, are reached without steering
+  await page.mouse.click(5, 300)
+  await page.keyboard.down('ArrowUp')
+  await expect.poll(async () => (await state(page)).tutorial, { timeout: 15_000, intervals: [100] }).toBeGreaterThanOrEqual(2)
+  await page.keyboard.up('ArrowUp')
+  expect((await spy<any>(page, 'raw')).counter).toBe(true)
 })

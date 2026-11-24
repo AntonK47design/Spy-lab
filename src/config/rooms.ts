@@ -68,13 +68,13 @@ export const LAYOUT = {
   /** In line with the counter (x), so walking straight from the sidewalk to the desk goes through it. */
   streetDoor: { x: 6.9, z: 12.6 },
   backDoor: { x: 0, z: 5.6 },
-  /** The game starts on the sidewalk in front of the bakery (tutorial begins outside). */
-  playerSpawn: { x: 2.6, z: 14.0 },
+  /** The game starts on the sidewalk in front of the bakery (tutorial begins outside), in one line with cash, street door and desk. */
+  playerSpawn: { x: 6.9, z: 15.1 },
   /** Bakery counter = cadet sign-up desk. Hero serves standing behind it (serveSpot). */
   counter: { x: 6.9, z: 8.6 },
   serveSpot: { x: 6.9, z: 7.4 },
   /** Opening cash pile right next to the spawn (lesson: first cash <= 2 m away). */
-  welcomeSpot: { x: 4.2, z: 13.4 },
+  welcomeSpot: { x: 6.9, z: 13.4 },
   /** Waiting spots in front of the counter (first = being served). */
   queue: [
     { x: 6.9, z: 9.9 },

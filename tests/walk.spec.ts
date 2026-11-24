@@ -32,7 +32,7 @@ test('walking from the street: build the desk, never trapped, first sign-up work
   await boot(page)
   await page.mouse.click(5, 300)
   const raw = () => spy<any>(page, 'raw')
-  expect(await walk(page, 4.2, 13.4)).toBe(true) // welcome cash on the sidewalk
+  expect(await walk(page, 6.9, 13.4)).toBe(true) // welcome cash on the sidewalk
   expect(await walk(page, 6.9, 13.2)).toBe(true) // street door (in line with the desk)
   expect(await walk(page, 6.9, 11)).toBe(true)
   expect(await walk(page, 6.9, 7.4)).toBe(true) // desk pad
