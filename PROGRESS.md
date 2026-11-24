@@ -255,3 +255,10 @@ Beat Sheet OK (Laser Gym 1:45, erste Automatisierung, Hafen 7:52), Level 10 bei 
 ## Auswertung 0.6.5 (Sandbox seit 23.11. 07:31 UTC) — 2026-11-24
 - **Achtung:** das hochgeladene Archiv `spy-lab-0.6.5` meldet `build_version` **0.6.4** (gepackt aus einem `dist/`, das vor dem Versionssprung gebaut war; Code = 0.6.5 inkl. Bodenspur). Telemetrie daher nach Uhrzeit trennen. `npm run package` bricht jetzt ab, wenn `dist/` nicht die package.json-Version trägt.
 - Gratis-Traffic beendet (23.11. 21:10, Ziel 35 %). Nach dem Release nur 7 neue Spieler: Bargeld 7 → Tresen 4 → Tresor 3 → Tutorial fertig 3 → erster Absolvent 3 → Laser Gym 2 → Hafen 1. Niemand irrte mehr minutenlang ohne Tresor herum (vorher 4 Spieler 3–6 Min); 3 von 7 gingen nach < 30 s direkt nach dem Bargeld. Zu wenig Daten für eine belastbare Aussage.
+
+## Gerader Einstieg (Reddit-Feedback) — 2026-11-24
+- Feedback: Spieler lief vom Startgeld direkt Richtung Tresen und gegen die Ladenfront; die Spur-Kurve zur Tür ging auf den hellen Fliesen unter.
+- Ladentür (mit Fassade, Matte, Zebrastreifen) jetzt in Linie mit dem Tresen (x 6,9); Spawn (6,9 | 15,1) und Startgeld (6,9 | 13,4, 1,7 m: außerhalb des 1,4-m-Sammelradius, innerhalb der 2-m-Regel) auf derselben Linie → einmal „hoch“ halten reicht bis zum Tresen (neuer Test).
+- Bodenspur: dunkler Rand unter jedem Pfeil, großer pulsierender Bernstein-Pfeil an jeder Kurve (2 Draw Calls).
+- Taxi-Haltestelle wandert mit der Tür (stopX −2,6), damit die Kadettenwege nicht länger werden (14,5–17,4 m statt 20,7–23,6 m); Tempo-Test 5 Min: längste Lücke 32,8 s (vorher 32,3 s, mit langen Wegen 36–38 s). Laterne aus dem Weg (x 2,6).
+- Tests: Tempo 2× grün, Tutorial/Walk/Smoke/Save 23/23 grün. Noch nicht hochgeladen (nächste Version 0.6.6).
