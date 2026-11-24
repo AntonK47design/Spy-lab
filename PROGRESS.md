@@ -261,4 +261,4 @@ Beat Sheet OK (Laser Gym 1:45, erste Automatisierung, Hafen 7:52), Level 10 bei 
 - Ladentür (mit Fassade, Matte, Zebrastreifen) jetzt in Linie mit dem Tresen (x 6,9); Spawn (6,9 | 15,1) und Startgeld (6,9 | 13,4, 1,7 m: außerhalb des 1,4-m-Sammelradius, innerhalb der 2-m-Regel) auf derselben Linie → einmal „hoch“ halten reicht bis zum Tresen (neuer Test).
 - Bodenspur: dunkler Rand unter jedem Pfeil, großer pulsierender Bernstein-Pfeil an jeder Kurve (2 Draw Calls).
 - Taxi-Haltestelle wandert mit der Tür (stopX −2,6), damit die Kadettenwege nicht länger werden (14,5–17,4 m statt 20,7–23,6 m); Tempo-Test 5 Min: längste Lücke 32,8 s (vorher 32,3 s, mit langen Wegen 36–38 s). Laterne aus dem Weg (x 2,6).
-- Tests: Tempo 2× grün, Tutorial/Walk/Smoke/Save 23/23 grün. Noch nicht hochgeladen (nächste Version 0.6.6).
+- Tests: Tempo 2× grün, Tutorial/Walk/Smoke/Save 23/23 grün. Archiv **`spy-lab-0.6.6`** (meldet korrekt build_version 0.6.6) auf Antons Ja hochgeladen und in der Sandbox veröffentlicht.
